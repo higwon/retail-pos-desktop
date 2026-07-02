@@ -1,0 +1,76 @@
+# AI Instructions
+
+This document is written for Codex or any AI coding agent working on this repository.
+
+## Required Behavior
+
+Before writing code:
+
+1. Read every document under `/docs`.
+2. Understand the project goal, architecture, and roadmap.
+3. Implement only the requested task.
+4. Do not redesign the architecture unless explicitly requested.
+5. If documentation and existing code conflict, follow the documentation unless the user says otherwise.
+
+## Project Identity
+
+This is a general retail POS desktop system.
+Do not reference any specific company, brand, or employer in code, UI, README, namespaces, sample data, or comments.
+
+## Core Engineering Rules
+
+- Use C# and .NET 8.
+- Use WPF for the desktop client.
+- Use MVVM strictly.
+- Do not reference View classes from ViewModels.
+- Use CommunityToolkit.Mvvm for observable properties and commands.
+- Use Microsoft.Extensions.DependencyInjection for dependency injection.
+- Keep business logic out of XAML code-behind.
+- Keep domain rules independent from WPF and database frameworks.
+- Prefer readable, professional code over compact clever code.
+- Avoid temporary hacks unless explicitly marked and tracked.
+- Add or update tests when business logic changes.
+- Update relevant documentation when architecture or behavior changes.
+
+## Layering Rules
+
+The intended dependency direction is:
+
+```text
+Desktop/API -> Application -> Domain
+Infrastructure -> Application/Domain
+```
+
+The Domain project must not depend on:
+
+- WPF
+- Entity Framework Core
+- SQLite
+- SQL Server
+- ASP.NET Core
+- HTTP clients
+- Device-specific implementations
+
+## UI Rules
+
+- Make the UI suitable for cashier workflows.
+- Prioritize keyboard-first operation.
+- Support touch-friendly controls where reasonable.
+- Keep important actions visible.
+- Avoid over-designed portfolio UI that would not fit real POS work.
+
+## Commit Style
+
+Use conventional commits:
+
+- `docs: ...`
+- `feat: ...`
+- `fix: ...`
+- `refactor: ...`
+- `test: ...`
+- `chore: ...`
+
+## First Implementation Task
+
+The first coding task should only create the solution structure, project references, basic WPF shell, DI setup, and placeholder screens.
+Do not implement full business logic in the first task.
