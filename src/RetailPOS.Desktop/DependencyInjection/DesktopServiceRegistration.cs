@@ -15,10 +15,14 @@ public static class DesktopServiceRegistration
         services.AddTransient<PosMainView>();
         services.AddTransient<ProductGridView>();
         services.AddTransient<CartPanelView>();
+        services.AddTransient<CustomerDisplayWindow>();
         services.AddTransient<LoginViewModel>();
         services.AddTransient<PosMainViewModel>();
         services.AddTransient<ProductGridViewModel>();
         services.AddTransient<CartPanelViewModel>();
+        services.AddTransient<CustomerDisplayViewModel>();
+        services.AddTransient<Func<CustomerDisplayWindow>>(provider =>
+            () => provider.GetRequiredService<CustomerDisplayWindow>());
 
         return services;
     }

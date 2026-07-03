@@ -8,6 +8,9 @@
                 <TextBlock Text="Retail POS" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Border Background="#FFDCFCE7" CornerRadius="12" Padding="12,5" Margin="0,0,18,0"><TextBlock Text="Online" Foreground="#FF166534" FontSize="12"/></Border>
+                    <Button Content="Customer Display" Style="{StaticResource SecondaryButtonStyle}"
+                            MinHeight="34" Padding="12,4" Margin="0,0,18,0"
+                            Click="OnOpenCustomerDisplay" />
                     <TextBlock Text="Cashier A" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
