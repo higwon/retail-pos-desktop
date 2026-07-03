@@ -24,7 +24,7 @@ Tasks:
 - Configure project references.
 - Add basic DI setup.
 - Add basic WPF shell.
-- Add placeholder navigation.
+- Add an empty NavigationHost.
 
 Expected commit:
 
@@ -46,6 +46,8 @@ Tasks:
 - Payment
 - Discount result
 - Basic domain tests
+
+Feature screen placeholders are created as a separate task after the initial solution setup. They are not part of the first implementation task.
 
 Expected commit:
 
@@ -101,6 +103,8 @@ Tasks:
 - Receipt generator
 - Receipt printer simulator
 - Order completion UI
+- PendingCheckout persistence before payment approval
+- Approved checkout recovery after restart
 
 Expected commit:
 
@@ -174,6 +178,7 @@ Tasks:
 - Logging improvements
 - Error recovery
 - Retry policy refinement
+- Exponential backoff with a maximum of 5 automatic attempts
 
 Expected commit:
 
@@ -193,3 +198,14 @@ Tasks:
 - Add sample seed data guide.
 - Add known limitations.
 - Add future improvements.
+
+## Product Phase 2: Post-MVP Features
+
+This product phase is separate from the numbered implementation phase named `Phase 2: Domain Model MVP`.
+
+- Coupon discounts
+- Promotional discounts
+- Membership discounts
+- Discount rule engine
+- Refund workflow
+- Order cancellation workflow

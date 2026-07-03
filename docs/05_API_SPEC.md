@@ -77,13 +77,21 @@ Required behavior:
 
 - Must support idempotency.
 - If the same idempotency key already exists, return the existing server order result.
+- Treat `storeId + terminalId + localOrderId` as the order's idempotency identity.
+- Generate one stable `idempotencyKey` for each `storeId + terminalId + localOrderId` identity and reuse it for every retry.
+- Deduct server stock only when the server order is created for the first time.
+- A duplicate request must return the existing result without deducting stock again.
 
 Request:
 
 ```json
 {
+  "storeId": "guid",
+  "terminalId": "guid",
+  "localOrderId": "guid",
   "idempotencyKey": "client-generated-guid",
   "localOrderNumber": "POS-20260702-000001",
+  "businessDate": "2026-07-02",
   "cashierId": "guid",
   "subtotalAmount": 10000,
   "discountAmount": 1000,

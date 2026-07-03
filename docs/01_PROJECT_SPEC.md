@@ -53,6 +53,8 @@ The goal is to build a portfolio-quality desktop system that shows practical eng
 - Offline mode
 - Pending synchronization queue
 - Server synchronization
+- Recoverable pending checkout
+- Cached employee login for offline mode
 - Sales history
 - Stock management
 - Admin dashboard
@@ -91,3 +93,7 @@ The MVP is complete when:
 6. The app can queue orders while offline.
 7. Basic receipt text can be generated.
 8. The core business logic has tests.
+
+The MVP supports only manual fixed-amount and percentage discounts. Coupons, promotions, membership discounts, and a general discount rule engine are Phase 2 features.
+
+Refunds and order cancellation are excluded from the MVP and belong to Phase 2.

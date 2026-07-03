@@ -22,6 +22,8 @@ The central database exists to represent synchronized store/server data.
 - Role
 - PasswordHash or local auth token placeholder for development
 - IsActive
+- LastOnlineAuthenticatedAt
+- PermissionsSyncedAt
 
 #### Products
 
@@ -32,6 +34,7 @@ The central database exists to represent synchronized store/server data.
 - CategoryId
 - UnitPrice
 - StockQuantity
+- ServerStockQuantity
 - IsActive
 - UpdatedAt
 
@@ -44,6 +47,9 @@ The central database exists to represent synchronized store/server data.
 #### Orders
 
 - Id
+- StoreId
+- TerminalId
+- LocalOrderId
 - LocalOrderNumber
 - ServerOrderId nullable
 - CashierId
@@ -51,11 +57,32 @@ The central database exists to represent synchronized store/server data.
 - PaymentStatus
 - SyncStatus
 - IdempotencyKey
+- BusinessDate
 - SubtotalAmount
 - DiscountAmount
 - TotalAmount
 - CreatedAt
 - SyncedAt nullable
+
+#### PendingCheckouts
+
+- Id
+- StoreId
+- TerminalId
+- LocalCheckoutId
+- CashierId
+- CartSnapshotJson
+- PaymentMethod
+- PaymentStatus
+- ApprovalCode nullable
+- ApprovedAmount nullable
+- RecoveryStatus
+- CreatedAt
+- PaymentApprovedAt nullable
+- OrderId nullable
+- CompletedAt nullable
+
+`PendingCheckout` is saved before payment approval is requested. An approved checkout remains in `ApprovedButOrderNotCreated` until its order is durably saved. This record supports recovery after application or machine restart.
 
 #### OrderLines
 
@@ -91,6 +118,8 @@ The central database exists to represent synchronized store/server data.
 - LastError
 - CreatedAt
 - LastAttemptedAt nullable
+
+Automatic retries use exponential backoff and stop after 5 attempts. Exhausted items remain available for manual review or retry.
 
 #### DeviceLogs
 
@@ -134,6 +163,8 @@ Recommended enum:
 - Cancelled
 - Refunded
 
+`Cancelled` and `Refunded` are reserved for Product Phase 2 and are not implemented in the MVP workflow.
+
 ## Payment Status Values
 
 Recommended enum:
@@ -148,6 +179,24 @@ Recommended enum:
 Every locally completed order should have an `IdempotencyKey`.
 
 The API should use this key to prevent duplicate order creation if the client retries after a timeout.
+
+For order uploads, the idempotency identity is the tuple `StoreId + TerminalId + LocalOrderId`. The transmitted `IdempotencyKey` represents this identity and is protected by a unique server-side constraint.
+
+## Stock Projection
+
+- Server stock is authoritative.
+- `ServerStockQuantity` stores the last synchronized server value.
+- `StockQuantity` is the local estimated value displayed to the user.
+- Pending deduction is the total sold quantity in locally completed orders that have not synchronized successfully.
+- Local estimated stock is calculated as `ServerStockQuantity - PendingDeductionQuantity`.
+- A product refresh updates the server value and then reapplies pending deductions instead of overwriting local estimates directly.
+
+## Data Type Rules
+
+- Monetary columns use a decimal-compatible mapping and contain whole KRW amounts.
+- Fractional won values are not stored.
+- Timestamps are persisted in UTC.
+- `BusinessDate` is the store-local calendar date used for reporting and is not a replacement for UTC timestamps.
 
 ## Initial Migration Rule
 

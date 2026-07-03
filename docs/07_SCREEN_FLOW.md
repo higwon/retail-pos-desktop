@@ -39,8 +39,10 @@ Call Login API
 ↓
 Success: Open POS Main
 Failure: Show Error
-Server Unavailable: Allow Offline Login only if supported later
+Server Unavailable: Validate cached employee credentials
 ```
+
+The first login on a terminal requires the server. A successful online login refreshes the local employee credential cache and permission snapshot. Offline login is allowed only for cached employees for 7 days after their most recent successful online authentication.
 
 ## Product Scan Flow
 
@@ -72,6 +74,19 @@ If Approved:
 If Failed:
     Keep Cart
     Show Payment Failure
+```
+
+## Checkout Persistence and Recovery
+
+Before opening the payment approval flow, save a `PendingCheckout` containing the confirmed cart snapshot. After approval, persist the approval result, create and save the order, add its sync queue item, and mark the pending checkout completed.
+
+```text
+App Start
+-> Find PendingCheckout records in ApprovedButOrderNotCreated
+-> If any exist, open Checkout Recovery
+-> Recreate Order idempotently or leave for Manager Review
+-> After successful order save, add Sync Queue item
+-> Mark PendingCheckout Completed
 ```
 
 ## Offline Sync Flow

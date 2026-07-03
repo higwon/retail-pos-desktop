@@ -60,6 +60,13 @@ Examples:
 - Commands end with `Command`.
 - Observable properties should use CommunityToolkit.Mvvm where possible.
 
+## Money and Time
+
+- Use `decimal` for all monetary values.
+- Use KRW and round to whole won with no fractional amount.
+- Store timestamps in UTC and convert them to local time only for display.
+- Keep store-local `BusinessDate` separate from UTC event timestamps.
+
 ## Error Handling
 
 - Do not swallow exceptions silently.

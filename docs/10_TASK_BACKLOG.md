@@ -12,7 +12,8 @@ Acceptance criteria:
 - WPF desktop project runs.
 - Project references follow the architecture document.
 - Basic DI container is configured.
-- MainWindow opens with placeholder navigation.
+- MainWindow opens with an empty NavigationHost.
+- No feature placeholder screens are created in Task 1.
 
 ### Task 2: Add Basic Shell UI
 
@@ -26,11 +27,13 @@ Screens:
 - Receipt Dialog placeholder
 - Sync Status
 - Admin Dashboard
+- Checkout Recovery
 
 Acceptance criteria:
 
 - User can navigate between placeholder screens.
 - No business logic is required yet.
+- Task 2 does not add domain, persistence, payment, or synchronization behavior.
 
 ### Task 3: Add Domain Models
 
@@ -70,6 +73,8 @@ Acceptance criteria:
 - Payment simulator returns approved/failed result.
 - Approved order is saved locally.
 - Cart is cleared after successful checkout.
+- PendingCheckout is saved before payment approval is requested.
+- An approved checkout whose order was not created can be recovered after restart.
 
 ## Later Tasks
 
@@ -80,9 +85,12 @@ Acceptance criteria:
 - Add order synchronization.
 - Add sync retry policy.
 - Add idempotency key handling.
+- Add exponential backoff with at most 5 automatic retry attempts.
 - Add admin dashboard.
 - Add performance test data.
 - Add screenshots and demo guide.
+- Add coupon, promotion, membership, and discount rule engine features after MVP.
+- Add refund and order cancellation after MVP.
 
 ## Codex Task Prompt Template
 

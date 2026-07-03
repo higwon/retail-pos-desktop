@@ -37,8 +37,11 @@ Do not reference any specific company, brand, or employer in code, UI, README, n
 The intended dependency direction is:
 
 ```text
-Desktop/API -> Application -> Domain
+Desktop -> Application/Domain/Infrastructure
+API -> Application/Domain/Infrastructure
 Infrastructure -> Application/Domain
+Application -> Domain
+Domain -> none
 ```
 
 The Domain project must not depend on:
@@ -72,5 +75,6 @@ Use conventional commits:
 
 ## First Implementation Task
 
-The first coding task should only create the solution structure, project references, basic WPF shell, DI setup, and placeholder screens.
-Do not implement full business logic in the first task.
+The first coding task should only create the solution structure, project references, DI setup, a running `MainWindow`, and an empty `NavigationHost`.
+Placeholder feature screens belong to the second task.
+Do not implement feature screens or business logic in the first task.

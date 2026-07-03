@@ -74,10 +74,11 @@ The cashier can continue selling products even when the network is unavailable.
 2. Product is scanned or searched.
 3. Cart is updated.
 4. Discounts are applied.
-5. Payment is approved through a simulator.
-6. Receipt is printed through a simulator.
-7. Order is stored locally.
-8. When the network returns, pending orders are synchronized with the server.
+5. A recoverable pending checkout is stored locally.
+6. Payment is approved through a simulator.
+7. The order is stored locally and the pending checkout is completed.
+8. Receipt is printed through a simulator.
+9. When the network returns, pending orders are synchronized with the server.
 
 ## Development Rule
 

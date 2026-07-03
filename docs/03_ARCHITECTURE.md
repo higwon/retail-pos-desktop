@@ -123,10 +123,28 @@ Avoid turning this into a dumping ground.
 ## Dependency Direction
 
 ```text
-RetailPOS.Desktop -> RetailPOS.Application -> RetailPOS.Domain
-RetailPOS.Api     -> RetailPOS.Application -> RetailPOS.Domain
-RetailPOS.Infrastructure -> RetailPOS.Application / RetailPOS.Domain
+RetailPOS.Desktop
+|- RetailPOS.Application
+|- RetailPOS.Domain
+`- RetailPOS.Infrastructure
+
+RetailPOS.Api
+|- RetailPOS.Application
+|- RetailPOS.Domain
+`- RetailPOS.Infrastructure
+
+RetailPOS.Infrastructure
+|- RetailPOS.Application
+`- RetailPOS.Domain
+
+RetailPOS.Application
+`- RetailPOS.Domain
+
+RetailPOS.Domain
+`- no project dependencies
 ```
+
+`RetailPOS.Desktop` and `RetailPOS.Api` are executable composition roots. Each executable project registers the application services and the infrastructure implementations it needs in its own DI setup. Infrastructure must not own application startup or the root service provider.
 
 ## MVVM Rules
 
@@ -168,6 +186,12 @@ Update UI
 ↓
 Background Sync Attempts
 ```
+
+## Recoverable Checkout Strategy
+
+Before requesting payment approval, the application saves a `PendingCheckout`. After approval, it records the approved result, creates and saves the order, adds the sync queue item, and only then marks the pending checkout completed.
+
+If the application restarts with a pending checkout in `ApprovedButOrderNotCreated`, it routes the user to checkout recovery. Recovery recreates the order idempotently or leaves it for manager review.
 
 ## Error Handling Strategy
 

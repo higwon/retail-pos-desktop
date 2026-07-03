@@ -7,6 +7,11 @@
 - Cashier can log in with employee ID and password.
 - The desktop app stores only the minimum required session state.
 - API authentication should use JWT after login.
+- The first login on a terminal must be completed online.
+- After a successful online login, the minimum employee authentication data required for offline login is cached locally.
+- Offline login is limited to previously cached employees and is valid for 7 days from their last successful online authentication.
+- Offline permissions use the role and permissions from the most recent successful synchronization.
+- Expired or missing cached credentials must not allow offline login.
 
 ### Product Search
 
@@ -24,19 +29,17 @@
 
 ### Discount Rules
 
-Initial rules:
+MVP rules:
 
 - Fixed amount discount
 - Percentage discount
-- Product-level discount
-- Cart-level discount
 
-Future rules:
+Phase 2 rules:
 
-- Buy N get M
+- Coupon discount
+- Promotional discount
 - Membership discount
-- Coupon code
-- Time-limited promotion
+- Discount rule engine
 
 ### Payment
 
@@ -44,6 +47,9 @@ Future rules:
 - Card payment simulation
 - Payment approval or failure result
 - Failed payment should not complete the order
+- A `PendingCheckout` must be persisted before requesting payment approval.
+- After approval, the order must be saved before the pending checkout is marked completed.
+- If payment is approved but order creation does not finish, the checkout must remain recoverable after application restart.
 
 ### Receipt
 
@@ -74,7 +80,18 @@ Future rules:
 
 - Stock decreases after order completion.
 - Local stock should be updated immediately.
-- Server stock synchronization can be improved in later phases.
+- Server stock is the authoritative stock value.
+- Local stock is an estimated display value that accounts for locally completed, unsynchronized orders.
+- Each unsynchronized order represents a pending stock deduction.
+- After successful order synchronization, the server deducts stock and the client refreshes server stock.
+- Product synchronization must not overwrite pending local deductions. Local estimated stock is calculated from synchronized server stock minus pending deduction quantities.
+
+### Checkout Recovery
+
+- Application startup must detect pending checkouts in an `ApprovedButOrderNotCreated` state.
+- The user must be shown a recovery screen when such records exist.
+- Recovery supports recreating the order or requesting manager review.
+- Recovery actions must be idempotent and must not create duplicate orders.
 
 ## Non-Functional Requirements
 
@@ -82,6 +99,7 @@ Future rules:
 
 - The app should not lose completed orders during network failure.
 - Local persistence must happen before marking an order as completed.
+- Checkout recovery state must survive process termination and machine restart.
 
 ### Performance
 
@@ -100,6 +118,25 @@ Future rules:
 - Do not commit secrets.
 - Do not store plain text passwords.
 - Use configuration files or user secrets for development secrets.
+
+### Money and Time
+
+- Monetary values use the .NET `decimal` type.
+- The MVP currency is KRW.
+- Amounts are rounded to whole won and do not retain fractional values.
+- Persist timestamps in UTC.
+- Convert timestamps to the local time zone for display.
+
+### Retry Policy
+
+- Synchronization retries use exponential backoff.
+- Automatic retry is limited to 5 attempts.
+- After 5 failed attempts, the item remains visible for manual review or retry.
+
+### MVP Scope Exclusions
+
+- Refund and order cancellation workflows are excluded from the MVP.
+- Refund and cancellation are planned for Phase 2.
 
 ## Suggested Sample Data
 

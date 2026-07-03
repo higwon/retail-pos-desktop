@@ -74,6 +74,14 @@ Recommended main screen structure:
 - Retry button
 - Last sync time
 
+### Checkout Recovery Screen
+
+- Show approved payments whose orders were not created.
+- Show checkout time, cashier, terminal, amount, payment method, and approval code.
+- Allow an idempotent order recreation attempt.
+- Allow the item to be left for manager review.
+- Do not permit a second payment approval from this screen.
+
 ### Admin Dashboard
 
 - Daily sales
