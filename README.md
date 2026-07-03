@@ -39,7 +39,11 @@ Codex or any AI coding agent should read the documents in this order before gene
 16. [Coding Standards](docs/15_CODING_STANDARDS.md)
 17. [Branch Strategy](docs/16_BRANCH_STRATEGY.md)
 18. [Definition of Done](docs/17_DEFINITION_OF_DONE.md)
-19. Architecture Decision Records under [docs/ADR](docs/ADR)
+19. [Local Persistence](docs/18_LOCAL_PERSISTENCE.md)
+20. [Repository Design](docs/19_REPOSITORY_DESIGN.md)
+21. [Entity Mapping](docs/20_ENTITY_MAPPING.md)
+22. [Persistence Flow](docs/21_PERSISTENCE_FLOW.md)
+23. Architecture Decision Records under [docs/ADR](docs/ADR)
 
 ## Figma UI Reference
 
