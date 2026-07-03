@@ -6,5 +6,5 @@
              mc:Ignorable="d"
              d:DesignHeight="720"
              d:DesignWidth="1280">
-    <Grid Background="{StaticResource AppBackgroundBrush}" />
+    <Grid x:Name="ContentRoot" Background="{StaticResource AppBackgroundBrush}" />
 </UserControl>
