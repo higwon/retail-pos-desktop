@@ -19,7 +19,8 @@ Examples:
 - RetailPOS.Application
 - RetailPOS.Infrastructure
 - RetailPOS.Api
-- RetailPOS.Shared
+
+Do not add a shared contracts project until the documentation explicitly introduces one.
 
 ### Classes
 

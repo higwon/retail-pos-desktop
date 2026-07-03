@@ -25,7 +25,7 @@
 - Cashier can change quantity.
 - Cashier can remove cart items.
 - Cart total updates immediately.
-- Cart should support discounts and taxes later.
+- Cart should support MVP manual discounts now and taxes later.
 
 ### Customer Display
 
@@ -35,7 +35,7 @@
 - During payment, the customer display shows the amount to pay and payment waiting status.
 - After payment approval, the customer display shows a thank-you message and receipt guidance.
 - The MVP implementation may use a separate WPF window on the same monitor.
-- Phase 2 can support real secondary-monitor placement and display selection.
+- Product Phase 2 can support real secondary-monitor placement and display selection.
 
 ### Discount Rules
 
@@ -44,7 +44,7 @@ MVP rules:
 - Fixed amount discount
 - Percentage discount
 
-Phase 2 rules:
+Product Phase 2 rules:
 
 - Coupon discount
 - Promotional discount
@@ -146,11 +146,11 @@ Phase 2 rules:
 ### MVP Scope Exclusions
 
 - Refund and order cancellation workflows are excluded from the MVP.
-- Refund and cancellation are planned for Phase 2.
+- Refund and cancellation are planned for Product Phase 2.
 
 ## Suggested Sample Data
 
 - 100 to 1,000 products for MVP.
 - 10,000+ orders for performance testing later.
 - Multiple product categories.
-- Several discount rule examples.
+- Several manual discount examples.

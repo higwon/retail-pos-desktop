@@ -34,6 +34,9 @@ Codex or any AI coding agent should read the documents in this order before gene
 11. [Task Backlog](docs/10_TASK_BACKLOG.md)
 12. [UI Design](docs/11_UI_DESIGN.md)
 13. [UI Changelog](docs/12_UI_CHANGELOG.md)
+14. [Epics and Tasks](docs/13_EPICS_AND_TASKS.md)
+15. [Project Board](docs/14_PROJECT_BOARD.md)
+16. Architecture Decision Records under [docs/ADR](docs/ADR)
 
 ## Figma UI Reference
 
@@ -63,17 +66,16 @@ The Figma file is the primary UI reference for WPF implementation. Follow `docs/
 
 ```text
 RetailPOS
-├── docs
-├── src
-│   ├── RetailPOS.Desktop
-│   ├── RetailPOS.Application
-│   ├── RetailPOS.Domain
-│   ├── RetailPOS.Infrastructure
-│   ├── RetailPOS.Api
-│   └── RetailPOS.Shared
-└── tests
-    ├── RetailPOS.Application.Tests
-    └── RetailPOS.Domain.Tests
+|- docs
+|- src
+|  |- RetailPOS.Desktop
+|  |- RetailPOS.Application
+|  |- RetailPOS.Domain
+|  |- RetailPOS.Infrastructure
+|  `- RetailPOS.Api
+`- tests
+   |- RetailPOS.Application.Tests
+   `- RetailPOS.Domain.Tests
 ```
 
 ## Core Scenario

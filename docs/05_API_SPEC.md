@@ -96,7 +96,7 @@ Request:
   "subtotalAmount": 10000,
   "discountAmount": 1000,
   "totalAmount": 9000,
-  "createdAt": "2026-07-02T10:00:00+09:00",
+  "createdAt": "2026-07-02T01:00:00Z",
   "lines": [
     {
       "productId": "guid",
@@ -179,7 +179,7 @@ Response:
 ```json
 {
   "status": "Healthy",
-  "serverTime": "2026-07-02T10:00:00+09:00"
+  "serverTime": "2026-07-02T01:00:00Z"
 }
 ```
 
@@ -191,3 +191,4 @@ Response:
 - Return clear error responses.
 - Use pagination for list endpoints.
 - Use idempotency for order upload.
+- Timestamp fields in API contracts use UTC ISO 8601 values. Store-local reporting dates use `businessDate`.

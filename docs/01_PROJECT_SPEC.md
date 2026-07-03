@@ -94,6 +94,6 @@ The MVP is complete when:
 7. Basic receipt text can be generated.
 8. The core business logic has tests.
 
-The MVP supports only manual fixed-amount and percentage discounts. Coupons, promotions, membership discounts, and a general discount rule engine are Phase 2 features.
+The MVP supports only manual fixed-amount and percentage discounts. Coupons, promotions, membership discounts, and a general discount rule engine are Product Phase 2 features.
 
-Refunds and order cancellation are excluded from the MVP and belong to Phase 2.
+Refunds and order cancellation are excluded from the MVP and belong to Product Phase 2.

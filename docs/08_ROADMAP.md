@@ -19,7 +19,7 @@ Tasks:
 
 - Create .NET solution.
 - Add WPF desktop project.
-- Add Domain, Application, Infrastructure, Api, Shared projects.
+- Add Domain, Application, Infrastructure, and Api projects.
 - Add test projects.
 - Configure project references.
 - Add basic DI setup.
@@ -44,7 +44,7 @@ Tasks:
 - Order
 - OrderLine
 - Payment
-- Discount result
+- Manual discount result
 - Basic domain tests
 
 Feature screen placeholders are created as a separate task after the initial solution setup. They are not part of the first implementation task.

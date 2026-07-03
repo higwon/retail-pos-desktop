@@ -10,16 +10,15 @@ The architecture should be simple enough to build, but clear enough to explain i
 
 ```text
 src
-├── RetailPOS.Desktop
-├── RetailPOS.Application
-├── RetailPOS.Domain
-├── RetailPOS.Infrastructure
-├── RetailPOS.Api
-└── RetailPOS.Shared
+|- RetailPOS.Desktop
+|- RetailPOS.Application
+|- RetailPOS.Domain
+|- RetailPOS.Infrastructure
+`- RetailPOS.Api
 
 tests
-├── RetailPOS.Domain.Tests
-└── RetailPOS.Application.Tests
+|- RetailPOS.Domain.Tests
+`- RetailPOS.Application.Tests
 ```
 
 ## Project Responsibilities
@@ -59,7 +58,7 @@ Examples:
 - Order
 - OrderLine
 - Payment
-- DiscountRule
+- ManualDiscount
 - Receipt
 
 ### RetailPOS.Application
@@ -108,18 +107,6 @@ Contains:
 - SQL Server persistence
 - Server sync endpoints
 
-### RetailPOS.Shared
-
-Shared contracts only when truly necessary.
-
-Contains:
-
-- Shared DTOs
-- API request/response contracts
-- Common enums
-
-Avoid turning this into a dumping ground.
-
 ## Dependency Direction
 
 ```text
@@ -145,6 +132,8 @@ RetailPOS.Domain
 ```
 
 `RetailPOS.Desktop` and `RetailPOS.Api` are executable composition roots. Each executable project registers the application services and the infrastructure implementations it needs in its own DI setup. Infrastructure must not own application startup or the root service provider.
+
+Do not create a shared contracts project in Task 1. If duplicated API/client contracts become a real maintenance problem later, add a dedicated shared project through a documentation update or ADR first.
 
 ## MVVM Rules
 
@@ -175,16 +164,11 @@ Recommended flow:
 
 ```text
 Complete Payment
-↓
-Create Order
-↓
-Save Order to SQLite
-↓
-Add Sync Queue Item
-↓
-Update UI
-↓
-Background Sync Attempts
+-> Create Order
+-> Save Order to SQLite
+-> Add Sync Queue Item
+-> Update UI
+-> Background Sync Attempts
 ```
 
 ## Recoverable Checkout Strategy

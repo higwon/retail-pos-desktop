@@ -49,7 +49,6 @@ Scope:
 - Domain project
 - Infrastructure project
 - API project
-- Shared project
 - Test projects
 
 Acceptance criteria:
@@ -68,8 +67,8 @@ Acceptance criteria:
 - Domain has no project dependencies.
 - Application references Domain.
 - Infrastructure references Application and Domain.
-- Desktop references Application, Domain, Infrastructure, and Shared.
-- API references Application, Domain, Infrastructure, and Shared.
+- Desktop references Application, Domain, and Infrastructure.
+- API references Application, Domain, and Infrastructure.
 - Tests reference only the projects required for each test scope.
 
 ### POS-003 Configure Dependency Injection
@@ -193,7 +192,9 @@ Goal: Implement testable business model without WPF dependencies.
 
 ### POS-204 Payment Model
 
-### POS-205 Discount Model
+### POS-205 Manual Discount Model
+
+Implement only manual fixed-amount and percentage discounts for the MVP. Coupon, promotion, membership, and rule-engine discounts are Product Phase 2 scope.
 
 ### POS-206 Receipt Model
 

@@ -95,7 +95,7 @@ MVP behavior:
 - Use a separate WPF window.
 - It may run on the same monitor during development.
 - It should update when the cart changes.
-- Real secondary monitor placement is Phase 2.
+- Real secondary monitor placement is Product Phase 2.
 
 ## Initial Implementation Priority
 

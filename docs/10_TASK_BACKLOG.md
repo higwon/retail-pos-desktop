@@ -142,7 +142,6 @@ Create the initial .NET solution and project structure:
 - RetailPOS.Domain
 - RetailPOS.Infrastructure
 - RetailPOS.Api
-- RetailPOS.Shared
 - RetailPOS.Domain.Tests
 - RetailPOS.Application.Tests
 
