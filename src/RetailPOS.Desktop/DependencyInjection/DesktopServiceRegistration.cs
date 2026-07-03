@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using RetailPOS.Desktop.Controls;
+using RetailPOS.Desktop.Diagnostics;
 using RetailPOS.Desktop.ViewModels;
 using RetailPOS.Desktop.Views;
 
@@ -10,6 +11,7 @@ public static class DesktopServiceRegistration
     public static IServiceCollection AddDesktopServices(this IServiceCollection services)
     {
         services.AddSingleton<MainWindow>();
+        services.AddSingleton<GlobalExceptionHandler>();
         services.AddSingleton<NavigationHost>();
         services.AddTransient<LoginView>();
         services.AddTransient<PosMainView>();
