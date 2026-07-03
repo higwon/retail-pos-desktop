@@ -104,13 +104,14 @@ Acceptance criteria:
 
 ### POS-006 Add Logging Foundation
 
-Add logging infrastructure.
+Add dependency-injected logging infrastructure for Desktop and later Infrastructure services.
 
 Acceptance criteria:
 
 - App can log startup and unhandled errors.
 - Logging abstraction uses `ILogger` or a compatible approach.
 - No sensitive data is logged.
+- Domain remains independent from logging.
 
 ### POS-007 Add Configuration Foundation
 
@@ -120,7 +121,9 @@ Acceptance criteria:
 
 - App settings can be loaded.
 - No secrets are committed.
-- Configuration can later support API endpoint and local DB path.
+- Typed options expose the configurable local DB path.
+- The default database path is `%LOCALAPPDATA%\RetailPOS\retail-pos.db`.
+- Domain and Application remain independent from configuration providers.
 
 ### POS-008 Add Global Exception Handling
 
@@ -129,6 +132,7 @@ Add global exception handling for WPF startup/runtime errors.
 Acceptance criteria:
 
 - Unhandled UI exceptions are logged.
+- AppDomain exceptions are logged where practical.
 - Task scheduler exceptions are logged where practical.
 - App does not silently swallow exceptions.
 

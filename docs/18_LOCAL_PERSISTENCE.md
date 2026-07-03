@@ -14,22 +14,15 @@ The desktop POS client must continue operating when the network is unavailable. 
 ## Layer Ownership
 
 ```text
-RetailPOS.Desktop
-    |
-    v
-RetailPOS.Application
-    - Repository contracts
-    - Use-case/service contracts
-    |
-    v
-RetailPOS.Infrastructure
-    - SQLite implementation
-    - Entity mapping
-    - Repository implementations
-    |
-    v
-SQLite local database
+RetailPOS.Desktop ------> RetailPOS.Infrastructure ------> SQLite local database
+        |                          |
+        |                          v
+        +-----------------> RetailPOS.Application ------> RetailPOS.Domain
 ```
+
+The arrows above show compile-time dependencies. `RetailPOS.Desktop` composes both
+Application and Infrastructure. Infrastructure depends on Application contracts;
+Application never depends on Infrastructure.
 
 ## Rules
 
@@ -39,6 +32,8 @@ SQLite local database
 - Desktop composes Infrastructure through DI.
 - SQLite entities may be different from Domain models.
 - Local database files must not be committed.
+- Use EF Core with the SQLite provider for EPIC-04.
+- Keep EF Core packages and types inside Infrastructure.
 
 ## Initial SQLite Scope
 
@@ -61,4 +56,7 @@ SQLite local database
 
 For development, the app may create or migrate a local database during startup.
 
-The local database path should be configurable later. During early development, a simple local app-data path or development path is acceptable as long as generated database files are ignored by Git.
+The default Windows path is `%LOCALAPPDATA%\RetailPOS\retail-pos.db`. Infrastructure
+receives the resolved path through options registered by Desktop, so tests can use a
+temporary database path. Generated `.db`, `.db-shm`, `.db-wal`, and SQLite files must
+be ignored by Git.

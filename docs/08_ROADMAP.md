@@ -1,5 +1,16 @@
 # Roadmap
 
+## Current Status
+
+- Phase 0 documentation: complete
+- Phase 1 solution setup: partially complete (`POS-006` through `POS-008` remain)
+- Phase 2 domain model MVP: complete
+- UI shell placeholders: complete ahead of the original phase ordering
+- Phase 3 local SQLite persistence: next
+
+Phase numbers describe capability groups, not a strict implementation sequence. GitHub
+Issues and `docs/13_EPICS_AND_TASKS.md` define the active implementation order.
+
 ## Phase 0: Documentation
 
 Goal: Prepare the project for Codex-driven implementation.
@@ -76,6 +87,8 @@ feat: add local SQLite persistence
 ## Phase 4: POS Main UI
 
 Goal: Build usable cashier screen.
+
+Status: Shell UI is complete. Data binding and behavior belong to later POS tasks.
 
 Tasks:
 

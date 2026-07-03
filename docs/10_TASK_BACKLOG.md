@@ -1,5 +1,16 @@
 # Task Backlog
 
+## Status Note
+
+- Task 1 solution structure: complete except for the tracked foundation tasks `POS-006` through `POS-008`.
+- Task 2 basic shell UI: complete.
+- Task 3 domain models: complete.
+- Task 4 product seed data is implemented through EPIC-04 after `POS-301` and `POS-302`.
+- Task 5 checkout MVP remains future work.
+
+This file is a coarse product backlog. For implementation order and scope, use the active
+GitHub Issue together with `docs/13_EPICS_AND_TASKS.md`.
+
 ## Immediate Tasks
 
 ### Task 1: Create Solution Structure

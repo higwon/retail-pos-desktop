@@ -32,6 +32,11 @@ Suggested stored fields:
 - IsActive
 - UpdatedAtUtc if needed later
 
+EPIC-04 stores `CategoryName` directly because the current Domain model uses a category
+name and the MVP does not manage categories independently. A normalized `Categories`
+table and `CategoryId` may be introduced later with a migration when category management
+becomes a real use case.
+
 ## Order Mapping
 
 ```text
@@ -95,12 +100,30 @@ Suggested stored fields:
 - TerminalId
 - CashierId
 - CreatedAtUtc
-- Status
+- RecoveryStatus
 - CartSnapshotJson
 - PaymentSnapshotJson
+- PaymentStatus
+- ApprovalCode nullable
+- ApprovedAmount nullable
+- PaymentApprovedAtUtc nullable
+- OrderId nullable
+- CompletedAtUtc nullable
 - LastUpdatedAtUtc
 
 The snapshot may initially be JSON to keep recovery persistence simple. It can be normalized later if needed.
+
+Recommended recovery status values:
+
+- `AwaitingPayment`
+- `PaymentFailed`
+- `ApprovedButOrderNotCreated`
+- `ManagerReviewRequired`
+- `Completed`
+
+`PaymentStatus`, approval fields, and recovery status are explicit columns so startup
+recovery does not depend on querying JSON. The JSON snapshots preserve the data needed
+to reconstruct the cart and payment context.
 
 ## Sync Queue Mapping
 
@@ -121,6 +144,9 @@ Suggested stored fields:
 - LastErrorSummary
 - CreatedAtUtc
 - UpdatedAtUtc
+
+New queue records set `NextAttemptAtUtc` equal to `CreatedAtUtc`. Pending queries use
+`NextAttemptAtUtc`, then `CreatedAtUtc`, then `Id` as a stable ascending sort order.
 
 ## Mapper Rules
 

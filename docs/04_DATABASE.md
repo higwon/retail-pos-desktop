@@ -31,18 +31,21 @@ The central database exists to represent synchronized store/server data.
 - Sku
 - Barcode
 - Name
-- CategoryId
+- CategoryName
 - UnitPrice
 - StockQuantity
 - ServerStockQuantity
 - IsActive
 - UpdatedAt
 
-#### Categories
+#### Categories (Later)
 
 - Id
 - Name
 - SortOrder
+
+EPIC-04 keeps `CategoryName` on `Products`. A normalized category table is deferred
+until category management is implemented.
 
 #### Orders
 
