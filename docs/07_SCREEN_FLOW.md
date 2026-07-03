@@ -15,15 +15,15 @@ Cart Update
 ↓
 Discount Optional
 ↓
-Payment
+Payment Approved
+↓
+Save Order Locally
+↓
+Add Sync Queue Item
 ↓
 Order Complete
 ↓
 Receipt
-↓
-Local Save
-↓
-Sync Queue
 ↓
 Background Sync
 ```
@@ -60,18 +60,23 @@ If Not Found: Show Not Found Message
 ```text
 Validate Cart
 ↓
+Save PendingCheckout
+↓
 Open Payment Dialog
 ↓
 Simulate Payment
 ↓
 If Approved:
+    Persist Payment Approval Result
     Create Order
     Save Order Locally
     Update Local Stock
-    Create Receipt
     Add Sync Queue Item
+    Mark PendingCheckout Completed
+    Create Receipt
     Clear Cart
 If Failed:
+    Mark PendingCheckout Failed
     Keep Cart
     Show Payment Failure
 ```
