@@ -27,6 +27,16 @@
 - Cart total updates immediately.
 - Cart should support discounts and taxes later.
 
+### Customer Display
+
+- The system should provide a customer-facing display simulator in the MVP.
+- The customer display shows the current cart items, quantities, discounts, and total amount.
+- The customer display updates whenever the cashier changes the cart.
+- During payment, the customer display shows the amount to pay and payment waiting status.
+- After payment approval, the customer display shows a thank-you message and receipt guidance.
+- The MVP implementation may use a separate WPF window on the same monitor.
+- Phase 2 can support real secondary-monitor placement and display selection.
+
 ### Discount Rules
 
 MVP rules:
