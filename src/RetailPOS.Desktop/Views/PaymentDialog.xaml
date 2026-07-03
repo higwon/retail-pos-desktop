@@ -1,0 +1,23 @@
+<Window x:Class="RetailPOS.Desktop.Views.PaymentDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Payment" Width="520" Height="600" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource AppBackgroundBrush}">
+    <Grid Margin="32">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid>
+            <StackPanel><TextBlock Text="Payment" Style="{StaticResource TitleTextBlockStyle}"/><TextBlock Text="Choose a payment method" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,6,0,0"/></StackPanel>
+            <Button Content="Close" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right" MinHeight="36" Padding="14,4" Click="OnClose"/>
+        </Grid>
+        <Border Grid.Row="1" Style="{StaticResource PanelBorderStyle}" Padding="28" Margin="0,24,0,0">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Amount due" Style="{StaticResource SecondaryTextBlockStyle}" HorizontalAlignment="Center"/>
+                <TextBlock Text="{Binding TotalAmount}" FontSize="38" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,12,0,30"/>
+                <Button Content="Card payment" Style="{StaticResource PrimaryBlueButtonStyle}" Margin="0,0,0,12"/>
+                <Button Content="Cash payment" Style="{StaticResource SecondaryButtonStyle}"/>
+                <TextBlock Text="Choose a method to continue." Style="{StaticResource SecondaryTextBlockStyle}" HorizontalAlignment="Center" Margin="0,24,0,0"/>
+            </StackPanel>
+        </Border>
+        <TextBlock Grid.Row="2" Text="Demo shell only. No payment will be processed." Style="{StaticResource SecondaryTextBlockStyle}" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+    </Grid>
+</Window>

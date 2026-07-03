@@ -6,5 +6,19 @@
              mc:Ignorable="d"
              d:DesignHeight="720"
              d:DesignWidth="1280">
-    <Grid x:Name="ContentRoot" Background="{StaticResource AppBackgroundBrush}" />
+    <Grid Background="{StaticResource AppBackgroundBrush}">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Border x:Name="DemoNavigation" Visibility="Collapsed" Background="{StaticResource BrandDarkBrush}" Padding="20,10">
+            <Grid>
+                <TextBlock Text="Retail POS" Foreground="White" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Register" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,8,0" Click="OnShowRegister"/>
+                    <Button Content="Recovery" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,8,0" Click="OnShowRecovery"/>
+                    <Button Content="Dashboard" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,8,0" Click="OnShowDashboard"/>
+                    <Button Content="Status" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Click="OnShowStatus"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+        <Grid x:Name="ContentRoot" Grid.RowSpan="2" Background="{StaticResource AppBackgroundBrush}" />
+    </Grid>
 </UserControl>

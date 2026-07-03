@@ -1,5 +1,12 @@
 # UI Changelog
 
+## v0.7 - UI Shell Implementation
+
+- Added WPF payment and receipt dialog shells.
+- Added checkout recovery, operations dashboard, and system status shells.
+- Added demo navigation between the register and operational screens.
+- Kept all new screens UI-only without payment, recovery, reporting, or synchronization behavior.
+
 This document tracks meaningful UI and UX changes in the Figma design and WPF implementation plan.
 
 Figma file:

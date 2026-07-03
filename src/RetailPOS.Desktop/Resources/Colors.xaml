@@ -17,6 +17,8 @@
     <Color x:Key="ColorPrimaryBlueHover">#FF1D4ED8</Color>
     <Color x:Key="ColorSelection">#FFEEF2FF</Color>
     <Color x:Key="ColorDangerMuted">#FFFEE2E2</Color>
+    <Color x:Key="ColorWarningMuted">#FFFFF4E5</Color>
+    <Color x:Key="ColorSuccessMuted">#FFECFDF3</Color>
 
     <SolidColorBrush x:Key="AppBackgroundBrush" Color="{StaticResource ColorSurfaceMuted}" />
     <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource ColorSurface}" />
@@ -34,4 +36,6 @@
     <SolidColorBrush x:Key="PrimaryBlueHoverBrush" Color="{StaticResource ColorPrimaryBlueHover}" />
     <SolidColorBrush x:Key="SelectionBrush" Color="{StaticResource ColorSelection}" />
     <SolidColorBrush x:Key="DangerMutedBrush" Color="{StaticResource ColorDangerMuted}" />
+    <SolidColorBrush x:Key="WarningMutedBrush" Color="{StaticResource ColorWarningMuted}" />
+    <SolidColorBrush x:Key="SuccessMutedBrush" Color="{StaticResource ColorSuccessMuted}" />
 </ResourceDictionary>
