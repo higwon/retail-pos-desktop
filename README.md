@@ -36,7 +36,10 @@ Codex or any AI coding agent should read the documents in this order before gene
 13. [UI Changelog](docs/12_UI_CHANGELOG.md)
 14. [Epics and Tasks](docs/13_EPICS_AND_TASKS.md)
 15. [Project Board](docs/14_PROJECT_BOARD.md)
-16. Architecture Decision Records under [docs/ADR](docs/ADR)
+16. [Coding Standards](docs/15_CODING_STANDARDS.md)
+17. [Branch Strategy](docs/16_BRANCH_STRATEGY.md)
+18. [Definition of Done](docs/17_DEFINITION_OF_DONE.md)
+19. Architecture Decision Records under [docs/ADR](docs/ADR)
 
 ## Figma UI Reference
 
