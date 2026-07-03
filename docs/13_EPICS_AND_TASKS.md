@@ -162,21 +162,21 @@ Create a customer-facing display window placeholder.
 
 Create payment dialog placeholder.
 
-### POS-107 Receipt Dialog Shell
+### POS-107 Receipt View Shell
 
-Create receipt preview/print placeholder.
+Create receipt preview placeholder based on Figma `06 Receipt View`.
 
 ### POS-108 Checkout Recovery Shell
 
 Create checkout recovery placeholder.
 
-### POS-109 Admin Dashboard Shell
+### POS-109 Dashboard Shell
 
-Create admin dashboard placeholder.
+Create dashboard placeholder based on Figma `07 Dashboard Screen`.
 
-### POS-110 Sync Status Shell
+### POS-110 Status Screen Shell
 
-Create synchronization status placeholder.
+Create status screen placeholder based on Figma `08 Status Screen`.
 
 ---
 
