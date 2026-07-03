@@ -111,12 +111,16 @@ Prioritize tests for:
 
 ## Git Commit Messages
 
-Use conventional commit style.
+Use conventional commit style. For implementation work, include the POS task ID in the scope.
 
 Examples:
 
+- `feat(POS-001): create initial solution structure`
+- `fix(POS-405): prevent duplicate sync order upload`
+- `refactor(POS-102): separate receipt generation service`
+- `test(POS-202): add cart quantity tests`
+- `docs(POS-001): clarify task scope`
+
+For repository-level documentation that is not tied to a POS task, use:
+
 - `docs: add project architecture guide`
-- `feat: add cart domain model`
-- `fix: prevent duplicate sync order upload`
-- `refactor: separate receipt generation service`
-- `test: add checkout service tests`

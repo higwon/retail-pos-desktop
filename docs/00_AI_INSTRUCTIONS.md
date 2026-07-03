@@ -64,14 +64,17 @@ The Domain project must not depend on:
 
 ## Commit Style
 
-Use conventional commits:
+For implementation work, use a conventional commit prefix with the POS task ID:
 
-- `docs: ...`
-- `feat: ...`
-- `fix: ...`
-- `refactor: ...`
-- `test: ...`
-- `chore: ...`
+- `feat(POS-001): create initial solution structure`
+- `fix(POS-405): preserve approved checkout recovery state`
+- `refactor(POS-102): extract cart panel view`
+- `test(POS-202): add cart quantity tests`
+- `docs(POS-001): clarify solution structure scope`
+
+For repository-level documentation that is not tied to a POS task, a plain conventional docs commit is acceptable:
+
+- `docs: update project documentation`
 
 ## First Implementation Task
 
