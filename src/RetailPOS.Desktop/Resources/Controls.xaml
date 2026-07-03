@@ -17,4 +17,10 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="6" />
     </Style>
+
+    <Style x:Key="StatusPillStyle" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="{StaticResource SuccessMutedBrush}" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="10,4" />
+    </Style>
 </ResourceDictionary>

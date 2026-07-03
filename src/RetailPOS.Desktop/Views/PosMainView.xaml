@@ -11,6 +11,12 @@
                     <Button Content="Customer Display" Style="{StaticResource SecondaryButtonStyle}"
                             MinHeight="34" Padding="12,4" Margin="0,0,18,0"
                             Click="OnOpenCustomerDisplay" />
+                    <Button Content="Payment" Style="{StaticResource PrimaryBlueButtonStyle}"
+                            MinHeight="34" Padding="12,4" Margin="0,0,8,0"
+                            Click="OnOpenPayment" />
+                    <Button Content="Receipt" Style="{StaticResource SecondaryButtonStyle}"
+                            MinHeight="34" Padding="12,4" Margin="0,0,18,0"
+                            Click="OnOpenReceipt" />
                     <TextBlock Text="Cashier A" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>

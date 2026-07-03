@@ -16,13 +16,27 @@ public static class DesktopServiceRegistration
         services.AddTransient<ProductGridView>();
         services.AddTransient<CartPanelView>();
         services.AddTransient<CustomerDisplayWindow>();
+        services.AddTransient<PaymentDialog>();
+        services.AddTransient<ReceiptDialog>();
+        services.AddTransient<CheckoutRecoveryView>();
+        services.AddTransient<DashboardView>();
+        services.AddTransient<StatusView>();
         services.AddTransient<LoginViewModel>();
         services.AddTransient<PosMainViewModel>();
         services.AddTransient<ProductGridViewModel>();
         services.AddTransient<CartPanelViewModel>();
         services.AddTransient<CustomerDisplayViewModel>();
+        services.AddTransient<PaymentDialogViewModel>();
+        services.AddTransient<ReceiptViewModel>();
+        services.AddTransient<CheckoutRecoveryViewModel>();
+        services.AddTransient<DashboardViewModel>();
+        services.AddTransient<StatusViewModel>();
         services.AddTransient<Func<CustomerDisplayWindow>>(provider =>
             () => provider.GetRequiredService<CustomerDisplayWindow>());
+        services.AddTransient<Func<PaymentDialog>>(provider =>
+            () => provider.GetRequiredService<PaymentDialog>());
+        services.AddTransient<Func<ReceiptDialog>>(provider =>
+            () => provider.GetRequiredService<ReceiptDialog>());
 
         return services;
     }
