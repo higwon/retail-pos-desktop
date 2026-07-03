@@ -1,0 +1,32 @@
+<UserControl x:Class="RetailPOS.Desktop.Views.ProductGridView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Style="{StaticResource PanelBorderStyle}" Padding="24">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <TextBlock Text="Products" Style="{StaticResource TitleTextBlockStyle}" />
+            <TextBox Grid.Row="1" Margin="0,18,0,22" Text="Search product, barcode, or SKU" Foreground="#FF9CA3AF" />
+            <UniformGrid Grid.Row="2" Columns="3" Rows="3">
+                <Border Style="{StaticResource PanelBorderStyle}" Margin="0,0,12,12" Padding="16">
+                    <StackPanel><Border Width="42" Height="42" Background="#FFEEF2FF" CornerRadius="6" HorizontalAlignment="Left"/><TextBlock Text="Daily Shampoo" FontWeight="SemiBold" Margin="0,16,0,4"/><TextBlock Text="₩5,000" FontWeight="Bold"/></StackPanel>
+                </Border>
+                <Border Style="{StaticResource PanelBorderStyle}" Margin="0,0,12,12" Padding="16">
+                    <StackPanel><Border Width="42" Height="42" Background="#FFF0FDF4" CornerRadius="6" HorizontalAlignment="Left"/><TextBlock Text="Vitamin Drink" FontWeight="SemiBold" Margin="0,16,0,4"/><TextBlock Text="₩6,200" FontWeight="Bold"/></StackPanel>
+                </Border>
+                <Border Style="{StaticResource PanelBorderStyle}" Margin="0,0,0,12" Padding="16">
+                    <StackPanel><Border Width="42" Height="42" Background="#FFFFF7ED" CornerRadius="6" HorizontalAlignment="Left"/><TextBlock Text="Hand Cream" FontWeight="SemiBold" Margin="0,16,0,4"/><TextBlock Text="₩7,400" FontWeight="Bold"/></StackPanel>
+                </Border>
+                <Border Style="{StaticResource PanelBorderStyle}" Margin="0,0,12,12" Padding="16"><StackPanel><TextBlock Text="Daily Shampoo" FontWeight="SemiBold"/><TextBlock Text="Body care" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,6"/><TextBlock Text="₩8,600" FontWeight="Bold"/></StackPanel></Border>
+                <Border Style="{StaticResource PanelBorderStyle}" Margin="0,0,12,12" Padding="16"><StackPanel><TextBlock Text="Vitamin Drink" FontWeight="SemiBold"/><TextBlock Text="Beverage" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,6"/><TextBlock Text="₩9,800" FontWeight="Bold"/></StackPanel></Border>
+                <Border Style="{StaticResource PanelBorderStyle}" Margin="0,0,0,12" Padding="16"><StackPanel><TextBlock Text="Hand Cream" FontWeight="SemiBold"/><TextBlock Text="Skin care" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,6"/><TextBlock Text="₩11,000" FontWeight="Bold"/></StackPanel></Border>
+                <Border Style="{StaticResource PanelBorderStyle}" Margin="0,0,12,0" Padding="16"><StackPanel><TextBlock Text="Daily Shampoo" FontWeight="SemiBold"/><TextBlock Text="₩12,200" FontWeight="Bold" Margin="0,10,0,0"/></StackPanel></Border>
+                <Border Style="{StaticResource PanelBorderStyle}" Margin="0,0,12,0" Padding="16"><StackPanel><TextBlock Text="Vitamin Drink" FontWeight="SemiBold"/><TextBlock Text="₩13,400" FontWeight="Bold" Margin="0,10,0,0"/></StackPanel></Border>
+                <Border Style="{StaticResource PanelBorderStyle}" Padding="16"><StackPanel><TextBlock Text="Hand Cream" FontWeight="SemiBold"/><TextBlock Text="₩14,600" FontWeight="Bold" Margin="0,10,0,0"/></StackPanel></Border>
+            </UniformGrid>
+        </Grid>
+    </Border>
+</UserControl>

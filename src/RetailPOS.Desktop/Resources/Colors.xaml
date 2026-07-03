@@ -11,6 +11,12 @@
     <Color x:Key="ColorDanger">#FFB42318</Color>
     <Color x:Key="ColorWarning">#FFB54708</Color>
     <Color x:Key="ColorSuccess">#FF027A48</Color>
+    <Color x:Key="ColorBrandDark">#FF111827</Color>
+    <Color x:Key="ColorBrandPanel">#FF1F2937</Color>
+    <Color x:Key="ColorPrimaryBlue">#FF2563EB</Color>
+    <Color x:Key="ColorPrimaryBlueHover">#FF1D4ED8</Color>
+    <Color x:Key="ColorSelection">#FFEEF2FF</Color>
+    <Color x:Key="ColorDangerMuted">#FFFEE2E2</Color>
 
     <SolidColorBrush x:Key="AppBackgroundBrush" Color="{StaticResource ColorSurfaceMuted}" />
     <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource ColorSurface}" />
@@ -22,4 +28,10 @@
     <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource ColorDanger}" />
     <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource ColorWarning}" />
     <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource ColorSuccess}" />
+    <SolidColorBrush x:Key="BrandDarkBrush" Color="{StaticResource ColorBrandDark}" />
+    <SolidColorBrush x:Key="BrandPanelBrush" Color="{StaticResource ColorBrandPanel}" />
+    <SolidColorBrush x:Key="PrimaryBlueBrush" Color="{StaticResource ColorPrimaryBlue}" />
+    <SolidColorBrush x:Key="PrimaryBlueHoverBrush" Color="{StaticResource ColorPrimaryBlueHover}" />
+    <SolidColorBrush x:Key="SelectionBrush" Color="{StaticResource ColorSelection}" />
+    <SolidColorBrush x:Key="DangerMutedBrush" Color="{StaticResource ColorDangerMuted}" />
 </ResourceDictionary>

@@ -42,4 +42,15 @@
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
     </Style>
+
+    <Style x:Key="PrimaryBlueButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="{StaticResource PrimaryBlueBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource PrimaryBlueBrush}" />
+    </Style>
+
+    <Style x:Key="DangerMutedButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="{StaticResource DangerMutedBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource DangerMutedBrush}" />
+    </Style>
 </ResourceDictionary>
