@@ -38,12 +38,17 @@ https://www.figma.com/design/G71mpke3GSKytIXRqsjD8D/Retail-POS-UI
 - Added payment waiting state.
 - Added thank-you and receipt guidance copy.
 
+## v0.6 - Receipt, Dashboard, and Status Screens
+
+- Added `06 Receipt View` for receipt preview shell implementation.
+- Added `07 Dashboard Screen` for management dashboard shell implementation.
+- Added `08 Status Screen` for synchronization/status shell implementation.
+- Updated UI implementation docs so POS-107, POS-109, and POS-110 have Figma references.
+
 ## Planned UI Updates
 
-- Add receipt preview screen.
-- Add sync status screen.
-- Add admin dashboard screen.
 - Add sales history screen.
 - Add settings screen.
 - Improve POS Main screen density and keyboard-first workflow.
 - Add WPF-specific style mapping notes after first implementation.
+- Extract repeated UI patterns into a formal design system after EPIC-02 shell screens are complete.
