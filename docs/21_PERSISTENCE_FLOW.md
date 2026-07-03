@@ -22,7 +22,9 @@ The dangerous failure window is:
 payment approved -> app exits before order save
 ```
 
-To avoid losing an approved payment, the application must have a recoverable local record before or during payment completion.
+To avoid losing an approved payment, the application must durably save a recoverable
+local record before requesting payment approval. Saving it during or after approval is
+too late and is not permitted.
 
 ## Recovery Flow
 
@@ -62,7 +64,7 @@ EPIC-04 only persists queue/status data. Real network upload and retry worker be
 
 ## Transaction Boundary Direction
 
-For later checkout implementation, the ideal local transaction is:
+For later checkout implementation, the required local transaction is:
 
 ```text
 Save completed order
@@ -70,7 +72,8 @@ Mark pending checkout resolved
 Create sync queue record
 ```
 
-These should eventually happen in one local transaction if practical.
+These operations must run through the Application-owned local transaction contract and
+commit in one SQLite transaction. Any failure rolls back all three operations.
 
 ## Time Rules
 

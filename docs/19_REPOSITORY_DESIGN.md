@@ -73,12 +73,41 @@ Expected responsibilities:
 - Update retry metadata
 - Mark item completed/resolved
 
+### ILocalTransaction
+
+Purpose:
+
+- Execute multiple repository operations in one SQLite transaction.
+- Support the later checkout boundary that saves an order, resolves its pending checkout, and enqueues upload work atomically.
+
+Expected responsibility:
+
+- Execute an asynchronous application operation inside one transaction.
+- Commit only after every operation succeeds.
+- Roll back when the operation throws or cancellation is requested.
+
+Concrete repositories share the scoped Infrastructure context used by the transaction.
+They must not force an independent commit while an application transaction is active.
+
 ## Method Design Rules
 
 - Prefer async methods for local I/O boundaries.
+- Every async repository and transaction method accepts a `CancellationToken`.
 - Use domain models or application-level DTOs only.
 - Do not expose EF Core `DbContext`, `DbSet`, `IQueryable`, or SQLite-specific types.
 - Do not put UI concepts in repository contracts.
+- Do not expose transaction or connection types from EF Core or SQLite.
+
+## Sync Queue Query Order
+
+Pending queue items are returned in deterministic order:
+
+1. `NextAttemptAtUtc` ascending
+2. `CreatedAtUtc` ascending
+3. `Id` ascending
+
+New items set `NextAttemptAtUtc` to `CreatedAtUtc`. Only pending items whose next
+attempt is due are returned for processing.
 
 ## Testing Direction
 
