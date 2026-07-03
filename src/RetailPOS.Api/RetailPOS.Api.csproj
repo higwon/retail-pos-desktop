@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\RetailPOS.Application\RetailPOS.Application.csproj" />
+    <ProjectReference Include="..\RetailPOS.Domain\RetailPOS.Domain.csproj" />
+    <ProjectReference Include="..\RetailPOS.Infrastructure\RetailPOS.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>
