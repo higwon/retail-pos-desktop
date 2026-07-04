@@ -16,7 +16,7 @@ public partial class App : System.Windows.Application
     private IHost? _host;
     private GlobalExceptionHandler? _exceptionHandler;
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         try
         {
@@ -40,10 +40,12 @@ public partial class App : System.Windows.Application
             _exceptionHandler.Register();
 
             var logger = _host.Services.GetRequiredService<ILogger<App>>();
-            _host.Services.GetRequiredService<LocalDatabaseInitializer>()
-                .InitializeAsync()
-                .GetAwaiter()
-                .GetResult();
+            await using (var scope = _host.Services.CreateAsyncScope())
+            {
+                await scope.ServiceProvider
+                    .GetRequiredService<LocalDatabaseInitializer>()
+                    .InitializeAsync();
+            }
             logger.LogInformation("Retail POS local database is ready.");
 
             var mainWindow = _host.Services.GetRequiredService<MainWindow>();
