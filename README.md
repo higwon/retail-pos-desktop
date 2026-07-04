@@ -82,7 +82,8 @@ RetailPOS
 |  `- RetailPOS.Api
 `- tests
    |- RetailPOS.Application.Tests
-   `- RetailPOS.Domain.Tests
+   |- RetailPOS.Domain.Tests
+   `- RetailPOS.Infrastructure.Tests
 ```
 
 ## Core Scenario

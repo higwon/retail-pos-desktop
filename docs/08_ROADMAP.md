@@ -3,10 +3,11 @@
 ## Current Status
 
 - Phase 0 documentation: complete
-- Phase 1 solution setup: partially complete (`POS-006` through `POS-008` remain)
+- Phase 1 solution setup: complete
 - Phase 2 domain model MVP: complete
 - UI shell placeholders: complete ahead of the original phase ordering
-- Phase 3 local SQLite persistence: next
+- Phase 3 local SQLite persistence: complete
+- Phases 4 and 5 / EPIC-05 Checkout MVP: active
 
 Phase numbers describe capability groups, not a strict implementation sequence. GitHub
 Issues and `docs/13_EPICS_AND_TASKS.md` define the active implementation order.
@@ -70,6 +71,10 @@ feat: add core POS domain model
 
 Goal: Store products and orders locally.
 
+Status: Complete. SQLite setup, repository contracts and implementations, repeatable
+product seed data, order persistence, checkout recovery records, sync queue records,
+and the shared local transaction boundary are implemented.
+
 Tasks:
 
 - Add SQLite setup.
@@ -88,7 +93,7 @@ feat: add local SQLite persistence
 
 Goal: Build usable cashier screen.
 
-Status: Shell UI is complete. Data binding and behavior belong to later POS tasks.
+Status: Shell UI is complete. EPIC-05 adds data binding and behavior through POS-401 onward.
 
 Tasks:
 
@@ -108,6 +113,8 @@ feat: implement POS main screen
 ## Phase 5: Checkout and Receipt
 
 Goal: Complete local checkout flow.
+
+Status: Active together with Phase 4 under EPIC-05 Checkout MVP.
 
 Tasks:
 
