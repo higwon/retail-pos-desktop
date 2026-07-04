@@ -14,6 +14,7 @@ namespace RetailPOS.Desktop;
 public partial class App : System.Windows.Application
 {
     private IHost? _host;
+    private AsyncServiceScope? _uiScope;
     private GlobalExceptionHandler? _exceptionHandler;
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -48,7 +49,8 @@ public partial class App : System.Windows.Application
             }
             logger.LogInformation("Retail POS local database is ready.");
 
-            var mainWindow = _host.Services.GetRequiredService<MainWindow>();
+            _uiScope = _host.Services.CreateAsyncScope();
+            var mainWindow = _uiScope.Value.ServiceProvider.GetRequiredService<MainWindow>();
             MainWindow = mainWindow;
             mainWindow.Show();
         }
@@ -75,6 +77,10 @@ public partial class App : System.Windows.Application
         }
 
         _exceptionHandler?.Unregister();
+        if (_uiScope is { } uiScope)
+        {
+            uiScope.Dispose();
+        }
         _host?.Dispose();
         base.OnExit(e);
     }

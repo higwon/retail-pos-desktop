@@ -82,6 +82,7 @@ RetailPOS
 |  `- RetailPOS.Api
 `- tests
    |- RetailPOS.Application.Tests
+   |- RetailPOS.Desktop.Tests
    |- RetailPOS.Domain.Tests
    `- RetailPOS.Infrastructure.Tests
 ```
