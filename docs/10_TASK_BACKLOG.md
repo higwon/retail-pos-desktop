@@ -2,11 +2,11 @@
 
 ## Status Note
 
-- Task 1 solution structure: complete except for the tracked foundation tasks `POS-006` through `POS-008`.
+- Task 1 solution structure and foundation: complete.
 - Task 2 basic shell UI: complete.
 - Task 3 domain models: complete.
-- Task 4 product seed data is implemented through EPIC-04 after `POS-301` and `POS-302`.
-- Task 5 checkout MVP remains future work.
+- Task 4 local persistence and repeatable product seed data: complete through EPIC-04.
+- Task 5 checkout MVP: active through EPIC-05 (`POS-401` through `POS-409`).
 
 This file is a coarse product backlog. For implementation order and scope, use the active
 GitHub Issue together with `docs/13_EPICS_AND_TASKS.md`.
@@ -85,14 +85,19 @@ Acceptance criteria:
 
 Create local sample products.
 
+Status: Complete through POS-303. Products are seeded idempotently during local database initialization and are readable through `IProductRepository`.
+
 Acceptance criteria:
 
-- App can display seeded products.
-- Product search works against local data.
+- Product seed data is repeatable and safe to initialize more than once.
+- Seeded products can be read and searched through the local product repository.
+- UI display and binding remain in POS-401.
 
 ### Task 5: Implement Checkout MVP
 
 Implement local checkout without API sync.
+
+Status: Active. GitHub Issues POS-401 through POS-409 define the implementation order and detailed scope.
 
 Acceptance criteria:
 
@@ -106,8 +111,6 @@ Acceptance criteria:
 
 ## Later Tasks
 
-- Add receipt generator.
-- Add receipt printer simulator.
 - Add ASP.NET Core API.
 - Add SQL Server persistence.
 - Add order synchronization.

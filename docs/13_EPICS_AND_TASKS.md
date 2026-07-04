@@ -37,6 +37,8 @@ Recommended ownership:
 
 Goal: Create a clean, buildable application foundation before implementing features.
 
+Status: Complete.
+
 ### POS-001 Create Solution Structure
 
 Create the initial .NET solution and projects.
@@ -142,6 +144,8 @@ Acceptance criteria:
 
 Goal: Create WPF screen placeholders aligned with Figma.
 
+Status: Complete.
+
 ### POS-101 Login Shell
 
 Create the login screen placeholder.
@@ -188,6 +192,8 @@ Create status screen placeholder based on Figma `08 Status Screen`.
 
 Goal: Implement testable business model without WPF dependencies.
 
+Status: Complete.
+
 ### POS-201 Product Model
 
 ### POS-202 Cart Model
@@ -208,6 +214,8 @@ Implement only manual fixed-amount and percentage discounts for the MVP. Coupon,
 
 Goal: Support offline-first local data storage.
 
+Status: Complete.
+
 ### POS-301 SQLite Setup
 
 ### POS-302 Repository Interfaces
@@ -226,6 +234,8 @@ Goal: Support offline-first local data storage.
 
 Goal: Complete a local-only checkout flow.
 
+Status: Active.
+
 ### POS-401 Product Search
 
 ### POS-402 Cart Operations
@@ -241,6 +251,8 @@ Goal: Complete a local-only checkout flow.
 ### POS-407 Customer Display Updates
 
 ### POS-408 Checkout Recovery
+
+### POS-409 Receipt Generation and Preview
 
 ---
 
