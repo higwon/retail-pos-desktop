@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using RetailPOS.Infrastructure.Configuration;
 using RetailPOS.Infrastructure.Persistence;
+using RetailPOS.Infrastructure.Persistence.Repositories;
+using RetailPOS.Application.Persistence;
 
 namespace RetailPOS.Infrastructure.DependencyInjection;
 
@@ -31,7 +33,13 @@ public static class PersistenceServiceRegistration
 
             options.UseSqlite(connectionString);
         });
-        services.AddTransient<LocalDatabaseInitializer>();
+        services.AddScoped<LocalDatabaseInitializer>();
+        services.AddScoped<ProductSeedData>();
+        services.AddScoped<IProductRepository, SqliteProductRepository>();
+        services.AddScoped<IOrderRepository, SqliteOrderRepository>();
+        services.AddScoped<IPendingCheckoutRepository, SqlitePendingCheckoutRepository>();
+        services.AddScoped<ISyncQueueRepository, SqliteSyncQueueRepository>();
+        services.AddScoped<ILocalTransaction, SqliteLocalTransaction>();
 
         return services;
     }
