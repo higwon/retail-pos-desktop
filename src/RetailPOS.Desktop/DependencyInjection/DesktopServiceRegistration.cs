@@ -10,9 +10,9 @@ public static class DesktopServiceRegistration
 {
     public static IServiceCollection AddDesktopServices(this IServiceCollection services)
     {
-        services.AddSingleton<MainWindow>();
+        services.AddScoped<MainWindow>();
         services.AddSingleton<GlobalExceptionHandler>();
-        services.AddSingleton<NavigationHost>();
+        services.AddScoped<NavigationHost>();
         services.AddTransient<LoginView>();
         services.AddTransient<PosMainView>();
         services.AddTransient<ProductGridView>();
