@@ -2,16 +2,16 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using RetailPOS.Desktop.DependencyInjection;
 using RetailPOS.Desktop.Diagnostics;
-using RetailPOS.Infrastructure.Configuration;
+using RetailPOS.Infrastructure.DependencyInjection;
+using RetailPOS.Infrastructure.Persistence;
 using System.Diagnostics;
 using System.Windows;
 
 namespace RetailPOS.Desktop;
 
-public partial class App : Application
+public partial class App : System.Windows.Application
 {
     private IHost? _host;
     private GlobalExceptionHandler? _exceptionHandler;
@@ -31,20 +31,20 @@ public partial class App : Application
             builder.Logging.ClearProviders();
             builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
             builder.Logging.AddDebug();
-            builder.Services.AddSingleton<Application>(this);
-            builder.Services.AddOptions<LocalDatabaseOptions>()
-                .Bind(builder.Configuration.GetSection(LocalDatabaseOptions.SectionName))
-                .Validate(options => !string.IsNullOrWhiteSpace(options.DatabasePath),
-                    "Local database path is required.");
+            builder.Services.AddSingleton<System.Windows.Application>(this);
+            builder.Services.AddLocalPersistence(builder.Configuration);
             builder.Services.AddDesktopServices();
 
             _host = builder.Build();
             _exceptionHandler = _host.Services.GetRequiredService<GlobalExceptionHandler>();
             _exceptionHandler.Register();
 
-            var databaseOptions = _host.Services.GetRequiredService<IOptions<LocalDatabaseOptions>>().Value;
             var logger = _host.Services.GetRequiredService<ILogger<App>>();
-            logger.LogInformation("Retail POS starting. Local database path: {DatabasePath}", databaseOptions.DatabasePath);
+            _host.Services.GetRequiredService<LocalDatabaseInitializer>()
+                .InitializeAsync()
+                .GetAwaiter()
+                .GetResult();
+            logger.LogInformation("Retail POS local database is ready.");
 
             var mainWindow = _host.Services.GetRequiredService<MainWindow>();
             MainWindow = mainWindow;

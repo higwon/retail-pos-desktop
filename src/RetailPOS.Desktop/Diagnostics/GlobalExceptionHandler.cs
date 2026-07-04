@@ -6,11 +6,11 @@ namespace RetailPOS.Desktop.Diagnostics;
 
 public sealed class GlobalExceptionHandler
 {
-    private readonly Application _application;
+    private readonly System.Windows.Application _application;
     private readonly ILogger<GlobalExceptionHandler> _logger;
     private bool _isRegistered;
 
-    public GlobalExceptionHandler(Application application, ILogger<GlobalExceptionHandler> logger)
+    public GlobalExceptionHandler(System.Windows.Application application, ILogger<GlobalExceptionHandler> logger)
     {
         _application = application;
         _logger = logger;
