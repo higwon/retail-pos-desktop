@@ -1,6 +1,9 @@
 <UserControl x:Class="RetailPOS.Desktop.Views.CartPanelView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
     <Border Style="{StaticResource PanelBorderStyle}" Padding="24">
         <Grid>
             <Grid.RowDefinitions>
@@ -8,29 +11,110 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
+
             <DockPanel Margin="0,0,0,18">
                 <TextBlock Text="Shopping Cart" Style="{StaticResource TitleTextBlockStyle}" />
-                <TextBlock Text="3 items" Style="{StaticResource SecondaryTextBlockStyle}" HorizontalAlignment="Right" />
+                <TextBlock HorizontalAlignment="Right" Style="{StaticResource SecondaryTextBlockStyle}">
+                    <Run Text="{Binding ItemCount, Mode=OneWay}" /><Run Text=" items" />
+                </TextBlock>
             </DockPanel>
 
-            <StackPanel Grid.Row="1">
-                <Grid Margin="0,0,0,18"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Daily Shampoo" FontWeight="SemiBold"/><TextBlock Text="Qty 1" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="12"/></StackPanel><TextBlock Grid.Column="1" Text="₩12,000" FontWeight="SemiBold"/></Grid>
-                <Separator Background="{StaticResource BorderBrush}" />
-                <Grid Margin="0,18"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Vitamin Drink" FontWeight="SemiBold"/><TextBlock Text="Qty 1" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="12"/></StackPanel><TextBlock Grid.Column="1" Text="₩15,000" FontWeight="SemiBold"/></Grid>
-                <Separator Background="{StaticResource BorderBrush}" />
-                <Grid Margin="0,18"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Hand Cream" FontWeight="SemiBold"/><TextBlock Text="Qty 1" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="12"/></StackPanel><TextBlock Grid.Column="1" Text="₩18,000" FontWeight="SemiBold"/></Grid>
-            </StackPanel>
+            <Grid Grid.Row="1">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Lines}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="0,12">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding ProductName}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding LineTotal, StringFormat={}{0:N0} KRW}"
+                                                       Style="{StaticResource SecondaryTextBlockStyle}"
+                                                       Margin="0,4,0,8" />
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="-"
+                                                        Command="{Binding DataContext.DecreaseQuantityCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding ProductId}"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Width="32" Height="30" Padding="0"
+                                                        ToolTip="Decrease quantity" />
+                                                <TextBlock Text="{Binding Quantity}"
+                                                           Width="34"
+                                                           TextAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                                                <Button Content="+"
+                                                        Command="{Binding DataContext.IncreaseQuantityCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding ProductId}"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Width="32" Height="30" Padding="0"
+                                                        ToolTip="Increase quantity" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Content="Remove"
+                                                Command="{Binding DataContext.RemoveProductCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding ProductId}"
+                                                Style="{StaticResource DangerMutedButtonStyle}"
+                                                Padding="10,4"
+                                                VerticalAlignment="Top" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <TextBlock Text="Cart is empty."
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource SecondaryTextBlockStyle}"
+                           Visibility="{Binding IsEmpty, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </Grid>
 
             <StackPanel Grid.Row="2">
                 <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,22,0,0">
                     <StackPanel>
-                        <Grid Margin="0,0,0,10"><TextBlock Text="Subtotal"/><TextBlock Text="₩42,000" HorizontalAlignment="Right"/></Grid>
-                        <Grid Margin="0,0,0,18"><TextBlock Text="Discount"/><TextBlock Text="-₩2,000" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right"/></Grid>
-                        <Grid Margin="0,0,0,24"><TextBlock Text="Total" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="₩40,000" FontSize="26" FontWeight="Bold" HorizontalAlignment="Right"/></Grid>
+                        <Grid Margin="0,0,0,10">
+                            <TextBlock Text="Subtotal" />
+                            <TextBlock Text="{Binding Subtotal, StringFormat={}{0:N0} KRW}" HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid Margin="0,0,0,18">
+                            <TextBlock Text="Discount" />
+                            <TextBlock Text="{Binding DiscountAmount, StringFormat={}{0:N0} KRW}"
+                                       Foreground="{StaticResource SuccessBrush}"
+                                       HorizontalAlignment="Right" />
+                        </Grid>
+                        <Grid Margin="0,0,0,24">
+                            <TextBlock Text="Total" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding Total, StringFormat={}{0:N0} KRW}"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Right" />
+                        </Grid>
                     </StackPanel>
                 </Border>
-                <Button Content="Checkout" Style="{StaticResource PrimaryBlueButtonStyle}" Margin="0,0,0,10" />
-                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions><Button Content="Hold Cart" Style="{StaticResource SecondaryButtonStyle}"/><Button Grid.Column="2" Content="Clear" Style="{StaticResource DangerMutedButtonStyle}"/></Grid>
+                <Button Content="Checkout"
+                        Style="{StaticResource PrimaryBlueButtonStyle}"
+                        IsEnabled="False"
+                        Margin="0,0,0,10" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <Button Content="Hold Cart" Style="{StaticResource SecondaryButtonStyle}" IsEnabled="False" />
+                    <Button Grid.Column="2"
+                            Content="Clear"
+                            Command="{Binding ClearCommand}"
+                            Style="{StaticResource DangerMutedButtonStyle}" />
+                </Grid>
             </StackPanel>
         </Grid>
     </Border>

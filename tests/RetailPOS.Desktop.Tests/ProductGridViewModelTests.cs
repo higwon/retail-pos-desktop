@@ -1,4 +1,5 @@
 using RetailPOS.Application.Persistence;
+using RetailPOS.Application.Checkout;
 using RetailPOS.Desktop.ViewModels;
 using RetailPOS.Domain.Products;
 
@@ -13,7 +14,7 @@ public sealed class ProductGridViewModelTests
         {
             ActiveProducts = [Product("Water"), Product("Cola")]
         };
-        var viewModel = new ProductGridViewModel(repository);
+        var viewModel = new ProductGridViewModel(repository, new CheckoutSession());
 
         await viewModel.LoadAsync();
         await viewModel.LoadAsync();
@@ -28,7 +29,7 @@ public sealed class ProductGridViewModelTests
     {
         var expected = Product("Cola");
         var repository = new StubProductRepository { SearchProducts = [expected] };
-        var viewModel = new ProductGridViewModel(repository) { SearchText = "  cola  " };
+        var viewModel = new ProductGridViewModel(repository, new CheckoutSession()) { SearchText = "  cola  " };
 
         await viewModel.SearchCommand.ExecuteAsync(null);
         viewModel.SelectedProduct = viewModel.Products.Single();
@@ -40,7 +41,9 @@ public sealed class ProductGridViewModelTests
     [Fact]
     public async Task SearchCommand_WhenRepositoryFails_ShowsSafeErrorState()
     {
-        var viewModel = new ProductGridViewModel(new StubProductRepository { Exception = new InvalidOperationException() });
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository { Exception = new InvalidOperationException() },
+            new CheckoutSession());
 
         await viewModel.SearchCommand.ExecuteAsync(null);
 
