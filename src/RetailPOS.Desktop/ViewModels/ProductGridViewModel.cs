@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Domain.Products;
 using System.Collections.ObjectModel;
@@ -9,17 +10,21 @@ namespace RetailPOS.Desktop.ViewModels;
 public sealed partial class ProductGridViewModel : ObservableObject
 {
     private readonly IProductRepository _productRepository;
+    private readonly CheckoutSession _checkoutSession;
     private readonly AsyncRelayCommand _searchCommand;
     private bool _isLoaded;
 
-    public ProductGridViewModel(IProductRepository productRepository)
+    public ProductGridViewModel(IProductRepository productRepository, CheckoutSession checkoutSession)
     {
         _productRepository = productRepository;
+        _checkoutSession = checkoutSession;
         _searchCommand = new AsyncRelayCommand(SearchAsync);
+        AddProductCommand = new RelayCommand<Product>(AddProduct);
     }
 
     public ObservableCollection<Product> Products { get; } = [];
     public IAsyncRelayCommand SearchCommand => _searchCommand;
+    public IRelayCommand<Product> AddProductCommand { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasProducts))]
@@ -39,6 +44,17 @@ public sealed partial class ProductGridViewModel : ObservableObject
     public bool HasProducts => !IsLoading && Products.Count > 0;
     public bool IsEmpty => !IsLoading && !HasError && Products.Count == 0;
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+
+    private void AddProduct(Product? product)
+    {
+        if (product is null)
+        {
+            return;
+        }
+
+        SelectedProduct = product;
+        _checkoutSession.AddProduct(product);
+    }
 
     public async Task LoadAsync()
     {

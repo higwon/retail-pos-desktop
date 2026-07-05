@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using RetailPOS.Application.Checkout;
 using RetailPOS.Desktop.Controls;
 using RetailPOS.Desktop.Diagnostics;
 using RetailPOS.Desktop.ViewModels;
@@ -13,6 +14,7 @@ public static class DesktopServiceRegistration
         services.AddScoped<MainWindow>();
         services.AddSingleton<GlobalExceptionHandler>();
         services.AddScoped<NavigationHost>();
+        services.AddScoped<CheckoutSession>();
         services.AddTransient<LoginView>();
         services.AddTransient<PosMainView>();
         services.AddTransient<ProductGridView>();
