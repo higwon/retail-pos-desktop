@@ -70,6 +70,7 @@ Expected responsibilities:
 
 - Enqueue item
 - Get pending items
+- Check whether an item already exists by reference/idempotency key
 - Update retry metadata
 - Mark item completed/resolved
 

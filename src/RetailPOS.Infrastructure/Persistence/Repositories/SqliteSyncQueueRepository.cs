@@ -40,6 +40,15 @@ public sealed class SqliteSyncQueueRepository(LocalPosDbContext dbContext) : ISy
         return entities.Select(item => item.ToRecord()).ToList();
     }
 
+    public Task<bool> ExistsByReferenceKeyAsync(
+        string referenceKey,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(referenceKey);
+        var normalizedKey = referenceKey.Trim();
+        return dbContext.SyncQueue.AnyAsync(item => item.ReferenceKey == normalizedKey, cancellationToken);
+    }
+
     public async Task UpdateRetryAsync(
         Guid id,
         int retryCount,
