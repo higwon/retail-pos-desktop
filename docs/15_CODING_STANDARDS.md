@@ -39,6 +39,31 @@ Codex and any coding agent must follow these rules unless a task explicitly says
 - Use services/interfaces for navigation, dialogs, device simulation, and persistence.
 - Avoid direct static service access from ViewModels.
 
+### ViewModel Base Class and Lifecycle
+
+- Do not introduce a project-specific `BaseViewModel` only to wrap `INotifyPropertyChanged`.
+- The default ViewModel base type is `CommunityToolkit.Mvvm.ComponentModel.ObservableObject`.
+- Use `[ObservableProperty]`, `[NotifyPropertyChangedFor]`, `RelayCommand`, and `AsyncRelayCommand` from CommunityToolkit.Mvvm instead of hand-written notification boilerplate.
+- Add a shared `BaseViewModel` only when repeated cross-cutting state or behavior exists in several ViewModels, such as `IsBusy`, `ErrorMessage`, cancellation ownership, or a common dispose pattern.
+- If a shared `BaseViewModel` is introduced later, it must remain UI-framework neutral and must not reference View classes.
+
+### ViewModel Events and Disposal
+
+- A ViewModel that subscribes to a longer-lived service, session, event aggregator, timer, or static event must unsubscribe when it is no longer used.
+- Such ViewModels should implement `IDisposable` or `IAsyncDisposable` when the subscription lifetime cannot be safely scoped by DI alone.
+- Event handlers should be small and should update ViewModel state or delegate to an injected service. Do not place business rules inside event handlers.
+- Avoid anonymous event handlers when the ViewModel needs to unsubscribe later.
+- Prefer constructor subscription only for dependencies with the same or shorter lifetime than the ViewModel. If the publisher is longer-lived, document and implement the cleanup path.
+
+### Command Rules
+
+- Expose user actions as `ICommand`, `IRelayCommand`, or `IAsyncRelayCommand` properties.
+- Use `AsyncRelayCommand` for I/O, persistence, simulated device work, or any operation that may take noticeable time.
+- Do not block async work with `.Result`, `.Wait()`, or synchronous sleeps.
+- Keep command bodies thin: validate UI state, call an application service or session, then update ViewModel state.
+- When command availability depends on mutable state, call `NotifyCanExecuteChanged()` after that state changes.
+- Convert command failures into user-safe ViewModel state such as `ErrorMessage`, `StatusMessage`, or an operation result. Do not expose technical exception details in cashier-facing text.
+
 ## Dependency Injection
 
 - Register dependencies in the composition root.

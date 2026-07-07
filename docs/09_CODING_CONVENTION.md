@@ -60,6 +60,9 @@ Examples:
 - View names end with `View` or `Window`.
 - Commands end with `Command`.
 - Observable properties should use CommunityToolkit.Mvvm where possible.
+- ViewModels should inherit from `ObservableObject` by default.
+- Do not add a custom `BaseViewModel` unless shared lifecycle or state concerns justify it.
+- ViewModels that subscribe to longer-lived events must define a cleanup path, usually through `IDisposable`.
 
 ## Money and Time
 
