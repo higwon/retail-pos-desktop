@@ -1,4 +1,5 @@
 using RetailPOS.Domain.Carts;
+using RetailPOS.Domain.Discounts;
 using RetailPOS.Domain.Products;
 
 namespace RetailPOS.Application.Checkout;
@@ -17,6 +18,8 @@ public sealed class CheckoutSession
             item.Quantity,
             item.LineTotal)).ToArray(),
         _cart.Subtotal,
+        _cart.Discount?.Type,
+        _cart.Discount?.Value,
         _cart.DiscountAmount,
         _cart.Total);
 
@@ -56,6 +59,29 @@ public sealed class CheckoutSession
         }
     }
 
+    public void ApplyFixedDiscount(decimal amount)
+    {
+        _cart.ApplyDiscount(ManualDiscount.FixedAmount(amount));
+        NotifyChanged();
+    }
+
+    public void ApplyPercentageDiscount(decimal rate)
+    {
+        _cart.ApplyDiscount(ManualDiscount.Percentage(rate));
+        NotifyChanged();
+    }
+
+    public void ClearDiscount()
+    {
+        if (_cart.Discount is null)
+        {
+            return;
+        }
+
+        _cart.ApplyDiscount(null);
+        NotifyChanged();
+    }
+
     public void Clear()
     {
         if (_cart.Items.Count == 0 && _cart.Discount is null)
@@ -77,6 +103,8 @@ public sealed class CheckoutSession
 public sealed record CartSnapshot(
     IReadOnlyList<CartLineSnapshot> Lines,
     decimal Subtotal,
+    DiscountType? DiscountType,
+    decimal? DiscountValue,
     decimal DiscountAmount,
     decimal Total)
 {

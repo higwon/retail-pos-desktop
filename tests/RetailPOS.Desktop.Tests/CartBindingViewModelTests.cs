@@ -49,6 +49,81 @@ public sealed class CartBindingViewModelTests
         Assert.Equal(0, viewModel.ItemCount);
     }
 
+    [Fact]
+    public void FixedDiscount_UpdatesSummaryAndCanBeCleared()
+    {
+        var session = new CheckoutSession();
+        var viewModel = new CartPanelViewModel(session);
+        session.AddProduct(Product("Water", 2000m));
+        viewModel.DiscountInput = "500";
+
+        viewModel.ApplyFixedDiscountCommand.Execute(null);
+
+        Assert.Equal(500m, viewModel.DiscountAmount);
+        Assert.Equal(1500m, viewModel.Total);
+        Assert.Equal("Fixed 500 KRW", viewModel.DiscountDescription);
+        Assert.True(viewModel.ClearDiscountCommand.CanExecute(null));
+
+        viewModel.ClearDiscountCommand.Execute(null);
+
+        Assert.Equal(0m, viewModel.DiscountAmount);
+        Assert.Equal(2000m, viewModel.Total);
+        Assert.False(viewModel.HasDiscount);
+    }
+
+    [Fact]
+    public void PercentageDiscount_UsesDomainCalculation()
+    {
+        var session = new CheckoutSession();
+        var viewModel = new CartPanelViewModel(session);
+        session.AddProduct(Product("Water", 1999m));
+        viewModel.DiscountInput = "10";
+
+        viewModel.ApplyPercentageDiscountCommand.Execute(null);
+
+        Assert.Equal(200m, viewModel.DiscountAmount);
+        Assert.Equal(1799m, viewModel.Total);
+        Assert.True(viewModel.HasDiscount);
+    }
+
+    [Theory]
+    [InlineData("not-a-number", false)]
+    [InlineData("101", true)]
+    public void InvalidDiscountInput_IsRejected(string input, bool percentage)
+    {
+        var session = new CheckoutSession();
+        var viewModel = new CartPanelViewModel(session);
+        session.AddProduct(Product("Water", 1000m));
+        viewModel.DiscountInput = input;
+
+        if (percentage)
+        {
+            viewModel.ApplyPercentageDiscountCommand.Execute(null);
+        }
+        else
+        {
+            viewModel.ApplyFixedDiscountCommand.Execute(null);
+        }
+
+        Assert.True(viewModel.HasDiscountError);
+        Assert.Equal(1000m, viewModel.Total);
+        Assert.False(viewModel.HasDiscount);
+    }
+
+    [Fact]
+    public void FixedDiscount_CannotReduceTotalBelowZero()
+    {
+        var session = new CheckoutSession();
+        var viewModel = new CartPanelViewModel(session);
+        session.AddProduct(Product("Water", 1000m));
+        viewModel.DiscountInput = "5000";
+
+        viewModel.ApplyFixedDiscountCommand.Execute(null);
+
+        Assert.Equal(1000m, viewModel.DiscountAmount);
+        Assert.Equal(0m, viewModel.Total);
+    }
+
     private static Product Product(string name, decimal price) => new(
         Guid.NewGuid(), $"SKU-{name}", Guid.NewGuid().ToString("N"), name, "Beverages", price);
 

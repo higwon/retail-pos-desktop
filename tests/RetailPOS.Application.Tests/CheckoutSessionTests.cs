@@ -1,4 +1,5 @@
 using RetailPOS.Application.Checkout;
+using RetailPOS.Domain.Discounts;
 using RetailPOS.Domain.Products;
 
 namespace RetailPOS.Application.Tests;
@@ -45,6 +46,29 @@ public sealed class CheckoutSessionTests
 
         Assert.True(session.Snapshot.IsEmpty);
         Assert.Equal(4, notifications);
+    }
+
+    [Fact]
+    public void ManualDiscounts_UpdateSnapshotAndCanBeCleared()
+    {
+        var session = new CheckoutSession();
+        session.AddProduct(Product("Cola", 2000m));
+
+        session.ApplyFixedDiscount(500m);
+
+        Assert.Equal(DiscountType.FixedAmount, session.Snapshot.DiscountType);
+        Assert.Equal(500m, session.Snapshot.DiscountValue);
+        Assert.Equal(1500m, session.Snapshot.Total);
+
+        session.ApplyPercentageDiscount(25m);
+
+        Assert.Equal(DiscountType.Percentage, session.Snapshot.DiscountType);
+        Assert.Equal(500m, session.Snapshot.DiscountAmount);
+
+        session.ClearDiscount();
+
+        Assert.Null(session.Snapshot.DiscountType);
+        Assert.Equal(2000m, session.Snapshot.Total);
     }
 
     private static Product Product(string name, decimal price) => new(
