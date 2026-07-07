@@ -78,6 +78,46 @@
             </Grid>
 
             <StackPanel Grid.Row="2">
+                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,16,0,14">
+                    <StackPanel>
+                        <TextBlock Text="Manual discount" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="6" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Text="{Binding DiscountInput, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Enter a whole KRW amount or percentage rate" />
+                            <Button Grid.Column="2" Content="KRW"
+                                    Command="{Binding ApplyFixedDiscountCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Padding="10,4" />
+                            <Button Grid.Column="4" Content="%"
+                                    Command="{Binding ApplyPercentageDiscountCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Width="42" Padding="8,4" />
+                        </Grid>
+                        <Grid Margin="0,8,0,0">
+                            <TextBlock Text="{Binding DiscountErrorMessage}"
+                                       Foreground="{StaticResource DangerBrush}"
+                                       FontSize="12"
+                                       Visibility="{Binding HasDiscountError, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                                        Visibility="{Binding HasDiscount, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="{Binding DiscountDescription}"
+                                           Style="{StaticResource SecondaryTextBlockStyle}"
+                                           VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <Button Content="Clear discount"
+                                        Command="{Binding ClearDiscountCommand}"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        MinHeight="30" Padding="8,2" FontSize="12" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
                 <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,22,0,0">
                     <StackPanel>
                         <Grid Margin="0,0,0,10">
