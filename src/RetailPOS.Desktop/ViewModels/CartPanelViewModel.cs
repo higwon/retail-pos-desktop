@@ -7,9 +7,10 @@ using System.Globalization;
 
 namespace RetailPOS.Desktop.ViewModels;
 
-public sealed partial class CartPanelViewModel : ObservableObject
+public sealed partial class CartPanelViewModel : ObservableObject, IDisposable
 {
     private readonly CheckoutSession _checkoutSession;
+    private bool _disposed;
 
     public CartPanelViewModel(CheckoutSession checkoutSession)
     {
@@ -67,6 +68,17 @@ public sealed partial class CartPanelViewModel : ObservableObject
     public bool HasDiscountError => !string.IsNullOrEmpty(DiscountErrorMessage);
 
     private void OnCheckoutChanged(object? sender, EventArgs e) => Refresh();
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _checkoutSession.Changed -= OnCheckoutChanged;
+        _disposed = true;
+    }
 
     private void Refresh()
     {

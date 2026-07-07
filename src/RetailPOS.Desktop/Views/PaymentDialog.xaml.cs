@@ -9,7 +9,15 @@ public partial class PaymentDialog : Window
     {
         InitializeComponent();
         DataContext = viewModel;
+        Closed += OnClosed;
     }
 
     private void OnClose(object sender, RoutedEventArgs e) => Close();
+
+    private void OnClosed(object? sender, EventArgs e)
+    {
+        Closed -= OnClosed;
+        (DataContext as IDisposable)?.Dispose();
+        DataContext = null;
+    }
 }

@@ -124,6 +124,20 @@ public sealed class CartBindingViewModelTests
         Assert.Equal(0m, viewModel.Total);
     }
 
+    [Fact]
+    public void Dispose_UnsubscribesFromCheckoutSessionChanges()
+    {
+        var session = new CheckoutSession();
+        var viewModel = new CartPanelViewModel(session);
+
+        viewModel.Dispose();
+        session.AddProduct(Product("Water", 1000m));
+
+        Assert.Equal(0, viewModel.ItemCount);
+        Assert.Empty(viewModel.Lines);
+        Assert.Equal(0m, viewModel.Total);
+    }
+
     private static Product Product(string name, decimal price) => new(
         Guid.NewGuid(), $"SKU-{name}", Guid.NewGuid().ToString("N"), name, "Beverages", price);
 
