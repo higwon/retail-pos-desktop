@@ -9,13 +9,15 @@ namespace RetailPOS.Desktop.ViewModels;
 public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposable
 {
     private readonly CheckoutSession _checkoutSession;
-    private readonly IPaymentSimulator _paymentSimulator;
+    private readonly IRecoverablePaymentStartService _paymentStartService;
     private bool _disposed;
 
-    public PaymentDialogViewModel(CheckoutSession checkoutSession, IPaymentSimulator paymentSimulator)
+    public PaymentDialogViewModel(
+        CheckoutSession checkoutSession,
+        IRecoverablePaymentStartService paymentStartService)
     {
         _checkoutSession = checkoutSession;
-        _paymentSimulator = paymentSimulator;
+        _paymentStartService = paymentStartService;
         ApproveCardPaymentCommand = new AsyncRelayCommand(
             () => SimulateAsync(PaymentMethod.Card, PaymentSimulationMode.Approve),
             CanSimulatePayment);
@@ -72,11 +74,13 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
     {
         try
         {
-            var result = await _paymentSimulator.SimulateAsync(
-                new PaymentSimulationRequest(method, AmountDue, mode));
+            var result = await _paymentStartService.StartAsync(
+                _checkoutSession.Snapshot,
+                method,
+                mode);
 
             Method = result.Method;
-            Status = result.Status;
+            Status = result.PaymentStatus;
             ApprovedAmount = result.ApprovedAmount;
             ApprovalCode = result.ApprovalCode;
             TransactionReference = result.TransactionReference;

@@ -82,6 +82,7 @@ public sealed class PendingCheckoutConfiguration : IEntityTypeConfiguration<Pend
         builder.HasIndex(checkout => new { checkout.RecoveryStatus, checkout.CreatedAtUtc });
         builder.Property(checkout => checkout.ApprovedAmount).HasPrecision(18, 0);
         builder.Property(checkout => checkout.ApprovalCode).HasMaxLength(100);
+        builder.Property(checkout => checkout.TransactionReference).HasMaxLength(200);
     }
 }
 

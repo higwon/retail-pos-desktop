@@ -219,6 +219,10 @@ namespace RetailPOS.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("TerminalId")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("TransactionReference")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("RecoveryStatus", "CreatedAtUtc");

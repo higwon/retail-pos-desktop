@@ -67,7 +67,7 @@ public sealed class PersistenceRepositoryTests
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), now,
             PendingCheckoutStatus.ApprovedButOrderNotCreated,
             "{\"items\":[]}", "{\"method\":\"Card\"}", PaymentStatus.Approved,
-            "APP-002", 5000m, now.AddMinutes(1), null, null, now.AddMinutes(1));
+            "APP-002", 5000m, "TX-002", now.AddMinutes(1), null, null, now.AddMinutes(1));
 
         await repository.SaveAsync(checkout);
         Assert.Single(await repository.GetUnresolvedAsync());
@@ -79,6 +79,7 @@ public sealed class PersistenceRepositoryTests
         Assert.NotNull(completed);
         Assert.Equal(PendingCheckoutStatus.Completed, completed.RecoveryStatus);
         Assert.Equal(orderId, completed.OrderId);
+        Assert.Equal("TX-002", completed.TransactionReference);
         Assert.Empty(await repository.GetUnresolvedAsync());
     }
 
