@@ -13,11 +13,39 @@
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="Amount due" Style="{StaticResource SecondaryTextBlockStyle}" HorizontalAlignment="Center"/>
                 <TextBlock Text="{Binding TotalAmount}" FontSize="38" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,12,0,30"/>
-                <Button Content="Card payment" Style="{StaticResource PrimaryBlueButtonStyle}" Margin="0,0,0,12"/>
-                <Button Content="Cash payment" Style="{StaticResource SecondaryButtonStyle}"/>
-                <TextBlock Text="Choose a method to continue." Style="{StaticResource SecondaryTextBlockStyle}" HorizontalAlignment="Center" Margin="0,24,0,0"/>
+                <Button Content="Card payment"
+                        Command="{Binding ApproveCardPaymentCommand}"
+                        Style="{StaticResource PrimaryBlueButtonStyle}"
+                        Margin="0,0,0,12"/>
+                <Button Content="Cash payment"
+                        Command="{Binding ApproveCashPaymentCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Margin="0,0,0,12"/>
+                <Button Content="Simulate failure"
+                        Command="{Binding FailPaymentCommand}"
+                        Style="{StaticResource DangerMutedButtonStyle}"/>
+                <TextBlock Text="{Binding Message}"
+                           Style="{StaticResource SecondaryTextBlockStyle}"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           HorizontalAlignment="Center"
+                           Margin="0,24,0,0"/>
+                <StackPanel Margin="0,18,0,0">
+                    <Grid Margin="0,0,0,8">
+                        <TextBlock Text="Approval code" Style="{StaticResource SecondaryTextBlockStyle}" />
+                        <TextBlock Text="{Binding ApprovalCode, TargetNullValue=-}"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Right" />
+                    </Grid>
+                    <Grid>
+                        <TextBlock Text="Transaction reference" Style="{StaticResource SecondaryTextBlockStyle}" />
+                        <TextBlock Text="{Binding TransactionReference, TargetNullValue=-}"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Right" />
+                    </Grid>
+                </StackPanel>
             </StackPanel>
         </Border>
-        <TextBlock Grid.Row="2" Text="Demo shell only. No payment will be processed." Style="{StaticResource SecondaryTextBlockStyle}" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+        <TextBlock Grid.Row="2" Text="Local simulator only. No external payment gateway is used." Style="{StaticResource SecondaryTextBlockStyle}" HorizontalAlignment="Center" Margin="0,20,0,0"/>
     </Grid>
 </Window>
