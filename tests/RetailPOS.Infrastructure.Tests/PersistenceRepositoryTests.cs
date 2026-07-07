@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Domain.Orders;
 using RetailPOS.Domain.Payments;
@@ -125,9 +126,100 @@ public sealed class PersistenceRepositoryTests
         Assert.Empty(await repository.GetDuePendingAsync(now, 10));
     }
 
+    [Fact]
+    public async Task OrderCompletion_RollsBackOrderAndPendingCompletionWhenQueueFails()
+    {
+        await using var harness = await PersistenceHarness.CreateAsync();
+        var pendingRepository = harness.Services.GetRequiredService<IPendingCheckoutRepository>();
+        var orderRepository = harness.Services.GetRequiredService<IOrderRepository>();
+        var transaction = harness.Services.GetRequiredService<ILocalTransaction>();
+        var now = new DateTimeOffset(2026, 7, 7, 1, 0, 0, TimeSpan.Zero);
+        var approvedAt = now.AddSeconds(5);
+        var pending = ApprovedCheckout(now, approvedAt);
+        await pendingRepository.SaveAsync(pending);
+        var service = new OrderCompletionService(
+            pendingRepository,
+            orderRepository,
+            new ThrowingSyncQueueRepository(),
+            transaction,
+            new StubCheckoutClock(now.AddSeconds(8)),
+            new StubCheckoutIdGenerator());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CompleteAsync(pending.Id));
+
+        Assert.Null(await orderRepository.GetByIdAsync(pending.OrderId!.Value));
+        var restored = await pendingRepository.GetByIdAsync(pending.Id);
+        Assert.NotNull(restored);
+        Assert.Equal(PendingCheckoutStatus.ApprovedButOrderNotCreated, restored.RecoveryStatus);
+        Assert.Null(restored.CompletedAtUtc);
+    }
+
     private static SyncQueueRecord QueueItem(Guid id, DateTimeOffset nextAttemptAt, DateTimeOffset createdAt) =>
         new(id, "Order", Guid.NewGuid(), null, id.ToString(), SyncQueueStatus.Pending,
             0, nextAttemptAt, null, createdAt, createdAt);
+
+    private static PendingCheckoutRecord ApprovedCheckout(DateTimeOffset createdAt, DateTimeOffset approvedAt)
+    {
+        var orderId = Guid.Parse("bbbbbbbb-0000-0000-0000-000000000001");
+        return new PendingCheckoutRecord(
+            Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001"),
+            Guid.Parse("10000000-0000-0000-0000-000000000001"),
+            Guid.Parse("20000000-0000-0000-0000-000000000001"),
+            Guid.Parse("30000000-0000-0000-0000-000000000001"),
+            createdAt,
+            PendingCheckoutStatus.ApprovedButOrderNotCreated,
+            """
+            {"lines":[{"productId":"11111111-0000-0000-0000-000000000001","productName":"Cola","unitPrice":1800,"quantity":2,"lineTotal":3600}],"subtotal":3600,"discountType":null,"discountValue":null,"discountAmount":0,"total":3600}
+            """,
+            """
+            {"method":"Card","requestedAmount":3600,"status":"Approved","approvedAmount":3600,"approvalCode":"APP-001","transactionReference":"TX-001","approvedAtUtc":"2026-07-07T01:00:05+00:00","failureMessage":null}
+            """,
+            PaymentStatus.Approved,
+            "APP-001",
+            3600m,
+            "TX-001",
+            approvedAt,
+            orderId,
+            null,
+            approvedAt);
+    }
+
+    private sealed class ThrowingSyncQueueRepository : ISyncQueueRepository
+    {
+        public Task EnqueueAsync(SyncQueueRecord item, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("Simulated queue failure.");
+
+        public Task<IReadOnlyList<SyncQueueRecord>> GetDuePendingAsync(
+            DateTimeOffset asOfUtc,
+            int count,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<SyncQueueRecord>>([]);
+
+        public Task<bool> ExistsByReferenceKeyAsync(string referenceKey, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task UpdateRetryAsync(Guid id, int retryCount, DateTimeOffset nextAttemptAtUtc,
+            string? lastErrorSummary, DateTimeOffset updatedAtUtc, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task MarkCompletedAsync(Guid id, DateTimeOffset completedAtUtc,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task MarkResolvedAsync(Guid id, DateTimeOffset resolvedAtUtc,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+    }
+
+    private sealed class StubCheckoutClock(DateTimeOffset utcNow) : ICheckoutClock
+    {
+        public DateTimeOffset UtcNow => utcNow;
+    }
+
+    private sealed class StubCheckoutIdGenerator : ICheckoutIdGenerator
+    {
+        public Guid NewId() => Guid.Parse("cccccccc-0000-0000-0000-000000000001");
+    }
 
     private sealed class PersistenceHarness : IAsyncDisposable
     {

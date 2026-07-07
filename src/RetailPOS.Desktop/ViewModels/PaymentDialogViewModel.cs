@@ -10,14 +10,17 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
 {
     private readonly CheckoutSession _checkoutSession;
     private readonly IRecoverablePaymentStartService _paymentStartService;
+    private readonly IOrderCompletionService _orderCompletionService;
     private bool _disposed;
 
     public PaymentDialogViewModel(
         CheckoutSession checkoutSession,
-        IRecoverablePaymentStartService paymentStartService)
+        IRecoverablePaymentStartService paymentStartService,
+        IOrderCompletionService orderCompletionService)
     {
         _checkoutSession = checkoutSession;
         _paymentStartService = paymentStartService;
+        _orderCompletionService = orderCompletionService;
         ApproveCardPaymentCommand = new AsyncRelayCommand(
             () => SimulateAsync(PaymentMethod.Card, PaymentSimulationMode.Approve),
             CanSimulatePayment);
@@ -79,6 +82,12 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
                 method,
                 mode);
 
+            if (result.IsApproved)
+            {
+                await _orderCompletionService.CompleteAsync(result.PendingCheckoutId);
+                _checkoutSession.Clear();
+            }
+
             Method = result.Method;
             Status = result.PaymentStatus;
             ApprovedAmount = result.ApprovedAmount;
@@ -91,14 +100,24 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
         }
         catch (ArgumentOutOfRangeException)
         {
-            Method = method;
-            Status = PaymentStatus.Failed;
-            ApprovedAmount = null;
-            ApprovalCode = null;
-            TransactionReference = null;
-            ApprovedAtUtc = null;
-            Message = "Payment requires a positive whole-KRW total.";
+            SetFailure(method, "Payment requires a positive whole-KRW total.");
         }
+        catch (Exception)
+        {
+            SetFailure(method,
+                "Payment could not be completed. Keep the cart and try again or ask a manager to review checkout status.");
+        }
+    }
+
+    private void SetFailure(PaymentMethod method, string message)
+    {
+        Method = method;
+        Status = PaymentStatus.Failed;
+        ApprovedAmount = null;
+        ApprovalCode = null;
+        TransactionReference = null;
+        ApprovedAtUtc = null;
+        Message = message;
     }
 
     private bool CanSimulatePayment() => CanPay;
