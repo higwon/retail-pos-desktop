@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using RetailPOS.Application.Checkout;
+using RetailPOS.Application.Payments;
 using RetailPOS.Desktop.Controls;
 using RetailPOS.Desktop.Diagnostics;
 using RetailPOS.Desktop.ViewModels;
@@ -15,6 +16,7 @@ public static class DesktopServiceRegistration
         services.AddSingleton<GlobalExceptionHandler>();
         services.AddScoped<NavigationHost>();
         services.AddScoped<CheckoutSession>();
+        services.AddSingleton<IPaymentSimulator, LocalPaymentSimulator>();
         services.AddTransient<LoginView>();
         services.AddTransient<PosMainView>();
         services.AddTransient<ProductGridView>();
