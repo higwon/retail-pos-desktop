@@ -69,6 +69,22 @@ public sealed class PaymentDialogViewModelTests
         Assert.True(viewModel.FailPaymentCommand.CanExecute(null));
     }
 
+    [Fact]
+    public void Dispose_UnsubscribesFromCheckoutSessionChanges()
+    {
+        var session = new CheckoutSession();
+        var viewModel = new PaymentDialogViewModel(
+            session,
+            new LocalPaymentSimulator(() => ApprovedAtUtc));
+
+        viewModel.Dispose();
+        session.AddProduct(Product("Water", 1000m));
+
+        Assert.Equal(0m, viewModel.AmountDue);
+        Assert.Equal("0 KRW", viewModel.TotalAmount);
+        Assert.False(viewModel.ApproveCardPaymentCommand.CanExecute(null));
+    }
+
     private static Product Product(string name, decimal price) => new(
         Guid.NewGuid(), $"SKU-{name}", Guid.NewGuid().ToString("N"), name, "Beverages", price);
 }

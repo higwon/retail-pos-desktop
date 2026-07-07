@@ -6,10 +6,11 @@ using RetailPOS.Domain.Payments;
 
 namespace RetailPOS.Desktop.ViewModels;
 
-public sealed partial class PaymentDialogViewModel : ObservableObject
+public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposable
 {
     private readonly CheckoutSession _checkoutSession;
     private readonly IPaymentSimulator _paymentSimulator;
+    private bool _disposed;
 
     public PaymentDialogViewModel(CheckoutSession checkoutSession, IPaymentSimulator paymentSimulator)
     {
@@ -99,6 +100,17 @@ public sealed partial class PaymentDialogViewModel : ObservableObject
     private bool CanSimulatePayment() => CanPay;
 
     private void OnCheckoutChanged(object? sender, EventArgs e) => RefreshAmount();
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _checkoutSession.Changed -= OnCheckoutChanged;
+        _disposed = true;
+    }
 
     private void RefreshAmount()
     {
