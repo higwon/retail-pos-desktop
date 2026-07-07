@@ -16,7 +16,11 @@ public static class DesktopServiceRegistration
         services.AddSingleton<GlobalExceptionHandler>();
         services.AddScoped<NavigationHost>();
         services.AddScoped<CheckoutSession>();
+        services.AddSingleton<ICheckoutContextProvider, DemoCheckoutContextProvider>();
+        services.AddSingleton<ICheckoutClock, SystemCheckoutClock>();
+        services.AddSingleton<ICheckoutIdGenerator, GuidCheckoutIdGenerator>();
         services.AddSingleton<IPaymentSimulator, LocalPaymentSimulator>();
+        services.AddScoped<IRecoverablePaymentStartService, RecoverablePaymentStartService>();
         services.AddTransient<LoginView>();
         services.AddTransient<PosMainView>();
         services.AddTransient<ProductGridView>();

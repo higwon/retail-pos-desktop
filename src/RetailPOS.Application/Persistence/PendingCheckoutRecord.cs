@@ -14,6 +14,7 @@ public sealed record PendingCheckoutRecord(
     PaymentStatus PaymentStatus,
     string? ApprovalCode,
     decimal? ApprovedAmount,
+    string? TransactionReference,
     DateTimeOffset? PaymentApprovedAtUtc,
     Guid? OrderId,
     DateTimeOffset? CompletedAtUtc,

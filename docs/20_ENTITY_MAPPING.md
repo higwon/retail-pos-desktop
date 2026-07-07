@@ -106,6 +106,7 @@ Suggested stored fields:
 - PaymentStatus
 - ApprovalCode nullable
 - ApprovedAmount nullable
+- TransactionReference nullable
 - PaymentApprovedAtUtc nullable
 - OrderId nullable
 - CompletedAtUtc nullable

@@ -79,6 +79,7 @@ until category management is implemented.
 - PaymentStatus
 - ApprovalCode nullable
 - ApprovedAmount nullable
+- TransactionReference nullable
 - RecoveryStatus
 - CreatedAt
 - PaymentApprovedAt nullable

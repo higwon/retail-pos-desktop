@@ -13,6 +13,7 @@ public sealed class PendingCheckoutEntity
     public int PaymentStatus { get; set; }
     public string? ApprovalCode { get; set; }
     public decimal? ApprovedAmount { get; set; }
+    public string? TransactionReference { get; set; }
     public DateTime? PaymentApprovedAtUtc { get; set; }
     public Guid? OrderId { get; set; }
     public DateTime? CompletedAtUtc { get; set; }
