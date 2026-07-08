@@ -143,7 +143,7 @@ local sync payload alignment, sync worker/retry, and sync status UI.
 
 Tasks:
 
-- Document data ownership and source of truth
+- Document data ownership and source of truth in [Data Ownership and Source of Truth](22_DATA_OWNERSHIP.md)
 - API project setup
 - Health endpoint
 - Product sync endpoint

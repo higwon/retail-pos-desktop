@@ -97,21 +97,9 @@ public sealed class CheckoutRecoveryService(
 
     private static CheckoutRecoveryRecord ToRecoveryRecord(PendingCheckoutRecord record)
     {
-        var snapshot = CartSnapshotPayload.Empty;
-        var isReadable = true;
-        string? warning = null;
-
-        try
-        {
-            snapshot = System.Text.Json.JsonSerializer.Deserialize<CartSnapshotPayload>(
-                record.CartSnapshotJson,
-                JsonOptions.Default) ?? CartSnapshotPayload.Empty;
-        }
-        catch (System.Text.Json.JsonException)
-        {
-            isReadable = false;
-            warning = "Cart snapshot needs manager review.";
-        }
+        var snapshotResult = RestoreCartSnapshot(record.CartSnapshotJson);
+        var snapshot = snapshotResult.Snapshot;
+        var requiresManagerReview = !snapshotResult.IsReadable || !HasCompleteApprovedPaymentMetadata(record);
 
         return new CheckoutRecoveryRecord(
             record.Id,
@@ -119,24 +107,90 @@ public sealed class CheckoutRecoveryService(
             record.TerminalId,
             record.CashierId,
             record.CreatedAtUtc,
-            record.ApprovedAmount ?? snapshot.Total,
+            record.ApprovedAmount ?? (snapshotResult.IsReadable ? snapshot.Total : 0m),
             record.PaymentStatus.ToString(),
             record.ApprovalCode,
             record.TransactionReference,
             record.PaymentApprovedAtUtc,
             record.OrderId,
-            snapshot.Lines
-                .Select(line => new CheckoutRecoveryLine(
+            snapshotResult.IsReadable
+                ? snapshot.Lines.Select(line => new CheckoutRecoveryLine(
                     line.ProductName,
                     line.Quantity,
                     line.UnitPrice,
-                    line.LineTotal))
-                .ToList(),
-            snapshot.Subtotal,
-            snapshot.DiscountAmount,
-            snapshot.Total,
-            isReadable,
-            warning);
+                    line.LineTotal)).ToList()
+                : [],
+            snapshotResult.IsReadable ? snapshot.Subtotal : 0m,
+            snapshotResult.IsReadable ? snapshot.DiscountAmount : 0m,
+            snapshotResult.IsReadable ? snapshot.Total : 0m,
+            !requiresManagerReview,
+            requiresManagerReview
+                ? "Checkout data needs manager review."
+                : null);
+    }
+
+    private static RestoredCartSnapshot RestoreCartSnapshot(string cartSnapshotJson)
+    {
+        try
+        {
+            var snapshot = System.Text.Json.JsonSerializer.Deserialize<CartSnapshotPayload>(
+                cartSnapshotJson,
+                JsonOptions.Default);
+
+            if (snapshot is null || !IsValidSnapshot(snapshot))
+            {
+                return RestoredCartSnapshot.ManagerReview;
+            }
+
+            return new RestoredCartSnapshot(snapshot, IsReadable: true);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return RestoredCartSnapshot.ManagerReview;
+        }
+    }
+
+    private static bool IsValidSnapshot(CartSnapshotPayload snapshot)
+    {
+        if (snapshot.Lines is null ||
+            snapshot.Lines.Count == 0 ||
+            snapshot.Subtotal < 0m ||
+            snapshot.DiscountAmount < 0m ||
+            snapshot.Total < 0m ||
+            snapshot.DiscountAmount > snapshot.Subtotal ||
+            snapshot.Total != snapshot.Subtotal - snapshot.DiscountAmount)
+        {
+            return false;
+        }
+
+        var lineTotal = 0m;
+        foreach (var line in snapshot.Lines)
+        {
+            if (line.ProductId == Guid.Empty ||
+                string.IsNullOrWhiteSpace(line.ProductName) ||
+                line.UnitPrice < 0m ||
+                line.Quantity <= 0 ||
+                line.LineTotal < 0m ||
+                line.LineTotal != line.UnitPrice * line.Quantity)
+            {
+                return false;
+            }
+
+            lineTotal += line.LineTotal;
+        }
+
+        return lineTotal == snapshot.Subtotal;
+    }
+
+    private static bool HasCompleteApprovedPaymentMetadata(PendingCheckoutRecord record) =>
+        record.PaymentStatus == RetailPOS.Domain.Payments.PaymentStatus.Approved &&
+        record.ApprovedAmount is > 0m &&
+        record.PaymentApprovedAtUtc is not null &&
+        record.OrderId is not null;
+
+    private sealed record RestoredCartSnapshot(CartSnapshotPayload Snapshot, bool IsReadable)
+    {
+        public static RestoredCartSnapshot ManagerReview { get; } = new(CartSnapshotPayload.Empty, IsReadable: false);
     }
 
     private static bool IsRecoverableUserBoundaryException(Exception exception) =>
