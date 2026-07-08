@@ -189,6 +189,9 @@ Response:
 - Use DTOs, not EF entities, as API contracts.
 - Validate requests.
 - Return clear error responses.
+- Return RFC 7807-style ProblemDetails responses for unhandled server errors and status-code errors.
+- Log API requests with method, path, status code, and elapsed time.
+- Keep technical exception details out of production error responses.
 - Use pagination for list endpoints.
 - Use idempotency for order upload.
 - Timestamp fields in API contracts use UTC ISO 8601 values. Store-local reporting dates use `businessDate`.
