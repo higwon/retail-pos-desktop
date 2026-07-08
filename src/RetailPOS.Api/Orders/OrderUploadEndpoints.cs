@@ -1,5 +1,7 @@
 namespace RetailPOS.Api.Orders;
 
+using Microsoft.AspNetCore.Mvc;
+
 public static class OrderUploadEndpoints
 {
     public static RouteGroupBuilder MapOrderUploadEndpoints(this RouteGroupBuilder api)
@@ -15,12 +17,25 @@ public static class OrderUploadEndpoints
                     return Results.ValidationProblem(validation.Errors);
                 }
 
-                var response = await handler.UploadAsync(request, cancellationToken);
-                return Results.Ok(response);
+                try
+                {
+                    var response = await handler.UploadAsync(request, cancellationToken);
+                    return Results.Ok(response);
+                }
+                catch (OrderUploadConflictException exception)
+                {
+                    return Results.Conflict(new ProblemDetails
+                    {
+                        Title = "Order upload conflict",
+                        Detail = exception.Message,
+                        Status = StatusCodes.Status409Conflict
+                    });
+                }
             })
             .WithName("UploadOrder")
             .Produces<OrderUploadResponse>(StatusCodes.Status200OK)
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status409Conflict);
 
         return api;
     }

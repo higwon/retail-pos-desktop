@@ -119,16 +119,59 @@ public sealed class OrderUploadRequestTests
     }
 
     [Fact]
-    public async Task EmptyOrderUploadHandler_ReturnsRunnablePlaceholderResponse()
+    public async Task IdempotentOrderUploadHandler_ReturnsSyncedResponse()
     {
         var request = ValidRequest();
-        var handler = new EmptyOrderUploadHandler();
+        var handler = new IdempotentOrderUploadHandler(new InMemoryOrderUploadIdempotencyStore());
 
         var response = await handler.UploadAsync(request);
 
-        Assert.Equal(request.LocalOrderId, response.ServerOrderId);
-        Assert.Equal($"PENDING-{request.LocalOrderNumber}", response.OrderNumber);
-        Assert.Equal("Accepted", response.SyncStatus);
+        Assert.NotEqual(Guid.Empty, response.ServerOrderId);
+        Assert.Equal($"SYNCED-{request.LocalOrderNumber}", response.OrderNumber);
+        Assert.Equal("Synced", response.SyncStatus);
+    }
+
+    [Fact]
+    public async Task IdempotentOrderUploadHandler_ReturnsExistingResponseForDuplicateOrder()
+    {
+        var request = ValidRequest();
+        var handler = new IdempotentOrderUploadHandler(new InMemoryOrderUploadIdempotencyStore());
+
+        var firstResponse = await handler.UploadAsync(request);
+        var duplicateResponse = await handler.UploadAsync(request);
+
+        Assert.Equal(firstResponse, duplicateResponse);
+    }
+
+    [Fact]
+    public async Task IdempotentOrderUploadHandler_RejectsReusedIdempotencyKeyForDifferentOrder()
+    {
+        var request = ValidRequest();
+        var conflictingRequest = request with
+        {
+            LocalOrderId = Guid.Parse("30000000-0000-0000-0000-000000000002"),
+            LocalOrderNumber = "POS-20260708-000002"
+        };
+        var handler = new IdempotentOrderUploadHandler(new InMemoryOrderUploadIdempotencyStore());
+
+        await handler.UploadAsync(request);
+
+        await Assert.ThrowsAsync<OrderUploadConflictException>(() => handler.UploadAsync(conflictingRequest));
+    }
+
+    [Fact]
+    public async Task IdempotentOrderUploadHandler_RejectsDifferentIdempotencyKeyForExistingOrder()
+    {
+        var request = ValidRequest();
+        var conflictingRequest = request with
+        {
+            IdempotencyKey = "different-idempotency-key"
+        };
+        var handler = new IdempotentOrderUploadHandler(new InMemoryOrderUploadIdempotencyStore());
+
+        await handler.UploadAsync(request);
+
+        await Assert.ThrowsAsync<OrderUploadConflictException>(() => handler.UploadAsync(conflictingRequest));
     }
 
     private static OrderUploadRequest ValidRequest() => new(
