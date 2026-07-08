@@ -49,6 +49,7 @@ public sealed class OrderCompletionServiceTests
     {
         var pending = new RecordingPendingCheckoutRepository(ApprovedCheckout());
         var orders = new RecordingOrderRepository();
+        orders.Saved.Add(CompletedOrder());
         orders.ExistingIds.Add(OrderId);
         var queue = new RecordingSyncQueueRepository();
         var transaction = new RecordingLocalTransaction();
@@ -58,9 +59,40 @@ public sealed class OrderCompletionServiceTests
 
         Assert.True(result.AlreadyCompleted);
         Assert.Equal(OrderId, result.LocalOrderId);
-        Assert.False(transaction.WasUsed);
-        Assert.Empty(orders.Saved);
-        Assert.Empty(queue.Items);
+        Assert.True(transaction.WasUsed);
+        Assert.Single(orders.Saved);
+        Assert.Equal(PendingCheckoutStatus.Completed, pending.Record.RecoveryStatus);
+        Assert.Equal(OrderId, pending.Record.OrderId);
+        Assert.Single(queue.Items);
+    }
+
+    [Fact]
+    public async Task CompleteAsync_DoesNotDuplicateSyncQueueWhenOrderAlreadyExists()
+    {
+        var pending = new RecordingPendingCheckoutRepository(ApprovedCheckout());
+        var orders = new RecordingOrderRepository();
+        orders.Saved.Add(CompletedOrder());
+        orders.ExistingIds.Add(OrderId);
+        var queue = new RecordingSyncQueueRepository();
+        queue.Items.Add(new SyncQueueRecord(
+            Guid.Parse("dddddddd-0000-0000-0000-000000000001"),
+            "Order",
+            OrderId,
+            null,
+            $"{StoreId:N}:{TerminalId:N}:{OrderId:N}",
+            SyncQueueStatus.Pending,
+            0,
+            CompletedAtUtc,
+            null,
+            CompletedAtUtc,
+            CompletedAtUtc));
+        var service = Service(pending, orders, queue, new RecordingLocalTransaction());
+
+        var result = await service.CompleteAsync(PendingCheckoutId);
+
+        Assert.True(result.AlreadyCompleted);
+        Assert.Single(queue.Items);
+        Assert.Equal(PendingCheckoutStatus.Completed, pending.Record.RecoveryStatus);
     }
 
     [Fact]
@@ -116,6 +148,22 @@ public sealed class OrderCompletionServiceTests
         null,
         ApprovedAtUtc);
 
+    private static Order CompletedOrder()
+    {
+        var payment = new Payment(Guid.NewGuid(), PaymentMethod.Card, 3400m, ApprovedAtUtc);
+        payment.Approve(3400m, ApprovedAtUtc, "APP-001", "TX-001");
+        return new Order(
+            OrderId,
+            "LOCAL-20260707-BBBBBBBBBBBB",
+            StoreId,
+            TerminalId,
+            CashierId,
+            new DateOnly(2026, 7, 7),
+            ApprovedAtUtc,
+            [new OrderLine(Guid.Parse("11111111-0000-0000-0000-000000000001"), "Cola", 1800m, 2, 200m)],
+            [payment]);
+    }
+
     private sealed class RecordingPendingCheckoutRepository(PendingCheckoutRecord record) : IPendingCheckoutRepository
     {
         public PendingCheckoutRecord Record { get; private set; } = record;
@@ -141,6 +189,19 @@ public sealed class OrderCompletionServiceTests
                 OrderId = orderId,
                 CompletedAtUtc = completedAtUtc,
                 LastUpdatedAtUtc = completedAtUtc
+            };
+            return Task.CompletedTask;
+        }
+
+        public Task MarkManagerReviewRequiredAsync(
+            Guid id,
+            DateTimeOffset updatedAtUtc,
+            CancellationToken cancellationToken = default)
+        {
+            Record = Record with
+            {
+                RecoveryStatus = PendingCheckoutStatus.ManagerReviewRequired,
+                LastUpdatedAtUtc = updatedAtUtc
             };
             return Task.CompletedTask;
         }

@@ -23,6 +23,7 @@ public static class DesktopServiceRegistration
         services.AddSingleton<IPaymentSimulator, LocalPaymentSimulator>();
         services.AddScoped<IRecoverablePaymentStartService, RecoverablePaymentStartService>();
         services.AddScoped<IOrderCompletionService, OrderCompletionService>();
+        services.AddScoped<ICheckoutRecoveryService, CheckoutRecoveryService>();
         services.AddTransient<LoginView>();
         services.AddTransient<PosMainView>();
         services.AddTransient<ProductGridView>();

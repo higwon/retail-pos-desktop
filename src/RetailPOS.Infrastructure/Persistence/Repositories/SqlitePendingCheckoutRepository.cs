@@ -62,6 +62,20 @@ public sealed class SqlitePendingCheckoutRepository(LocalPosDbContext dbContext)
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task MarkManagerReviewRequiredAsync(
+        Guid id,
+        DateTimeOffset updatedAtUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var updatedAt = UtcTime.ToStorage(updatedAtUtc, nameof(updatedAtUtc));
+        var entity = await dbContext.PendingCheckouts.SingleOrDefaultAsync(
+            checkout => checkout.Id == id,
+            cancellationToken) ?? throw new KeyNotFoundException($"Pending checkout '{id}' was not found.");
+        entity.RecoveryStatus = (int)PendingCheckoutStatus.ManagerReviewRequired;
+        entity.LastUpdatedAtUtc = updatedAt;
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await dbContext.PendingCheckouts.SingleOrDefaultAsync(

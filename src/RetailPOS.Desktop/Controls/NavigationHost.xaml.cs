@@ -1,20 +1,25 @@
 using System.Windows.Controls;
+using RetailPOS.Application.Checkout;
 using RetailPOS.Desktop.Views;
 
 namespace RetailPOS.Desktop.Controls;
 
 public partial class NavigationHost : UserControl
 {
+    private readonly ICheckoutRecoveryService _checkoutRecoveryService;
     private readonly LoginView _loginView;
     private readonly PosMainView _posMainView;
     private readonly CheckoutRecoveryView _checkoutRecoveryView;
     private readonly DashboardView _dashboardView;
     private readonly StatusView _statusView;
+    private bool _startupRecoveryChecked;
 
     public NavigationHost(LoginView loginView, PosMainView posMainView,
-        CheckoutRecoveryView checkoutRecoveryView, DashboardView dashboardView, StatusView statusView)
+        CheckoutRecoveryView checkoutRecoveryView, DashboardView dashboardView, StatusView statusView,
+        ICheckoutRecoveryService checkoutRecoveryService)
     {
         InitializeComponent();
+        _checkoutRecoveryService = checkoutRecoveryService;
         _loginView = loginView;
         _posMainView = posMainView;
         _checkoutRecoveryView = checkoutRecoveryView;
@@ -22,6 +27,36 @@ public partial class NavigationHost : UserControl
         _statusView = statusView;
         _loginView.ContinueRequested += ShowPosMain;
         ContentRoot.Children.Add(_loginView);
+        Loaded += OnLoaded;
+    }
+
+    private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (_startupRecoveryChecked)
+        {
+            return;
+        }
+
+        _startupRecoveryChecked = true;
+        IReadOnlyList<CheckoutRecoveryRecord> recoverable;
+        try
+        {
+            recoverable = await _checkoutRecoveryService.GetRecoverableAsync();
+        }
+        catch
+        {
+            return;
+        }
+
+        if (recoverable.Count == 0)
+        {
+            return;
+        }
+
+        DemoNavigation.Visibility = System.Windows.Visibility.Visible;
+        Grid.SetRow(ContentRoot, 1);
+        Grid.SetRowSpan(ContentRoot, 1);
+        Show(_checkoutRecoveryView);
     }
 
     private void ShowPosMain(object? sender, System.Windows.RoutedEventArgs e)

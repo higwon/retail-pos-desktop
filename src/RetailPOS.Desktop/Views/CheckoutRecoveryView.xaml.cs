@@ -9,5 +9,6 @@ public partial class CheckoutRecoveryView : UserControl
     {
         InitializeComponent();
         DataContext = viewModel;
+        Loaded += async (_, _) => await viewModel.LoadAsync();
     }
 }

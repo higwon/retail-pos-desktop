@@ -173,6 +173,12 @@ public sealed class RecoverablePaymentStartServiceTests
             CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
+        public Task MarkManagerReviewRequiredAsync(
+            Guid id,
+            DateTimeOffset updatedAtUtc,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
         public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
     }
