@@ -10,8 +10,10 @@ public static class SyncServiceRegistration
         this IServiceCollection services,
         Uri baseAddress)
     {
-        services.AddSingleton<IProductSyncClient>(
-            new HttpProductSyncClient(new HttpClient { BaseAddress = baseAddress }));
+        services.AddHttpClient<IProductSyncClient, HttpProductSyncClient>(client =>
+        {
+            client.BaseAddress = baseAddress;
+        });
 
         services.AddScoped<ProductSyncService>();
 
