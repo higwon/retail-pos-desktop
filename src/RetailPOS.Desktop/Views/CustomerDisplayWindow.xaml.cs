@@ -9,5 +9,13 @@ public partial class CustomerDisplayWindow : Window
     {
         InitializeComponent();
         DataContext = viewModel;
+        Closed += OnClosed;
+    }
+
+    private void OnClosed(object? sender, EventArgs e)
+    {
+        Closed -= OnClosed;
+        (DataContext as IDisposable)?.Dispose();
+        DataContext = null;
     }
 }

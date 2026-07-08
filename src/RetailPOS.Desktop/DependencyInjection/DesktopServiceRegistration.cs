@@ -16,6 +16,7 @@ public static class DesktopServiceRegistration
         services.AddSingleton<GlobalExceptionHandler>();
         services.AddScoped<NavigationHost>();
         services.AddScoped<CheckoutSession>();
+        services.AddScoped<CheckoutDisplayState>();
         services.AddSingleton<ICheckoutContextProvider, DemoCheckoutContextProvider>();
         services.AddSingleton<ICheckoutClock, SystemCheckoutClock>();
         services.AddSingleton<ICheckoutIdGenerator, GuidCheckoutIdGenerator>();

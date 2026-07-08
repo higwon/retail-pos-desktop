@@ -20,7 +20,8 @@ public sealed class PaymentDialogViewModelTests
         session.AddProduct(Product("Cola", 1800m));
         var service = new StubPaymentStartService(Approved());
         var completion = new StubOrderCompletionService();
-        var viewModel = new PaymentDialogViewModel(session, service, completion);
+        var displayState = new CheckoutDisplayState();
+        var viewModel = new PaymentDialogViewModel(session, service, completion, displayState);
 
         await viewModel.ApproveCardPaymentCommand.ExecuteAsync(null);
 
@@ -35,6 +36,8 @@ public sealed class PaymentDialogViewModelTests
         Assert.Equal(3600m, viewModel.ApprovedAmount);
         Assert.Equal("APP-CARD-000000003600", viewModel.ApprovalCode);
         Assert.Equal(ApprovedAtUtc, viewModel.ApprovedAtUtc);
+        Assert.Equal(CheckoutDisplayPhase.Completed, displayState.Snapshot.Phase);
+        Assert.Equal("Payment complete. Please take your receipt.", displayState.Snapshot.PaymentMessage);
     }
 
     [Fact]
@@ -44,7 +47,8 @@ public sealed class PaymentDialogViewModelTests
         session.AddProduct(Product("Water", 1000m));
         var service = new StubPaymentStartService(Failed());
         var completion = new StubOrderCompletionService();
-        var viewModel = new PaymentDialogViewModel(session, service, completion);
+        var displayState = new CheckoutDisplayState();
+        var viewModel = new PaymentDialogViewModel(session, service, completion, displayState);
 
         await viewModel.FailPaymentCommand.ExecuteAsync(null);
 
@@ -55,6 +59,8 @@ public sealed class PaymentDialogViewModelTests
         Assert.False(viewModel.IsApproved);
         Assert.Null(viewModel.ApprovalCode);
         Assert.Equal("Payment was declined by the local simulator.", viewModel.Message);
+        Assert.Equal(CheckoutDisplayPhase.PaymentFailed, displayState.Snapshot.Phase);
+        Assert.Equal("Payment was declined by the local simulator.", displayState.Snapshot.PaymentMessage);
     }
 
     [Fact]
@@ -64,7 +70,8 @@ public sealed class PaymentDialogViewModelTests
         var viewModel = new PaymentDialogViewModel(
             session,
             new StubPaymentStartService(Approved()),
-            new StubOrderCompletionService());
+            new StubOrderCompletionService(),
+            new CheckoutDisplayState());
 
         Assert.False(viewModel.ApproveCardPaymentCommand.CanExecute(null));
         Assert.False(viewModel.ApproveCashPaymentCommand.CanExecute(null));
@@ -84,7 +91,8 @@ public sealed class PaymentDialogViewModelTests
         var viewModel = new PaymentDialogViewModel(
             session,
             new StubPaymentStartService(Approved()),
-            new StubOrderCompletionService());
+            new StubOrderCompletionService(),
+            new CheckoutDisplayState());
 
         viewModel.Dispose();
         session.AddProduct(Product("Water", 1000m));
@@ -99,10 +107,12 @@ public sealed class PaymentDialogViewModelTests
     {
         var session = new CheckoutSession();
         session.AddProduct(Product("Water", 1000m));
+        var displayState = new CheckoutDisplayState();
         var viewModel = new PaymentDialogViewModel(
             session,
             new StubPaymentStartService(Approved()),
-            new StubOrderCompletionService(throwOnComplete: true));
+            new StubOrderCompletionService(throwOnComplete: true),
+            displayState);
 
         await viewModel.ApproveCardPaymentCommand.ExecuteAsync(null);
 
@@ -110,6 +120,7 @@ public sealed class PaymentDialogViewModelTests
         Assert.Equal(PaymentStatus.Failed, viewModel.Status);
         Assert.Equal("Payment could not be completed. Keep the cart and try again or ask a manager to review checkout status.",
             viewModel.Message);
+        Assert.Equal(CheckoutDisplayPhase.PaymentFailed, displayState.Snapshot.Phase);
     }
 
     private static RecoverablePaymentStartResult Approved() => new(

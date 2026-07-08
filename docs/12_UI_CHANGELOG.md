@@ -1,5 +1,11 @@
 # UI Changelog
 
+## v0.8 - Customer Display Binding
+
+- Bound the customer display window to the shared checkout session.
+- Customer display now reflects cart lines, item count, discounts, totals, and MVP payment/completion messages.
+- Closing and reopening the customer display preserves shared checkout display state.
+
 ## v0.7 - UI Shell Implementation
 
 - Added WPF payment and receipt dialog shells.
