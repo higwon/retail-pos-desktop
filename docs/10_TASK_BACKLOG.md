@@ -6,7 +6,8 @@
 - Task 2 basic shell UI: complete.
 - Task 3 domain models: complete.
 - Task 4 local persistence and repeatable product seed data: complete through EPIC-04.
-- Task 5 checkout MVP: active through EPIC-05 (`POS-401` through `POS-409`).
+- Task 5 checkout MVP: complete through EPIC-05 (`POS-401` through `POS-409`).
+- Task 6 API and synchronization: ready to begin with EPIC-06 (`POS-500` through `POS-508`).
 
 This file is a coarse product backlog. For implementation order and scope, use the active
 GitHub Issue together with `docs/13_EPICS_AND_TASKS.md`.
@@ -97,7 +98,7 @@ Acceptance criteria:
 
 Implement local checkout without API sync.
 
-Status: Active. GitHub Issues POS-401 through POS-409 define the implementation order and detailed scope.
+Status: Complete. GitHub Issues POS-401 through POS-409 define the implemented checkout MVP scope.
 
 Acceptance criteria:
 
@@ -108,6 +109,24 @@ Acceptance criteria:
 - Customer Display updates when the cart changes and when payment state changes.
 - PendingCheckout is saved before payment approval is requested.
 - An approved checkout whose order was not created can be recovered after restart.
+
+### Task 6: Add API and Synchronization MVP
+
+Add the central API skeleton and local synchronization path for product download and
+order upload.
+
+Status: Todo. GitHub Issues POS-500 through POS-508 define the implementation order
+and detailed scope.
+
+Acceptance criteria:
+
+- Data ownership and source-of-truth rules are documented before implementation.
+- API project runs independently with a health endpoint.
+- API exposes product sync and order upload contracts.
+- Desktop can sync upstream product data into the local SQLite cache.
+- Local order upload is idempotent and safe to retry.
+- Desktop can process due order sync queue records with bounded retry behavior.
+- Sync status UI shows pending, retrying, completed, and manual-review work.
 
 ## Later Tasks
 
