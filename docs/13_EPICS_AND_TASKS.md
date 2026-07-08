@@ -234,7 +234,7 @@ Status: Complete.
 
 Goal: Complete a local-only checkout flow.
 
-Status: Active.
+Status: Complete, with follow-up hardening tracked separately.
 
 ### POS-401 Product Search
 
@@ -254,25 +254,43 @@ Status: Active.
 
 ### POS-409 Receipt Generation and Preview
 
+### POS-410 Harden Checkout Recovery Snapshot Validation
+
+Follow-up hardening for incomplete or malformed persisted recovery snapshots. Unsafe
+records should stay recoverable as manager-review candidates instead of crashing the
+recovery screen.
+
 ---
 
 ## EPIC-06 API and Synchronization
 
 Goal: Add server integration and reliable synchronization.
 
+Status: Todo.
+
+### POS-500 Document Data Ownership and Source of Truth
+
+Clarify which records originate locally, which records come from upstream API/HQ data,
+and how local SQLite acts as a cache or operational store after Checkout MVP.
+
 ### POS-501 ASP.NET Core API Skeleton
 
-### POS-502 Authentication API
+### POS-502 Product Sync API Contract
 
-### POS-503 Product Sync API
+### POS-503 Desktop Product Sync Client and Upsert
 
-### POS-504 Order Upload API
+### POS-504 Order Upload API Contract
 
-### POS-505 Idempotency Handling
+### POS-505 API Idempotency Handling for Order Upload
 
-### POS-506 Sync Retry Policy
+### POS-506 Desktop Order Sync Worker and Retry Policy
 
 ### POS-507 Sync Status UI Integration
+
+### POS-508 Align Local Order Sync Queue Payload with Upload Contract
+
+Expand the local order sync queue payload so it contains the full completed-order data
+required by the API upload contract before the Desktop sync worker consumes it.
 
 ---
 

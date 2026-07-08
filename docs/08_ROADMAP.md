@@ -7,7 +7,8 @@
 - Phase 2 domain model MVP: complete
 - UI shell placeholders: complete ahead of the original phase ordering
 - Phase 3 local SQLite persistence: complete
-- Phases 4 and 5 / EPIC-05 Checkout MVP: active
+- Phases 4 and 5 / EPIC-05 Checkout MVP: complete
+- Phase 6 / EPIC-06 API and synchronization: ready to start
 
 Phase numbers describe capability groups, not a strict implementation sequence. GitHub
 Issues and `docs/13_EPICS_AND_TASKS.md` define the active implementation order.
@@ -114,7 +115,7 @@ feat: implement POS main screen
 
 Goal: Complete local checkout flow.
 
-Status: Active together with Phase 4 under EPIC-05 Checkout MVP.
+Status: Complete through EPIC-05 Checkout MVP.
 
 Tasks:
 
@@ -136,14 +137,23 @@ feat: implement checkout and receipt flow
 
 Goal: Add central server API.
 
+Status: Ready to start under EPIC-06 API and Synchronization. Begin with data
+ownership documentation, then API skeleton, product sync, order upload, idempotency,
+local sync payload alignment, sync worker/retry, and sync status UI.
+
 Tasks:
 
+- Document data ownership and source of truth
 - API project setup
-- Auth endpoint
-- Products endpoint
-- Orders endpoint
 - Health endpoint
-- SQL Server persistence
+- Product sync endpoint
+- Order upload endpoint
+- Idempotency handling
+- Local order sync queue payload alignment
+- Desktop product sync client/upsert
+- Desktop order sync worker and retry policy
+- Sync status UI integration
+- Authentication and SQL Server persistence later in EPIC-06 or a follow-up phase
 
 Expected commit:
 
