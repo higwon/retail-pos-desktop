@@ -29,13 +29,20 @@ Suggested stored fields:
 - Name
 - CategoryName
 - UnitPrice
+- StockQuantity
 - IsActive
-- UpdatedAtUtc if needed later
+- Version
+- UpdatedUtc
 
 EPIC-04 stores `CategoryName` directly because the current Domain model uses a category
 name and the MVP does not manage categories independently. A normalized `Categories`
 table and `CategoryId` may be introduced later with a migration when category management
 becomes a real use case.
+
+Product sync metadata stays on `ProductEntity` instead of the Domain `Product` model.
+`Version` and `UpdatedUtc` support incremental sync and stale-response protection.
+`IsActive = false` represents a discontinued upstream product without deleting local
+history.
 
 ## Order Mapping
 

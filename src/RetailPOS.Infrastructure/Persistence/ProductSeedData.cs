@@ -5,6 +5,8 @@ namespace RetailPOS.Infrastructure.Persistence;
 
 public sealed class ProductSeedData(LocalPosDbContext dbContext)
 {
+    private static readonly DateTime SeedUpdatedUtc = new(2026, 7, 1, 0, 0, 0, DateTimeKind.Utc);
+
     private static readonly ProductEntity[] Products =
     [
         Create("10000000-0000-0000-0000-000000000001", "DRINK-001", "8801000000011", "Mineral Water 500ml", "Beverages", 1000m),
@@ -48,7 +50,10 @@ public sealed class ProductSeedData(LocalPosDbContext dbContext)
             Name = name,
             CategoryName = categoryName,
             UnitPrice = unitPrice,
-            IsActive = true
+            StockQuantity = 0,
+            IsActive = true,
+            Version = 0,
+            UpdatedUtc = SeedUpdatedUtc
         };
 
     private static ProductEntity Clone(ProductEntity product) => new()
@@ -57,8 +62,11 @@ public sealed class ProductSeedData(LocalPosDbContext dbContext)
         Sku = product.Sku,
         Barcode = product.Barcode,
         Name = product.Name,
-        CategoryName = product.CategoryName,
-        UnitPrice = product.UnitPrice,
-        IsActive = product.IsActive
-    };
+    CategoryName = product.CategoryName,
+    UnitPrice = product.UnitPrice,
+    StockQuantity = product.StockQuantity,
+    IsActive = product.IsActive,
+    Version = product.Version,
+    UpdatedUtc = product.UpdatedUtc
+};
 }

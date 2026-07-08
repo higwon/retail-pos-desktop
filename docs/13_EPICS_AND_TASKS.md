@@ -300,6 +300,17 @@ Scope:
 
 ### POS-503 Desktop Product Sync Client and Upsert
 
+Add the desktop-side product sync boundary and local cache upsert behavior.
+
+Scope:
+
+- Add an application-level product sync service and client/store abstractions.
+- Add an infrastructure HTTP product sync client for `GET /api/products`.
+- Add SQLite product cache upsert support.
+- Persist `stockQuantity`, `version`, and `updatedUtc` in the local product cache.
+- Treat `isActive = false` as a soft-delete/inactive product update.
+- Ignore older product versions so stale sync responses do not overwrite newer local cache data.
+
 ### POS-504 Order Upload API Contract
 
 ### POS-505 API Idempotency Handling for Order Upload
