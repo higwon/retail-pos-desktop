@@ -17,8 +17,8 @@ public static class RetailPosApiApplication
 
     public static WebApplication UseRetailPosApi(this WebApplication app)
     {
-        app.UseMiddleware<ApiExceptionHandlingMiddleware>();
         app.UseMiddleware<ApiRequestLoggingMiddleware>();
+        app.UseMiddleware<ApiExceptionHandlingMiddleware>();
 
         app.UseStatusCodePages(async (StatusCodeContext statusCodeContext) =>
         {
