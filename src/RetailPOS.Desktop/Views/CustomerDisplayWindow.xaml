@@ -5,6 +5,9 @@
         Width="1280" Height="720" MinWidth="960" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BrandDarkBrush}">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Window.Resources>
     <Grid Margin="64,48">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -38,14 +41,49 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Text="Your order" FontSize="24" FontWeight="SemiBold" />
-                    <StackPanel Grid.Row="1" Margin="0,28">
-                        <Grid Margin="0,0,0,22"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Daily Shampoo" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="Qty 1" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,5,0,0"/></StackPanel><TextBlock Grid.Column="1" Text="₩12,000" FontSize="17" FontWeight="SemiBold"/></Grid>
-                        <Separator Background="{StaticResource BorderBrush}" />
-                        <Grid Margin="0,22"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Vitamin Drink" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="Qty 1" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,5,0,0"/></StackPanel><TextBlock Grid.Column="1" Text="₩15,000" FontSize="17" FontWeight="SemiBold"/></Grid>
-                        <Separator Background="{StaticResource BorderBrush}" />
-                        <Grid Margin="0,22,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Hand Cream" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="Qty 1" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,5,0,0"/></StackPanel><TextBlock Grid.Column="1" Text="₩18,000" FontSize="17" FontWeight="SemiBold"/></Grid>
-                    </StackPanel>
-                    <Grid Grid.Row="2"><TextBlock Text="3 items" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="Discount  -₩2,000" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right"/></Grid>
+                    <Grid Grid.Row="1" Margin="0,28">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding Lines}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <Grid Margin="0,0,0,18">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding ProductName}"
+                                                               FontSize="17"
+                                                               FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding QuantityText}"
+                                                               Style="{StaticResource SecondaryTextBlockStyle}"
+                                                               Margin="0,5,0,0" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding LineTotalText}"
+                                                           FontSize="17"
+                                                           FontWeight="SemiBold" />
+                                            </Grid>
+                                            <Separator Background="{StaticResource BorderBrush}" Margin="0,0,0,18" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <TextBlock Text="Cart is empty."
+                                   Style="{StaticResource SecondaryTextBlockStyle}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Visibility="{Binding IsEmpty, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    </Grid>
+                    <Grid Grid.Row="2">
+                        <TextBlock Text="{Binding ItemSummary}" Style="{StaticResource SecondaryTextBlockStyle}" />
+                        <TextBlock Text="{Binding DiscountSummary}"
+                                   Foreground="{StaticResource SuccessBrush}"
+                                   HorizontalAlignment="Right"
+                                   Visibility="{Binding HasDiscount, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    </Grid>
                 </Grid>
             </Border>
 

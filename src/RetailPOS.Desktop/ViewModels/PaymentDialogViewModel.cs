@@ -11,16 +11,19 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
     private readonly CheckoutSession _checkoutSession;
     private readonly IRecoverablePaymentStartService _paymentStartService;
     private readonly IOrderCompletionService _orderCompletionService;
+    private readonly CheckoutDisplayState _displayState;
     private bool _disposed;
 
     public PaymentDialogViewModel(
         CheckoutSession checkoutSession,
         IRecoverablePaymentStartService paymentStartService,
-        IOrderCompletionService orderCompletionService)
+        IOrderCompletionService orderCompletionService,
+        CheckoutDisplayState displayState)
     {
         _checkoutSession = checkoutSession;
         _paymentStartService = paymentStartService;
         _orderCompletionService = orderCompletionService;
+        _displayState = displayState;
         ApproveCardPaymentCommand = new AsyncRelayCommand(
             () => SimulateAsync(PaymentMethod.Card, PaymentSimulationMode.Approve),
             CanSimulatePayment);
@@ -77,6 +80,7 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
     {
         try
         {
+            _displayState.ShowPaymentWaiting(method, AmountDue);
             var result = await _paymentStartService.StartAsync(
                 _checkoutSession.Snapshot,
                 method,
@@ -86,6 +90,11 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
             {
                 await _orderCompletionService.CompleteAsync(result.PendingCheckoutId);
                 _checkoutSession.Clear();
+                _displayState.ShowCompleted();
+            }
+            else
+            {
+                _displayState.ShowPaymentFailed(result.FailureMessage ?? "Payment failed.");
             }
 
             Method = result.Method;
@@ -118,6 +127,7 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
         TransactionReference = null;
         ApprovedAtUtc = null;
         Message = message;
+        _displayState.ShowPaymentFailed(message);
     }
 
     private bool CanSimulatePayment() => CanPay;
