@@ -200,12 +200,21 @@ feat: add admin dashboard
 
 Goal: Improve engineering depth.
 
+Status: Planned hardening after EPIC-06 API and Synchronization. This phase should
+focus on quality, observability, configuration, and failure scenarios before broadening
+device/peripheral scope.
+
 Tasks:
 
 - Large product dataset testing
 - Large order history testing
+- Large product synchronization testing
+- Offline/online transition testing
+- Interrupted checkout and sync failure scenario testing
+- Configuration cleanup
 - Async UI improvements
 - Logging improvements
+- Audit-friendly operational event logging
 - Error recovery
 - Retry policy refinement
 - Exponential backoff with a maximum of 5 automatic attempts

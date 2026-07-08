@@ -312,6 +312,10 @@ Goal: Demonstrate Windows POS peripheral integration concepts.
 
 Goal: Improve reliability, performance, test coverage, and portfolio presentation.
 
+Run this hardening phase after EPIC-06 API and Synchronization and before expanding
+device/peripheral scope too far. These tasks improve operational quality rather than
+adding major cashier-facing features.
+
 ### POS-701 Unit Tests
 
 ### POS-702 Integration Tests
@@ -325,3 +329,18 @@ Goal: Improve reliability, performance, test coverage, and portfolio presentatio
 ### POS-706 Demo Guide
 
 ### POS-707 Portfolio Summary
+
+### POS-708 Configuration and Environment Hardening
+
+Review appsettings, local development defaults, API/Desktop endpoint configuration,
+and machine-specific paths.
+
+### POS-709 Logging and Audit Hardening
+
+Strengthen operational logging, audit-relevant events, and safe diagnostic context
+without logging sensitive data.
+
+### POS-710 Offline and Recovery Scenario Tests
+
+Exercise offline/online transitions, interrupted checkout recovery, sync retries, and
+large product/order scenarios.
