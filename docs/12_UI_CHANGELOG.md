@@ -1,5 +1,11 @@
 # UI Changelog
 
+## v0.9 - Checkout Recovery Binding
+
+- Bound checkout recovery to persisted `ApprovedButOrderNotCreated` records.
+- Added idempotent order completion and manager-review actions to the recovery screen.
+- App startup now routes to checkout recovery when approved unresolved checkouts exist.
+
 ## v0.8 - Customer Display Binding
 
 - Bound the customer display window to the shared checkout session.

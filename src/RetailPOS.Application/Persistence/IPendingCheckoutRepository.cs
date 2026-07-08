@@ -10,5 +10,9 @@ public interface IPendingCheckoutRepository
         Guid orderId,
         DateTimeOffset completedAtUtc,
         CancellationToken cancellationToken = default);
+    Task MarkManagerReviewRequiredAsync(
+        Guid id,
+        DateTimeOffset updatedAtUtc,
+        CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

@@ -85,6 +85,28 @@ public sealed class PersistenceRepositoryTests
     }
 
     [Fact]
+    public async Task PendingCheckoutRepository_MarksManagerReviewRequired()
+    {
+        await using var harness = await PersistenceHarness.CreateAsync();
+        var repository = harness.Services.GetRequiredService<IPendingCheckoutRepository>();
+        var now = new DateTimeOffset(2026, 7, 5, 2, 0, 0, TimeSpan.Zero);
+        var checkout = new PendingCheckoutRecord(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), now,
+            PendingCheckoutStatus.ApprovedButOrderNotCreated,
+            "{\"items\":[]}", "{\"method\":\"Card\"}", PaymentStatus.Approved,
+            "APP-002", 5000m, "TX-002", now.AddMinutes(1), null, null, now.AddMinutes(1));
+
+        await repository.SaveAsync(checkout);
+        await repository.MarkManagerReviewRequiredAsync(checkout.Id, now.AddMinutes(2));
+
+        var restored = await repository.GetByIdAsync(checkout.Id);
+        Assert.NotNull(restored);
+        Assert.Equal(PendingCheckoutStatus.ManagerReviewRequired, restored.RecoveryStatus);
+        Assert.Equal(now.AddMinutes(2), restored.LastUpdatedAtUtc);
+        Assert.Single(await repository.GetUnresolvedAsync());
+    }
+
+    [Fact]
     public async Task SyncQueueRepository_ReturnsDueItemsInDeterministicOrderAndUpdatesStatus()
     {
         await using var harness = await PersistenceHarness.CreateAsync();

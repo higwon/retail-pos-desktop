@@ -47,6 +47,7 @@ public sealed class OrderCompletionService(
 
         if (await orderRepository.ExistsAsync(orderId, cancellationToken))
         {
+            await EnsureAlreadyCreatedOrderIsResolvedAsync(checkout, referenceKey, cancellationToken);
             return new OrderCompletionResult(orderId, AlreadyCompleted: true);
         }
 
@@ -76,6 +77,43 @@ public sealed class OrderCompletionService(
         }, cancellationToken);
 
         return new OrderCompletionResult(order.LocalOrderId, AlreadyCompleted: false);
+    }
+
+    private async Task EnsureAlreadyCreatedOrderIsResolvedAsync(
+        PendingCheckoutRecord checkout,
+        string referenceKey,
+        CancellationToken cancellationToken)
+    {
+        if (checkout.RecoveryStatus == PendingCheckoutStatus.Completed)
+        {
+            return;
+        }
+
+        var orderId = checkout.OrderId!.Value;
+        var order = await orderRepository.GetByIdAsync(orderId, cancellationToken)
+            ?? throw new InvalidOperationException("Existing recovery order could not be restored.");
+        var completedAtUtc = EnsureUtc(clock.UtcNow, nameof(clock.UtcNow));
+        var queueItem = new SyncQueueRecord(
+            idGenerator.NewId(),
+            SyncItemType,
+            order.LocalOrderId,
+            Serialize(OrderUploadPayload.From(order, referenceKey)),
+            referenceKey,
+            SyncQueueStatus.Pending,
+            0,
+            completedAtUtc,
+            null,
+            completedAtUtc,
+            completedAtUtc);
+
+        await localTransaction.ExecuteAsync(async token =>
+        {
+            await pendingCheckoutRepository.MarkCompletedAsync(checkout.Id, order.LocalOrderId, completedAtUtc, token);
+            if (!await syncQueueRepository.ExistsByReferenceKeyAsync(referenceKey, token))
+            {
+                await syncQueueRepository.EnqueueAsync(queueItem, token);
+            }
+        }, cancellationToken);
     }
 
     private static void ValidateApprovedCheckout(PendingCheckoutRecord checkout)

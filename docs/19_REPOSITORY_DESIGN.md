@@ -58,6 +58,7 @@ Expected responsibilities:
 - Save pending checkout
 - Get unresolved pending checkouts
 - Mark checkout as completed/resolved
+- Mark unsafe approved checkout records as requiring manager review
 - Delete or archive resolved checkout records
 
 ### ISyncQueueRepository
