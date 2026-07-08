@@ -1,6 +1,7 @@
 using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Payments;
 using RetailPOS.Application.Persistence;
+using RetailPOS.Application.Receipts;
 using RetailPOS.Desktop.ViewModels;
 using RetailPOS.Domain.Payments;
 using RetailPOS.Domain.Products;
@@ -20,8 +21,10 @@ public sealed class PaymentDialogViewModelTests
         session.AddProduct(Product("Cola", 1800m));
         var service = new StubPaymentStartService(Approved());
         var completion = new StubOrderCompletionService();
+        var receipts = new StubReceiptService();
+        var receiptState = new ReceiptPreviewState();
         var displayState = new CheckoutDisplayState();
-        var viewModel = new PaymentDialogViewModel(session, service, completion, displayState);
+        var viewModel = new PaymentDialogViewModel(session, service, completion, receipts, receiptState, displayState);
 
         await viewModel.ApproveCardPaymentCommand.ExecuteAsync(null);
 
@@ -38,6 +41,8 @@ public sealed class PaymentDialogViewModelTests
         Assert.Equal(ApprovedAtUtc, viewModel.ApprovedAtUtc);
         Assert.Equal(CheckoutDisplayPhase.Completed, displayState.Snapshot.Phase);
         Assert.Equal("Payment complete. Please take your receipt.", displayState.Snapshot.PaymentMessage);
+        Assert.Equal(completion.CompletedOrderId, receipts.GeneratedForOrderId);
+        Assert.NotNull(receiptState.Current);
     }
 
     [Fact]
@@ -47,8 +52,15 @@ public sealed class PaymentDialogViewModelTests
         session.AddProduct(Product("Water", 1000m));
         var service = new StubPaymentStartService(Failed());
         var completion = new StubOrderCompletionService();
+        var receipts = new StubReceiptService();
         var displayState = new CheckoutDisplayState();
-        var viewModel = new PaymentDialogViewModel(session, service, completion, displayState);
+        var viewModel = new PaymentDialogViewModel(
+            session,
+            service,
+            completion,
+            receipts,
+            new ReceiptPreviewState(),
+            displayState);
 
         await viewModel.FailPaymentCommand.ExecuteAsync(null);
 
@@ -61,6 +73,7 @@ public sealed class PaymentDialogViewModelTests
         Assert.Equal("Payment was declined by the local simulator.", viewModel.Message);
         Assert.Equal(CheckoutDisplayPhase.PaymentFailed, displayState.Snapshot.Phase);
         Assert.Equal("Payment was declined by the local simulator.", displayState.Snapshot.PaymentMessage);
+        Assert.Null(receipts.GeneratedForOrderId);
     }
 
     [Fact]
@@ -71,6 +84,8 @@ public sealed class PaymentDialogViewModelTests
             session,
             new StubPaymentStartService(Approved()),
             new StubOrderCompletionService(),
+            new StubReceiptService(),
+            new ReceiptPreviewState(),
             new CheckoutDisplayState());
 
         Assert.False(viewModel.ApproveCardPaymentCommand.CanExecute(null));
@@ -92,6 +107,8 @@ public sealed class PaymentDialogViewModelTests
             session,
             new StubPaymentStartService(Approved()),
             new StubOrderCompletionService(),
+            new StubReceiptService(),
+            new ReceiptPreviewState(),
             new CheckoutDisplayState());
 
         viewModel.Dispose();
@@ -112,6 +129,8 @@ public sealed class PaymentDialogViewModelTests
             session,
             new StubPaymentStartService(Approved()),
             new StubOrderCompletionService(throwOnComplete: true),
+            new StubReceiptService(),
+            new ReceiptPreviewState(),
             displayState);
 
         await viewModel.ApproveCardPaymentCommand.ExecuteAsync(null);
@@ -121,6 +140,30 @@ public sealed class PaymentDialogViewModelTests
         Assert.Equal("Payment could not be completed. Keep the cart and try again or ask a manager to review checkout status.",
             viewModel.Message);
         Assert.Equal(CheckoutDisplayPhase.PaymentFailed, displayState.Snapshot.Phase);
+    }
+
+    [Fact]
+    public async Task ReceiptGenerationFailure_KeepsPaymentApprovedAndClearsCart()
+    {
+        var session = new CheckoutSession();
+        session.AddProduct(Product("Water", 1000m));
+        var displayState = new CheckoutDisplayState();
+        var receiptState = new ReceiptPreviewState();
+        var viewModel = new PaymentDialogViewModel(
+            session,
+            new StubPaymentStartService(Approved()),
+            new StubOrderCompletionService(),
+            new StubReceiptService(throwOnGenerate: true),
+            receiptState,
+            displayState);
+
+        await viewModel.ApproveCardPaymentCommand.ExecuteAsync(null);
+
+        Assert.Equal(0m, viewModel.AmountDue);
+        Assert.Equal(PaymentStatus.Approved, viewModel.Status);
+        Assert.Equal("Payment approved. Receipt preview could not be generated automatically.", viewModel.Message);
+        Assert.Equal(CheckoutDisplayPhase.Completed, displayState.Snapshot.Phase);
+        Assert.Null(receiptState.Current);
     }
 
     private static RecoverablePaymentStartResult Approved() => new(
@@ -175,6 +218,7 @@ public sealed class PaymentDialogViewModelTests
     private sealed class StubOrderCompletionService(bool throwOnComplete = false) : IOrderCompletionService
     {
         public Guid? CompletedPendingCheckoutId { get; private set; }
+        public Guid CompletedOrderId { get; } = Guid.Parse("bbbbbbbb-0000-0000-0000-000000000001");
 
         public Task<OrderCompletionResult> CompleteAsync(
             Guid pendingCheckoutId,
@@ -186,7 +230,48 @@ public sealed class PaymentDialogViewModelTests
             }
 
             CompletedPendingCheckoutId = pendingCheckoutId;
-            return Task.FromResult(new OrderCompletionResult(Guid.NewGuid(), AlreadyCompleted: false));
+            return Task.FromResult(new OrderCompletionResult(CompletedOrderId, AlreadyCompleted: false));
         }
+    }
+
+    private sealed class StubReceiptService(bool throwOnGenerate = false) : IReceiptService
+    {
+        public Guid? GeneratedForOrderId { get; private set; }
+
+        public Task<ReceiptPreview> GenerateAsync(
+            Guid localOrderId,
+            CancellationToken cancellationToken = default)
+        {
+            if (throwOnGenerate)
+            {
+                throw new InvalidOperationException("Simulated receipt generation failure.");
+            }
+
+            GeneratedForOrderId = localOrderId;
+            return Task.FromResult(Receipt(localOrderId));
+        }
+
+        public Task<ReceiptPrintResult> PrintAsync(
+            ReceiptPreview receipt,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new ReceiptPrintResult(
+                true,
+                ApprovedAtUtc,
+                "Receipt print simulated."));
+
+        private static ReceiptPreview Receipt(Guid orderId) => new(
+            "Retail Store",
+            "Local POS Terminal",
+            $"LOCAL-{orderId:N}",
+            "Cashier",
+            "Register",
+            ApprovedAtUtc,
+            new DateOnly(2026, 7, 7),
+            [new ReceiptPreviewLine("Cola", 1800m, 2, 3600m, 0m, 3600m)],
+            [new ReceiptPreviewPayment(PaymentMethod.Card, 3600m, "APP-CARD-000000003600")],
+            3600m,
+            0m,
+            3600m,
+            "receipt");
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Payments;
+using RetailPOS.Application.Receipts;
 using RetailPOS.Desktop.Controls;
 using RetailPOS.Desktop.Diagnostics;
 using RetailPOS.Desktop.ViewModels;
@@ -17,13 +18,16 @@ public static class DesktopServiceRegistration
         services.AddScoped<NavigationHost>();
         services.AddScoped<CheckoutSession>();
         services.AddScoped<CheckoutDisplayState>();
+        services.AddScoped<ReceiptPreviewState>();
         services.AddSingleton<ICheckoutContextProvider, DemoCheckoutContextProvider>();
         services.AddSingleton<ICheckoutClock, SystemCheckoutClock>();
         services.AddSingleton<ICheckoutIdGenerator, GuidCheckoutIdGenerator>();
+        services.AddSingleton<IReceiptContextProvider, DemoReceiptContextProvider>();
         services.AddSingleton<IPaymentSimulator, LocalPaymentSimulator>();
         services.AddScoped<IRecoverablePaymentStartService, RecoverablePaymentStartService>();
         services.AddScoped<IOrderCompletionService, OrderCompletionService>();
         services.AddScoped<ICheckoutRecoveryService, CheckoutRecoveryService>();
+        services.AddScoped<IReceiptService, ReceiptService>();
         services.AddTransient<LoginView>();
         services.AddTransient<PosMainView>();
         services.AddTransient<ProductGridView>();
