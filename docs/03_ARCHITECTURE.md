@@ -135,6 +135,12 @@ RetailPOS.Domain
 
 Do not create a shared contracts project in Task 1. If duplicated API/client contracts become a real maintenance problem later, add a dedicated shared project through a documentation update or ADR first.
 
+## Data Ownership
+
+Product and category data is owned by the upstream HQ/API flow in production and is cached locally for offline lookup. Local seed data is development/demo-only. Checkout-created data such as orders, pending checkouts, receipts, and sync queue records starts locally and is later uploaded or derived according to the sync flow.
+
+See [Data Ownership and Source of Truth](22_DATA_OWNERSHIP.md) for the full ownership matrix.
+
 ## MVVM Rules
 
 - ViewModel must not reference View.

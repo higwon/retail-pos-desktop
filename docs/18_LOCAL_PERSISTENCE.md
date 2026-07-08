@@ -44,6 +44,11 @@ Application never depends on Infrastructure.
 - Pending checkouts
 - Sync queue records
 
+SQLite stores both upstream caches and local operational records. Products and
+categories are production caches sourced from HQ/API sync, while orders, pending
+checkouts, receipts derived from orders, and sync queue records are created locally.
+See [Data Ownership and Source of Truth](22_DATA_OWNERSHIP.md) for the full rules.
+
 ## Out of Scope for EPIC-04
 
 - Real server synchronization

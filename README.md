@@ -43,7 +43,8 @@ Codex or any AI coding agent should read the documents in this order before gene
 20. [Repository Design](docs/19_REPOSITORY_DESIGN.md)
 21. [Entity Mapping](docs/20_ENTITY_MAPPING.md)
 22. [Persistence Flow](docs/21_PERSISTENCE_FLOW.md)
-23. Architecture Decision Records under [docs/ADR](docs/ADR)
+23. [Data Ownership](docs/22_DATA_OWNERSHIP.md)
+24. Architecture Decision Records under [docs/ADR](docs/ADR)
 
 ## Figma UI Reference
 

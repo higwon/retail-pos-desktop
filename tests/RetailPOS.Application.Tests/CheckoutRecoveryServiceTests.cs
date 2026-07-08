@@ -55,6 +55,67 @@ public sealed class CheckoutRecoveryServiceTests
     }
 
     [Fact]
+    public async Task GetRecoverableAsync_ReturnsManagerReviewCandidateForMalformedSnapshot()
+    {
+        var repository = new RecordingPendingCheckoutRepository(ApprovedCheckout(PendingCheckoutId) with
+        {
+            CartSnapshotJson = "{invalid"
+        });
+        var service = new CheckoutRecoveryService(
+            repository,
+            new RecordingOrderCompletionService(),
+            new StubCheckoutClock(Now));
+
+        var record = Assert.Single(await service.GetRecoverableAsync());
+
+        Assert.False(record.IsSnapshotReadable);
+        Assert.Contains("manager review", record.WarningMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(record.Lines);
+        Assert.Equal(0m, record.CartTotal);
+    }
+
+    [Fact]
+    public async Task GetRecoverableAsync_DoesNotThrowWhenSnapshotLinesAreMissing()
+    {
+        var repository = new RecordingPendingCheckoutRepository(ApprovedCheckout(PendingCheckoutId) with
+        {
+            CartSnapshotJson = """{"subtotal":3600,"discountAmount":0,"total":3600}"""
+        });
+        var service = new CheckoutRecoveryService(
+            repository,
+            new RecordingOrderCompletionService(),
+            new StubCheckoutClock(Now));
+
+        var record = Assert.Single(await service.GetRecoverableAsync());
+
+        Assert.False(record.IsSnapshotReadable);
+        Assert.Contains("manager review", record.WarningMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(record.Lines);
+    }
+
+    [Fact]
+    public async Task GetRecoverableAsync_DoesNotThrowWhenApprovedMetadataIsIncomplete()
+    {
+        var repository = new RecordingPendingCheckoutRepository(ApprovedCheckout(PendingCheckoutId) with
+        {
+            ApprovedAmount = null,
+            PaymentApprovedAtUtc = null,
+            OrderId = null
+        });
+        var service = new CheckoutRecoveryService(
+            repository,
+            new RecordingOrderCompletionService(),
+            new StubCheckoutClock(Now));
+
+        var record = Assert.Single(await service.GetRecoverableAsync());
+
+        Assert.False(record.IsSnapshotReadable);
+        Assert.Contains("manager review", record.WarningMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(3600m, record.ApprovedAmount);
+        Assert.Equal("Cola", Assert.Single(record.Lines).ProductName);
+    }
+
+    [Fact]
     public async Task CompleteAsync_ReturnsUserSafeMessageWhenCompletionFails()
     {
         var completion = new RecordingOrderCompletionService(throwOnComplete: true);
