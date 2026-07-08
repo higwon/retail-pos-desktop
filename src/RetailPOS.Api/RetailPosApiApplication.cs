@@ -14,7 +14,8 @@ public static class RetailPosApiApplication
         services.AddRouting(options => options.LowercaseUrls = true);
         services.AddEndpointsApiExplorer();
         services.AddScoped<IProductSyncQuery, EmptyProductSyncQuery>();
-        services.AddScoped<IOrderUploadHandler, EmptyOrderUploadHandler>();
+        services.AddSingleton<IOrderUploadIdempotencyStore, InMemoryOrderUploadIdempotencyStore>();
+        services.AddScoped<IOrderUploadHandler, IdempotentOrderUploadHandler>();
 
         return services;
     }

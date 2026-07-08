@@ -115,13 +115,15 @@ Required behavior:
 - Line totals must match the order total.
 - Approved payment totals must match the order total.
 - POS-504 validates the contract and may return a placeholder `Accepted` status before persistence exists.
-- POS-505 implements durable persistence, idempotency lookup, and final duplicate-safe `Synced` behavior.
+- POS-505 implements API-level idempotency lookup and duplicate-safe `Synced` behavior. The current API skeleton stores this idempotency state in memory until durable server persistence is added.
 - Must support idempotency.
 - If the same idempotency key already exists, return the existing server order result.
+- If the same idempotency key is reused for a different local order identity, return `409 Conflict`.
+- If the same local order identity is retried with a different idempotency key, return `409 Conflict`.
 - Treat `storeId + terminalId + localOrderId` as the order's idempotency identity.
 - Generate one stable `idempotencyKey` for each `storeId + terminalId + localOrderId` identity and reuse it for every retry.
-- Deduct server stock only when the server order is created for the first time.
-- A duplicate request must return the existing result without deducting stock again.
+- When durable server order and stock persistence exists, deduct server stock only when the server order is created for the first time.
+- A duplicate request must return the existing result without running first-create side effects again.
 
 Request:
 
@@ -166,8 +168,8 @@ Response:
 ```json
 {
   "serverOrderId": "guid",
-  "orderNumber": "PENDING-POS-20260702-000001",
-  "syncStatus": "Accepted"
+  "orderNumber": "SYNCED-POS-20260702-000001",
+  "syncStatus": "Synced"
 }
 ```
 

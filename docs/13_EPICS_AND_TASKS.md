@@ -325,6 +325,18 @@ Scope:
 
 ### POS-505 API Idempotency Handling for Order Upload
 
+Handle duplicate order upload requests safely at the API boundary.
+
+Scope:
+
+- Add an order upload idempotency store abstraction.
+- Treat `storeId + terminalId + localOrderId` as the order upload identity.
+- Return the existing server order result when the same upload is retried.
+- Return `409 Conflict` when an idempotency key is reused for a different order identity.
+- Return `409 Conflict` when an existing order identity is retried with a different idempotency key.
+- Return duplicate-safe `Synced` responses from the API skeleton.
+- Keep storage in memory until durable server persistence is introduced.
+
 ### POS-506 Desktop Order Sync Worker and Retry Policy
 
 ### POS-507 Sync Status UI Integration
