@@ -1,4 +1,5 @@
 using System.Windows.Controls;
+using Microsoft.Extensions.Logging;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Desktop.Views;
 
@@ -7,6 +8,7 @@ namespace RetailPOS.Desktop.Controls;
 public partial class NavigationHost : UserControl
 {
     private readonly ICheckoutRecoveryService _checkoutRecoveryService;
+    private readonly ILogger<NavigationHost> _logger;
     private readonly LoginView _loginView;
     private readonly PosMainView _posMainView;
     private readonly CheckoutRecoveryView _checkoutRecoveryView;
@@ -16,10 +18,12 @@ public partial class NavigationHost : UserControl
 
     public NavigationHost(LoginView loginView, PosMainView posMainView,
         CheckoutRecoveryView checkoutRecoveryView, DashboardView dashboardView, StatusView statusView,
-        ICheckoutRecoveryService checkoutRecoveryService)
+        ICheckoutRecoveryService checkoutRecoveryService,
+        ILogger<NavigationHost> logger)
     {
         InitializeComponent();
         _checkoutRecoveryService = checkoutRecoveryService;
+        _logger = logger;
         _loginView = loginView;
         _posMainView = posMainView;
         _checkoutRecoveryView = checkoutRecoveryView;
@@ -43,8 +47,9 @@ public partial class NavigationHost : UserControl
         {
             recoverable = await _checkoutRecoveryService.GetRecoverableAsync();
         }
-        catch
+        catch (Exception exception)
         {
+            _logger.LogWarning(exception, "Checkout recovery startup detection failed.");
             return;
         }
 

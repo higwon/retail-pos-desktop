@@ -12,6 +12,7 @@ public sealed partial class CheckoutRecoveryViewModel : ObservableObject
     public CheckoutRecoveryViewModel(ICheckoutRecoveryService checkoutRecoveryService)
     {
         _checkoutRecoveryService = checkoutRecoveryService;
+        Items.CollectionChanged += OnItemsChanged;
         LoadCommand = new AsyncRelayCommand(LoadAsync);
         CompleteOrderCommand = new AsyncRelayCommand(CompleteOrderAsync, CanActOnSelectedItem);
         RequestManagerReviewCommand = new AsyncRelayCommand(RequestManagerReviewAsync, CanActOnSelectedItem);
@@ -56,7 +57,6 @@ public sealed partial class CheckoutRecoveryViewModel : ObservableObject
             StatusMessage = Items.Count == 0
                 ? "No approved checkout needs recovery."
                 : $"{Items.Count:N0} approved checkout requires recovery.";
-            OnPropertyChanged(nameof(HasItems));
         }
         catch (Exception)
         {
@@ -141,6 +141,11 @@ public sealed partial class CheckoutRecoveryViewModel : ObservableObject
     }
 
     private bool CanActOnSelectedItem() => SelectedItem is not null && !IsBusy;
+
+    private void OnItemsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(HasItems));
+    }
 
     private void NotifyCommandStateChanged()
     {

@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Payments;
+using RetailPOS.Application.Receipts;
 using RetailPOS.Domain.Payments;
 
 namespace RetailPOS.Desktop.ViewModels;
@@ -11,6 +12,8 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
     private readonly CheckoutSession _checkoutSession;
     private readonly IRecoverablePaymentStartService _paymentStartService;
     private readonly IOrderCompletionService _orderCompletionService;
+    private readonly IReceiptService _receiptService;
+    private readonly ReceiptPreviewState _receiptPreviewState;
     private readonly CheckoutDisplayState _displayState;
     private bool _disposed;
 
@@ -18,11 +21,15 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
         CheckoutSession checkoutSession,
         IRecoverablePaymentStartService paymentStartService,
         IOrderCompletionService orderCompletionService,
+        IReceiptService receiptService,
+        ReceiptPreviewState receiptPreviewState,
         CheckoutDisplayState displayState)
     {
         _checkoutSession = checkoutSession;
         _paymentStartService = paymentStartService;
         _orderCompletionService = orderCompletionService;
+        _receiptService = receiptService;
+        _receiptPreviewState = receiptPreviewState;
         _displayState = displayState;
         ApproveCardPaymentCommand = new AsyncRelayCommand(
             () => SimulateAsync(PaymentMethod.Card, PaymentSimulationMode.Approve),
@@ -80,6 +87,7 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
     {
         try
         {
+            string? successMessage = null;
             _displayState.ShowPaymentWaiting(method, AmountDue);
             var result = await _paymentStartService.StartAsync(
                 _checkoutSession.Snapshot,
@@ -88,7 +96,17 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
 
             if (result.IsApproved)
             {
-                await _orderCompletionService.CompleteAsync(result.PendingCheckoutId);
+                var completion = await _orderCompletionService.CompleteAsync(result.PendingCheckoutId);
+                try
+                {
+                    var receipt = await _receiptService.GenerateAsync(completion.LocalOrderId);
+                    _receiptPreviewState.Set(receipt);
+                }
+                catch (Exception)
+                {
+                    successMessage = "Payment approved. Receipt preview could not be generated automatically.";
+                }
+
                 _checkoutSession.Clear();
                 _displayState.ShowCompleted();
             }
@@ -104,7 +122,7 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
             TransactionReference = result.TransactionReference;
             ApprovedAtUtc = result.ApprovedAtUtc;
             Message = result.IsApproved
-                ? $"{result.Method} payment approved."
+                ? successMessage ?? $"{result.Method} payment approved."
                 : result.FailureMessage ?? "Payment failed.";
         }
         catch (ArgumentOutOfRangeException)

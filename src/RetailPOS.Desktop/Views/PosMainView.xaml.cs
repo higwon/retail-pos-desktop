@@ -5,6 +5,7 @@ namespace RetailPOS.Desktop.Views;
 
 public partial class PosMainView : UserControl
 {
+    private readonly ReceiptPreviewState _receiptPreviewState;
     private readonly Func<CustomerDisplayWindow> _customerDisplayFactory;
     private readonly Func<PaymentDialog> _paymentDialogFactory;
     private readonly Func<ReceiptDialog> _receiptDialogFactory;
@@ -13,12 +14,14 @@ public partial class PosMainView : UserControl
         PosMainViewModel viewModel,
         ProductGridView productGrid,
         CartPanelView cartPanel,
+        ReceiptPreviewState receiptPreviewState,
         Func<CustomerDisplayWindow> customerDisplayFactory,
         Func<PaymentDialog> paymentDialogFactory,
         Func<ReceiptDialog> receiptDialogFactory)
     {
         InitializeComponent();
         DataContext = viewModel;
+        _receiptPreviewState = receiptPreviewState;
         _customerDisplayFactory = customerDisplayFactory;
         _paymentDialogFactory = paymentDialogFactory;
         _receiptDialogFactory = receiptDialogFactory;
@@ -31,8 +34,14 @@ public partial class PosMainView : UserControl
         _customerDisplayFactory().Show();
     }
 
-    private void OnOpenPayment(object sender, System.Windows.RoutedEventArgs e) =>
+    private void OnOpenPayment(object sender, System.Windows.RoutedEventArgs e)
+    {
         _paymentDialogFactory().ShowDialog();
+        if (_receiptPreviewState.HasReceipt)
+        {
+            _receiptDialogFactory().ShowDialog();
+        }
+    }
 
     private void OnOpenReceipt(object sender, System.Windows.RoutedEventArgs e) =>
         _receiptDialogFactory().ShowDialog();

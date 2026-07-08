@@ -1,5 +1,11 @@
 # UI Changelog
 
+## v0.10 - Receipt Preview Binding
+
+- Bound the receipt dialog to generated completed-order receipt data.
+- Added local print simulation status for MVP receipt demo use.
+- Successful checkout now opens the generated receipt preview after payment completion.
+
 ## v0.9 - Checkout Recovery Binding
 
 - Bound checkout recovery to persisted `ApprovedButOrderNotCreated` records.
