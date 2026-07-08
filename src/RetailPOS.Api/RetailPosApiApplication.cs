@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Diagnostics;
+using RetailPOS.Api.Products;
 
 namespace RetailPOS.Api;
 
@@ -11,14 +12,15 @@ public static class RetailPosApiApplication
         services.AddProblemDetails();
         services.AddRouting(options => options.LowercaseUrls = true);
         services.AddEndpointsApiExplorer();
+        services.AddScoped<IProductSyncQuery, EmptyProductSyncQuery>();
 
         return services;
     }
 
     public static WebApplication UseRetailPosApi(this WebApplication app)
     {
-        app.UseMiddleware<ApiExceptionHandlingMiddleware>();
         app.UseMiddleware<ApiRequestLoggingMiddleware>();
+        app.UseMiddleware<ApiExceptionHandlingMiddleware>();
 
         app.UseStatusCodePages(async (StatusCodeContext statusCodeContext) =>
         {
@@ -44,6 +46,8 @@ public static class RetailPosApiApplication
         });
 
         var api = app.MapGroup("/api");
+        api.MapProductSyncEndpoints();
+
         api.MapGet("/health", () => Results.Ok(new HealthResponse("Healthy", DateTimeOffset.UtcNow)))
             .WithName("GetApiHealth")
             .Produces<HealthResponse>(StatusCodes.Status200OK)

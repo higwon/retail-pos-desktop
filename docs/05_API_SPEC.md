@@ -51,9 +51,42 @@ Returns product list for synchronization.
 
 Query parameters:
 
-- `updatedAfter`
-- `page`
-- `pageSize`
+- `updatedAfter`: optional UTC timestamp for incremental sync.
+- `page`: 1-based page number. Default is `1`.
+- `pageSize`: number of items per page. Default is `100`, maximum is `500`.
+
+Response:
+
+```json
+{
+  "products": [
+    {
+      "id": "guid",
+      "sku": "SKU-001",
+      "barcode": "880000000001",
+      "name": "Sample Product",
+      "categoryName": "Beverage",
+      "unitPrice": 1800,
+      "stockQuantity": 10,
+      "isActive": true,
+      "version": 12,
+      "updatedUtc": "2026-07-08T00:00:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 100,
+  "hasMore": false,
+  "serverTimeUtc": "2026-07-08T00:00:01Z"
+}
+```
+
+Required behavior:
+
+- Product and category data is sourced from the upstream HQ/API flow in production.
+- Desktop SQLite treats products as a local cache for offline lookup.
+- `version` and `updatedUtc` must be included so Desktop can later perform incremental sync.
+- Deleted or discontinued products should be returned as `isActive: false` instead of being physically removed from the contract.
+- Monetary values use whole-KRW `decimal` values.
 
 ### GET /api/products/{id}
 
