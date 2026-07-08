@@ -288,6 +288,16 @@ Scope:
 
 ### POS-502 Product Sync API Contract
 
+Define the first product synchronization API contract.
+
+Scope:
+
+- Add `GET /api/products` under the API route group.
+- Support `updatedAfter`, `page`, and `pageSize` query parameters.
+- Return product DTOs with `version`, `updatedUtc`, and `isActive`.
+- Keep the server implementation empty or placeholder-only until real API persistence is added.
+- Document that upstream HQ/API is the production product source of truth and local SQLite is a cache.
+
 ### POS-503 Desktop Product Sync Client and Upsert
 
 ### POS-504 Order Upload API Contract
