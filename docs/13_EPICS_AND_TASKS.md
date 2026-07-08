@@ -275,6 +275,17 @@ and how local SQLite acts as a cache or operational store after Checkout MVP.
 
 ### POS-501 ASP.NET Core API Skeleton
 
+Create the first runnable API surface for EPIC-06.
+
+Scope:
+
+- Configure API startup and route grouping under `/api`.
+- Add `GET /api/health`.
+- Add global exception handling that returns ProblemDetails.
+- Add status-code ProblemDetails for empty error responses.
+- Add request logging with method, path, status code, and elapsed time.
+- Add focused tests for API middleware behavior.
+
 ### POS-502 Product Sync API Contract
 
 ### POS-503 Desktop Product Sync Client and Upsert
