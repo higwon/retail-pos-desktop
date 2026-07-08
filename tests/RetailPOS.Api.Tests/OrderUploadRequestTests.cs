@@ -50,6 +50,30 @@ public sealed class OrderUploadRequestTests
     }
 
     [Fact]
+    public void Validate_RequiresTimestampValues()
+    {
+        var request = ValidRequest() with
+        {
+            CreatedAt = default,
+            Payments =
+            [
+                new OrderUploadPaymentRequest(
+                    "Card",
+                    9000m,
+                    "APP-001",
+                    "TX-001",
+                    default)
+            ]
+        };
+
+        var result = request.Validate();
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("createdAt is required.", Assert.Single(result.Errors[nameof(OrderUploadRequest.CreatedAt)]));
+        Assert.Equal("approvedAtUtc is required.", Assert.Single(result.Errors["Payments[0].ApprovedAtUtc"]));
+    }
+
+    [Fact]
     public void Validate_RequiresLineTotalsToMatchOrderTotal()
     {
         var request = ValidRequest() with

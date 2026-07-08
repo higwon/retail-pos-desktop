@@ -35,7 +35,11 @@ public sealed record OrderUploadRequest(
             errors[nameof(BusinessDate)] = ["businessDate is required."];
         }
 
-        if (CreatedAt.Offset != TimeSpan.Zero)
+        if (CreatedAt == default)
+        {
+            errors[nameof(CreatedAt)] = ["createdAt is required."];
+        }
+        else if (CreatedAt.Offset != TimeSpan.Zero)
         {
             errors[nameof(CreatedAt)] = ["createdAt must be a UTC timestamp."];
         }
@@ -132,7 +136,12 @@ public sealed record OrderUploadRequest(
             ValidateMoney(errors, payment.ApprovedAmount, $"{prefix}.{nameof(payment.ApprovedAmount)}");
             RequireText(errors, payment.ApprovalCode, $"{prefix}.{nameof(payment.ApprovalCode)}");
 
-            if (payment.ApprovedAtUtc.Offset != TimeSpan.Zero)
+            if (payment.ApprovedAtUtc == default)
+            {
+                errors[$"{prefix}.{nameof(payment.ApprovedAtUtc)}"] =
+                    ["approvedAtUtc is required."];
+            }
+            else if (payment.ApprovedAtUtc.Offset != TimeSpan.Zero)
             {
                 errors[$"{prefix}.{nameof(payment.ApprovedAtUtc)}"] =
                     ["approvedAtUtc must be a UTC timestamp."];
