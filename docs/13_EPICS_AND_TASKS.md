@@ -313,6 +313,16 @@ Scope:
 
 ### POS-504 Order Upload API Contract
 
+Define the completed local order upload API contract.
+
+Scope:
+
+- Add `POST /api/orders` under the API route group.
+- Require `schemaVersion`, `storeId`, `terminalId`, `localOrderId`, `idempotencyKey`, and `businessDate`.
+- Validate UTC timestamps, whole-KRW money values, line totals, and approved payment totals.
+- Return an order upload response shape while keeping persistence/idempotency implementation placeholder-only.
+- Document that real idempotency behavior is implemented in POS-505.
+
 ### POS-505 API Idempotency Handling for Order Upload
 
 ### POS-506 Desktop Order Sync Worker and Retry Policy
