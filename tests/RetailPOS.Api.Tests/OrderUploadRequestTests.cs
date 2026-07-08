@@ -174,6 +174,67 @@ public sealed class OrderUploadRequestTests
         await Assert.ThrowsAsync<OrderUploadConflictException>(() => handler.UploadAsync(conflictingRequest));
     }
 
+    [Fact]
+    public async Task IdempotentOrderUploadHandler_ConcurrentSameOrderWithDifferentKeys_AllowsOneUpload()
+    {
+        var request = ValidRequest();
+        var conflictingRequest = request with
+        {
+            IdempotencyKey = "different-idempotency-key"
+        };
+        var handler = new IdempotentOrderUploadHandler(new InMemoryOrderUploadIdempotencyStore());
+        using var start = new ManualResetEventSlim();
+
+        var firstUpload = Task.Run(() => UploadAfterStartAsync(handler, request, start));
+        var secondUpload = Task.Run(() => UploadAfterStartAsync(handler, conflictingRequest, start));
+
+        start.Set();
+        var results = await Task.WhenAll(firstUpload, secondUpload);
+
+        Assert.Single(results, result => result.Exception is null);
+        Assert.Single(results, result => result.Exception is OrderUploadConflictException);
+    }
+
+    [Fact]
+    public async Task IdempotentOrderUploadHandler_ConcurrentSameKeyWithDifferentOrders_AllowsOneUpload()
+    {
+        var request = ValidRequest();
+        var conflictingRequest = request with
+        {
+            LocalOrderId = Guid.Parse("30000000-0000-0000-0000-000000000002"),
+            LocalOrderNumber = "POS-20260708-000002"
+        };
+        var handler = new IdempotentOrderUploadHandler(new InMemoryOrderUploadIdempotencyStore());
+        using var start = new ManualResetEventSlim();
+
+        var firstUpload = Task.Run(() => UploadAfterStartAsync(handler, request, start));
+        var secondUpload = Task.Run(() => UploadAfterStartAsync(handler, conflictingRequest, start));
+
+        start.Set();
+        var results = await Task.WhenAll(firstUpload, secondUpload);
+
+        Assert.Single(results, result => result.Exception is null);
+        Assert.Single(results, result => result.Exception is OrderUploadConflictException);
+    }
+
+    private static async Task<OrderUploadAttempt> UploadAfterStartAsync(
+        IOrderUploadHandler handler,
+        OrderUploadRequest request,
+        ManualResetEventSlim start)
+    {
+        start.Wait();
+
+        try
+        {
+            var response = await handler.UploadAsync(request);
+            return new OrderUploadAttempt(response, null);
+        }
+        catch (Exception exception)
+        {
+            return new OrderUploadAttempt(null, exception);
+        }
+    }
+
     private static OrderUploadRequest ValidRequest() => new(
         OrderUploadRequest.CurrentSchemaVersion,
         Guid.Parse("10000000-0000-0000-0000-000000000001"),
@@ -204,4 +265,8 @@ public sealed class OrderUploadRequestTests
                 "TX-001",
                 new DateTimeOffset(2026, 7, 8, 1, 1, 0, TimeSpan.Zero))
         ]);
+
+    private sealed record OrderUploadAttempt(
+        OrderUploadResponse? Response,
+        Exception? Exception);
 }
