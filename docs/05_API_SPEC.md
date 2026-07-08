@@ -108,6 +108,14 @@ Uploads a completed local order.
 
 Required behavior:
 
+- `schemaVersion` must be `1` for the MVP upload contract.
+- `storeId`, `terminalId`, `localOrderId`, `idempotencyKey`, and `businessDate` are required.
+- `createdAt` and payment `approvedAtUtc` must be UTC timestamps.
+- Monetary values use whole-KRW `decimal` values.
+- Line totals must match the order total.
+- Approved payment totals must match the order total.
+- POS-504 validates the contract and may return a placeholder `Accepted` status before persistence exists.
+- POS-505 implements durable persistence, idempotency lookup, and final duplicate-safe `Synced` behavior.
 - Must support idempotency.
 - If the same idempotency key already exists, return the existing server order result.
 - Treat `storeId + terminalId + localOrderId` as the order's idempotency identity.
@@ -119,6 +127,7 @@ Request:
 
 ```json
 {
+  "schemaVersion": 1,
   "storeId": "guid",
   "terminalId": "guid",
   "localOrderId": "guid",
@@ -144,7 +153,9 @@ Request:
     {
       "paymentMethod": "Card",
       "approvedAmount": 9000,
-      "approvalCode": "APPROVED-001"
+      "approvalCode": "APPROVED-001",
+      "transactionReference": "TX-001",
+      "approvedAtUtc": "2026-07-02T01:01:00Z"
     }
   ]
 }
@@ -155,8 +166,8 @@ Response:
 ```json
 {
   "serverOrderId": "guid",
-  "orderNumber": "S-20260702-000001",
-  "syncStatus": "Synced"
+  "orderNumber": "PENDING-POS-20260702-000001",
+  "syncStatus": "Accepted"
 }
 ```
 
