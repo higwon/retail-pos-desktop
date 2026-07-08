@@ -1,8 +1,10 @@
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Persistence;
+using RetailPOS.Application.Products;
 using RetailPOS.Domain.Orders;
 using RetailPOS.Domain.Payments;
 using RetailPOS.Infrastructure.DependencyInjection;
@@ -25,6 +27,53 @@ public sealed class PersistenceRepositoryTests
         Assert.All(products, product => Assert.Equal(decimal.Truncate(product.UnitPrice), product.UnitPrice));
         Assert.NotNull(await harness.Services.GetRequiredService<IProductRepository>()
             .GetByBarcodeAsync("8801000000011"));
+    }
+
+    [Fact]
+    public async Task ProductSyncStore_UpsertsProductsAndKeepsInactiveCacheRecords()
+    {
+        await using var harness = await PersistenceHarness.CreateAsync();
+        var store = harness.Services.GetRequiredService<IProductSyncStore>();
+        var dbContext = harness.Services.GetRequiredService<LocalPosDbContext>();
+        var productId = Guid.Parse("90000000-0000-0000-0000-000000000001");
+        var updatedUtc = new DateTimeOffset(2026, 7, 8, 1, 0, 0, TimeSpan.Zero);
+
+        var inserted = await store.UpsertAsync([
+            SyncedProduct(productId, "SYNC-001", "990000000001", "Synced Product", true, version: 1, updatedUtc)
+        ]);
+        var updated = await store.UpsertAsync([
+            SyncedProduct(productId, "SYNC-001", "990000000001", "Inactive Product", false, version: 2, updatedUtc.AddMinutes(1))
+        ]);
+
+        Assert.Equal(1, inserted);
+        Assert.Equal(1, updated);
+        var restored = await dbContext.Products.SingleAsync(product => product.Id == productId);
+        Assert.Equal("Inactive Product", restored.Name);
+        Assert.False(restored.IsActive);
+        Assert.Equal(2, restored.Version);
+        Assert.Equal(updatedUtc.AddMinutes(1).UtcDateTime, restored.UpdatedUtc);
+    }
+
+    [Fact]
+    public async Task ProductSyncStore_IgnoresOlderProductVersions()
+    {
+        await using var harness = await PersistenceHarness.CreateAsync();
+        var store = harness.Services.GetRequiredService<IProductSyncStore>();
+        var dbContext = harness.Services.GetRequiredService<LocalPosDbContext>();
+        var productId = Guid.Parse("90000000-0000-0000-0000-000000000002");
+        var updatedUtc = new DateTimeOffset(2026, 7, 8, 1, 0, 0, TimeSpan.Zero);
+
+        await store.UpsertAsync([
+            SyncedProduct(productId, "SYNC-002", "990000000002", "Current Product", true, version: 5, updatedUtc)
+        ]);
+        var changed = await store.UpsertAsync([
+            SyncedProduct(productId, "SYNC-002", "990000000002", "Old Product", true, version: 4, updatedUtc.AddMinutes(-1))
+        ]);
+
+        Assert.Equal(0, changed);
+        var restored = await dbContext.Products.SingleAsync(product => product.Id == productId);
+        Assert.Equal("Current Product", restored.Name);
+        Assert.Equal(5, restored.Version);
     }
 
     [Fact]
@@ -179,6 +228,25 @@ public sealed class PersistenceRepositoryTests
     private static SyncQueueRecord QueueItem(Guid id, DateTimeOffset nextAttemptAt, DateTimeOffset createdAt) =>
         new(id, "Order", Guid.NewGuid(), null, id.ToString(), SyncQueueStatus.Pending,
             0, nextAttemptAt, null, createdAt, createdAt);
+
+    private static ProductSyncItem SyncedProduct(
+        Guid id,
+        string sku,
+        string barcode,
+        string name,
+        bool isActive,
+        long version,
+        DateTimeOffset updatedUtc) => new(
+        id,
+        sku,
+        barcode,
+        name,
+        "Synced Category",
+        2500m,
+        StockQuantity: 7,
+        isActive,
+        version,
+        updatedUtc);
 
     private static PendingCheckoutRecord ApprovedCheckout(DateTimeOffset createdAt, DateTimeOffset approvedAt)
     {

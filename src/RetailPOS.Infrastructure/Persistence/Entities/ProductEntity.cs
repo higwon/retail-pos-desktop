@@ -8,5 +8,8 @@ public sealed class ProductEntity
     public required string Name { get; set; }
     public required string CategoryName { get; set; }
     public decimal UnitPrice { get; set; }
+    public int StockQuantity { get; set; }
     public bool IsActive { get; set; }
+    public long Version { get; set; }
+    public DateTime UpdatedUtc { get; set; }
 }

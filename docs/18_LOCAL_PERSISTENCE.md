@@ -49,6 +49,10 @@ categories are production caches sourced from HQ/API sync, while orders, pending
 checkouts, receipts derived from orders, and sync queue records are created locally.
 See [Data Ownership and Source of Truth](22_DATA_OWNERSHIP.md) for the full rules.
 
+Product cache sync metadata includes server stock, upstream version, and UTC update
+timestamp. Product upsert should apply newer or equal upstream versions and ignore
+older versions so stale responses do not roll the local cache backward.
+
 ## Out of Scope for EPIC-04
 
 - Real server synchronization

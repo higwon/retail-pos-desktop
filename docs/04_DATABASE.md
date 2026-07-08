@@ -34,9 +34,9 @@ The central database exists to represent synchronized store/server data.
 - CategoryName
 - UnitPrice
 - StockQuantity
-- ServerStockQuantity
 - IsActive
-- UpdatedAt
+- Version
+- UpdatedUtc
 
 #### Categories (Later)
 
@@ -189,10 +189,10 @@ For order uploads, the idempotency identity is the tuple `StoreId + TerminalId +
 ## Stock Projection
 
 - Server stock is authoritative.
-- `ServerStockQuantity` stores the last synchronized server value.
-- `StockQuantity` is the local estimated value displayed to the user.
+- `StockQuantity` stores the last synchronized server value until pending local stock deduction is implemented.
+- `ServerStockQuantity` may be introduced later if local estimated stock needs a separate persisted column.
 - Pending deduction is the total sold quantity in locally completed orders that have not synchronized successfully.
-- Local estimated stock is calculated as `ServerStockQuantity - PendingDeductionQuantity`.
+- Local estimated stock is calculated as `StockQuantity - PendingDeductionQuantity` in the current model.
 - A product refresh updates the server value and then reapplies pending deductions instead of overwriting local estimates directly.
 
 ## Data Type Rules

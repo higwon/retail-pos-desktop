@@ -7,6 +7,7 @@ using RetailPOS.Infrastructure.Configuration;
 using RetailPOS.Infrastructure.Persistence;
 using RetailPOS.Infrastructure.Persistence.Repositories;
 using RetailPOS.Application.Persistence;
+using RetailPOS.Application.Products;
 
 namespace RetailPOS.Infrastructure.DependencyInjection;
 
@@ -36,6 +37,7 @@ public static class PersistenceServiceRegistration
         services.AddScoped<LocalDatabaseInitializer>();
         services.AddScoped<ProductSeedData>();
         services.AddScoped<IProductRepository, SqliteProductRepository>();
+        services.AddScoped<IProductSyncStore, SqliteProductSyncStore>();
         services.AddScoped<IOrderRepository, SqliteOrderRepository>();
         services.AddScoped<IPendingCheckoutRepository, SqlitePendingCheckoutRepository>();
         services.AddScoped<ISyncQueueRepository, SqliteSyncQueueRepository>();

@@ -17,6 +17,7 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<ProductEntit
         builder.Property(product => product.Name).HasMaxLength(200);
         builder.Property(product => product.CategoryName).HasMaxLength(100);
         builder.Property(product => product.UnitPrice).HasPrecision(18, 0);
+        builder.HasIndex(product => product.UpdatedUtc);
     }
 }
 
