@@ -1,4 +1,6 @@
 using RetailPOS.Api.Orders;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace RetailPOS.Api.Tests;
 
@@ -122,7 +124,7 @@ public sealed class OrderUploadRequestTests
     public async Task IdempotentOrderUploadHandler_ReturnsSyncedResponse()
     {
         var request = ValidRequest();
-        var handler = new IdempotentOrderUploadHandler(new InMemoryOrderUploadIdempotencyStore());
+        var handler = Handler();
 
         var response = await handler.UploadAsync(request);
 
@@ -135,7 +137,7 @@ public sealed class OrderUploadRequestTests
     public async Task IdempotentOrderUploadHandler_ReturnsExistingResponseForDuplicateOrder()
     {
         var request = ValidRequest();
-        var handler = new IdempotentOrderUploadHandler(new InMemoryOrderUploadIdempotencyStore());
+        var handler = Handler();
 
         var firstResponse = await handler.UploadAsync(request);
         var duplicateResponse = await handler.UploadAsync(request);
@@ -152,7 +154,7 @@ public sealed class OrderUploadRequestTests
             LocalOrderId = Guid.Parse("30000000-0000-0000-0000-000000000002"),
             LocalOrderNumber = "POS-20260708-000002"
         };
-        var handler = new IdempotentOrderUploadHandler(new InMemoryOrderUploadIdempotencyStore());
+        var handler = Handler();
 
         await handler.UploadAsync(request);
 
@@ -167,7 +169,7 @@ public sealed class OrderUploadRequestTests
         {
             IdempotencyKey = "different-idempotency-key"
         };
-        var handler = new IdempotentOrderUploadHandler(new InMemoryOrderUploadIdempotencyStore());
+        var handler = Handler();
 
         await handler.UploadAsync(request);
 
@@ -182,7 +184,7 @@ public sealed class OrderUploadRequestTests
         {
             IdempotencyKey = "different-idempotency-key"
         };
-        var handler = new IdempotentOrderUploadHandler(new InMemoryOrderUploadIdempotencyStore());
+        var handler = Handler();
         using var start = new ManualResetEventSlim();
 
         var firstUpload = Task.Run(() => UploadAfterStartAsync(handler, request, start));
@@ -204,7 +206,7 @@ public sealed class OrderUploadRequestTests
             LocalOrderId = Guid.Parse("30000000-0000-0000-0000-000000000002"),
             LocalOrderNumber = "POS-20260708-000002"
         };
-        var handler = new IdempotentOrderUploadHandler(new InMemoryOrderUploadIdempotencyStore());
+        var handler = Handler();
         using var start = new ManualResetEventSlim();
 
         var firstUpload = Task.Run(() => UploadAfterStartAsync(handler, request, start));
@@ -215,6 +217,28 @@ public sealed class OrderUploadRequestTests
 
         Assert.Single(results, result => result.Exception is null);
         Assert.Single(results, result => result.Exception is OrderUploadConflictException);
+    }
+
+    [Fact]
+    public async Task IdempotentOrderUploadHandler_ConflictLogDoesNotIncludeIdempotencyKey()
+    {
+        var request = ValidRequest();
+        var logger = new RecordingLogger<IdempotentOrderUploadHandler>();
+        var handler = new IdempotentOrderUploadHandler(new InMemoryOrderUploadIdempotencyStore(), logger);
+        var conflictingRequest = request with
+        {
+            IdempotencyKey = "secret-idempotency-key"
+        };
+
+        await handler.UploadAsync(request);
+        await Assert.ThrowsAsync<OrderUploadConflictException>(() => handler.UploadAsync(conflictingRequest));
+
+        Assert.Contains(logger.Messages, message => message.Contains("idempotency conflict", StringComparison.OrdinalIgnoreCase));
+        Assert.All(logger.Messages, message =>
+        {
+            Assert.DoesNotContain(request.IdempotencyKey, message, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("secret-idempotency-key", message, StringComparison.OrdinalIgnoreCase);
+        });
     }
 
     private static async Task<OrderUploadAttempt> UploadAfterStartAsync(
@@ -234,6 +258,11 @@ public sealed class OrderUploadRequestTests
             return new OrderUploadAttempt(null, exception);
         }
     }
+
+    private static IdempotentOrderUploadHandler Handler() =>
+        new(
+            new InMemoryOrderUploadIdempotencyStore(),
+            NullLogger<IdempotentOrderUploadHandler>.Instance);
 
     private static OrderUploadRequest ValidRequest() => new(
         OrderUploadRequest.CurrentSchemaVersion,
@@ -269,4 +298,22 @@ public sealed class OrderUploadRequestTests
     private sealed record OrderUploadAttempt(
         OrderUploadResponse? Response,
         Exception? Exception);
+
+    private sealed class RecordingLogger<T> : ILogger<T>
+    {
+        public List<string> Messages { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Messages.Add(formatter(state, exception));
+        }
+    }
 }

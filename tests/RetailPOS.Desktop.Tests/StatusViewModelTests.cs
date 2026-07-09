@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Net.Http;
+using Microsoft.Extensions.Logging.Abstractions;
 using RetailPOS.Application.Orders;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Sync;
@@ -98,7 +99,7 @@ public sealed class StatusViewModelTests
         var clock = new StubOrderSyncClock(NowUtc);
         return new StatusViewModel(
             new SyncStatusService(queue, clock),
-            new OrderSyncService(queue, client ?? new RecordingOrderUploadClient(), clock),
+            new OrderSyncService(queue, client ?? new RecordingOrderUploadClient(), clock, NullLogger<OrderSyncService>.Instance),
             clock);
     }
 

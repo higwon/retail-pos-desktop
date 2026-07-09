@@ -6,7 +6,9 @@ using RetailPOS.Desktop.DependencyInjection;
 using RetailPOS.Desktop.Diagnostics;
 using RetailPOS.Infrastructure.DependencyInjection;
 using RetailPOS.Infrastructure.Persistence;
+using Serilog;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 
 namespace RetailPOS.Desktop;
@@ -30,8 +32,7 @@ public partial class App : System.Windows.Application
             });
             builder.Configuration.AddEnvironmentVariables("RETAILPOS_");
             builder.Logging.ClearProviders();
-            builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
-            builder.Logging.AddDebug();
+            builder.Services.AddSerilog(CreateLogger(builder.Configuration), dispose: true);
             builder.Services.AddSingleton<System.Windows.Application>(this);
             builder.Services.AddLocalPersistence(builder.Configuration);
             builder.Services.AddDesktopServices();
@@ -68,6 +69,39 @@ public partial class App : System.Windows.Application
             Shutdown(-1);
         }
     }
+
+    private static Serilog.ILogger CreateLogger(IConfiguration configuration)
+    {
+        var logDirectory = configuration["Serilog:Desktop:LogDirectory"];
+        if (string.IsNullOrWhiteSpace(logDirectory))
+        {
+            logDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "RetailPOS",
+                "logs");
+        }
+
+        var retainedFileCountLimit = configuration.GetValue("Serilog:Desktop:RetainedFileCountLimit", 14);
+        var minimumLevel = configuration.GetValue("Serilog:MinimumLevel:Default", "Information");
+        var logPath = Path.Combine(logDirectory, "retail-pos-.log");
+
+        return new LoggerConfiguration()
+            .MinimumLevel.Is(ParseMinimumLevel(minimumLevel))
+            .Enrich.FromLogContext()
+            .WriteTo.Debug()
+            .WriteTo.File(
+                logPath,
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: retainedFileCountLimit,
+                outputTemplate:
+                "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext} {Message:lj} {Properties:j}{NewLine}{Exception}")
+            .CreateLogger();
+    }
+
+    private static Serilog.Events.LogEventLevel ParseMinimumLevel(string? value) =>
+        Enum.TryParse<Serilog.Events.LogEventLevel>(value, ignoreCase: true, out var level)
+            ? level
+            : Serilog.Events.LogEventLevel.Information;
 
     protected override void OnExit(ExitEventArgs e)
     {
