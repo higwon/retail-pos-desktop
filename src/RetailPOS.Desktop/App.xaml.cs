@@ -37,10 +37,21 @@ public partial class App : System.Windows.Application
             builder.Services.AddSingleton<System.Windows.Application>(this);
             builder.Services.AddLocalPersistence(builder.Configuration);
             builder.Services.AddApiSyncClient(ApiBaseAddress(builder.Configuration));
+            builder.Services.AddSingleton(TimeProvider.System);
             builder.Services.Configure<BackgroundOrderSyncOptions>(
                 builder.Configuration.GetSection(BackgroundOrderSyncOptions.SectionName));
+            builder.Services.Configure<ApiConnectivityMonitorOptions>(
+                builder.Configuration.GetSection(ApiConnectivityMonitorOptions.SectionName));
+            builder.Services.AddSingleton<IApiConnectivityStateStore, ApiConnectivityStateStore>();
+            builder.Services.AddHttpClient<IApiConnectivityClient, HttpApiConnectivityClient>(client =>
+            {
+                client.BaseAddress = ApiBaseAddress(builder.Configuration);
+                client.Timeout = TimeSpan.FromSeconds(5);
+            });
             builder.Services.AddScoped<IBackgroundOrderSyncRunner, BackgroundOrderSyncRunner>();
-            builder.Services.AddHostedService<BackgroundOrderSyncScheduler>();
+            builder.Services.AddSingleton<BackgroundOrderSyncScheduler>();
+            builder.Services.AddHostedService(provider => provider.GetRequiredService<BackgroundOrderSyncScheduler>());
+            builder.Services.AddHostedService<ApiConnectivityMonitor>();
             builder.Services.AddDesktopServices();
 
             _host = builder.Build();
