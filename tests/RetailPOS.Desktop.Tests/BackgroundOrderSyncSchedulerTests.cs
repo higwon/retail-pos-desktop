@@ -51,14 +51,28 @@ public sealed class BackgroundOrderSyncSchedulerTests
         Assert.Contains(logger.Messages, message => message.Contains("failed", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public async Task RunOnceAsync_WhenApiIsOffline_SkipsWithoutRunningSync()
+    {
+        var runner = new RecordingRunner();
+        var scheduler = Scheduler(runner, stateStore: StateStore(ApiConnectivityStatus.Offline));
+
+        var ran = await scheduler.RunOnceAsync(batchSize: 10);
+
+        Assert.False(ran);
+        Assert.Empty(runner.BatchSizes);
+    }
+
     private static BackgroundOrderSyncScheduler Scheduler(
         IBackgroundOrderSyncRunner runner,
-        ILogger<BackgroundOrderSyncScheduler>? logger = null)
+        ILogger<BackgroundOrderSyncScheduler>? logger = null,
+        IApiConnectivityStateStore? stateStore = null)
     {
         var services = new ServiceCollection();
         services.AddScoped(_ => runner);
         return new BackgroundOrderSyncScheduler(
             services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>(),
+            stateStore ?? StateStore(ApiConnectivityStatus.Online),
             Options.Create(new BackgroundOrderSyncOptions
             {
                 Enabled = true,
@@ -67,6 +81,13 @@ public sealed class BackgroundOrderSyncSchedulerTests
                 BatchSize = 10
             }),
             logger ?? new RecordingLogger<BackgroundOrderSyncScheduler>());
+    }
+
+    private static ApiConnectivityStateStore StateStore(ApiConnectivityStatus status)
+    {
+        var store = new ApiConnectivityStateStore();
+        store.Update(new ApiConnectivitySnapshot(status, DateTimeOffset.UtcNow, null));
+        return store;
     }
 
     private sealed class RecordingRunner : IBackgroundOrderSyncRunner

@@ -7,6 +7,7 @@ namespace RetailPOS.Desktop.Sync;
 
 public sealed class BackgroundOrderSyncScheduler(
     IServiceScopeFactory scopeFactory,
+    IApiConnectivityStateStore connectivityState,
     IOptions<BackgroundOrderSyncOptions> options,
     ILogger<BackgroundOrderSyncScheduler> logger) : BackgroundService
 {
@@ -52,6 +53,15 @@ public sealed class BackgroundOrderSyncScheduler(
         int batchSize,
         CancellationToken cancellationToken = default)
     {
+        var apiState = connectivityState.Current;
+        if (apiState.Status != ApiConnectivityStatus.Online)
+        {
+            logger.LogDebug(
+                "Background order sync run skipped because API connectivity is not online. {ApiConnectivityStatus}",
+                apiState.Status);
+            return false;
+        }
+
         if (!await _runLock.WaitAsync(0, cancellationToken))
         {
             logger.LogInformation("Background order sync run skipped because another run is already active.");
