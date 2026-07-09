@@ -67,6 +67,17 @@ Development workflow:
 - Do not call ViewModel `Dispose` from WPF `Unloaded`.
 - Dialog/window-owned ViewModels may be disposed from close events when the view lifetime truly ends.
 
+## WPF View Lifecycle Rules
+
+- Prefer XAML command binding over code-behind click handlers when the action can be expressed as a command.
+- Do not subscribe from a View to a ViewModel event unless binding, command, messenger, or service patterns are not a good fit.
+- Any View subscription to ViewModel, child View, service, or other external events must have a matching unsubscription in `Unloaded` or an explicit dispose path.
+- If a View subscribes to an external event in `Loaded`, use a duplicate-subscription guard and unsubscribe in `Unloaded` without detaching the lifecycle handlers.
+- Any `Loaded` async initialization must be idempotent by using a guard such as `_loadedOnce` or by detaching the handler with `Loaded -= OnLoaded`.
+- Do not let ViewModels reference Views, Windows, dialogs, or WPF controls directly.
+- Dialog or window opening should go through a thin View bridge or a dialog/navigation service, not from the ViewModel.
+- If View-to-View event bridging repeats across workflows, prefer a messenger, coordinator, or dialog service before adding more event chains.
+
 ## Sync Rules
 
 - `PendingCheckout` is persisted before payment approval.
@@ -97,3 +108,11 @@ The PR body should include:
 - Related issue or note if there is no issue.
 
 Keep PR descriptions concrete. The user values enough detail to review without re-reading every changed file first.
+
+Before opening or updating a PR, check:
+
+- No ViewModel directly references a View, Window, dialog, or WPF control.
+- Commands are preferred over click handlers where practical.
+- Every event subscription has a matching unsubscription.
+- Loaded handlers are idempotent.
+- `async void` is used only for WPF event handlers and handles errors safely.

@@ -5,10 +5,26 @@ namespace RetailPOS.Desktop.Views;
 
 public partial class CheckoutRecoveryView : UserControl
 {
+    private readonly CheckoutRecoveryViewModel _viewModel;
+    private bool _loadedOnce;
+
     public CheckoutRecoveryView(CheckoutRecoveryViewModel viewModel)
     {
         InitializeComponent();
+        _viewModel = viewModel;
         DataContext = viewModel;
-        Loaded += async (_, _) => await viewModel.LoadAsync();
+        Loaded += OnLoaded;
+    }
+
+    private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (_loadedOnce)
+        {
+            return;
+        }
+
+        _loadedOnce = true;
+        Loaded -= OnLoaded;
+        await _viewModel.LoadAsync();
     }
 }

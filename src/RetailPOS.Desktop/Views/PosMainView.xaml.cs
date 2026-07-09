@@ -10,7 +10,9 @@ public partial class PosMainView : UserControl
     private readonly Func<PaymentDialog> _paymentDialogFactory;
     private readonly Func<ReceiptDialog> _receiptDialogFactory;
     private readonly PosMainViewModel _viewModel;
+    private readonly CartPanelView _cartPanel;
     private bool _loadedOnce;
+    private bool _isCheckoutSubscribed;
 
     public PosMainView(
         PosMainViewModel viewModel,
@@ -28,20 +30,23 @@ public partial class PosMainView : UserControl
         _customerDisplayFactory = customerDisplayFactory;
         _paymentDialogFactory = paymentDialogFactory;
         _receiptDialogFactory = receiptDialogFactory;
+        _cartPanel = cartPanel;
         ProductRegion.Content = productGrid;
         CartRegion.Content = cartPanel;
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
     private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
     {
+        SubscribeCheckout();
+
         if (_loadedOnce)
         {
             return;
         }
 
         _loadedOnce = true;
-        Loaded -= OnLoaded;
         await _viewModel.LoadAsync();
     }
 
@@ -50,7 +55,31 @@ public partial class PosMainView : UserControl
         _customerDisplayFactory().Show();
     }
 
-    private void OnOpenPayment(object sender, System.Windows.RoutedEventArgs e)
+    private void OnCheckoutRequested(object? sender, EventArgs e) => OpenPaymentFlow();
+
+    private void SubscribeCheckout()
+    {
+        if (_isCheckoutSubscribed)
+        {
+            return;
+        }
+
+        _cartPanel.CheckoutRequested += OnCheckoutRequested;
+        _isCheckoutSubscribed = true;
+    }
+
+    private void OnUnloaded(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (!_isCheckoutSubscribed)
+        {
+            return;
+        }
+
+        _cartPanel.CheckoutRequested -= OnCheckoutRequested;
+        _isCheckoutSubscribed = false;
+    }
+
+    private void OpenPaymentFlow()
     {
         _paymentDialogFactory().ShowDialog();
         if (_receiptPreviewState.HasReceipt)

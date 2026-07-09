@@ -6,11 +6,16 @@ namespace RetailPOS.Desktop.Views;
 
 public partial class LoginView : UserControl
 {
+    private readonly LoginViewModel _viewModel;
+    private bool _isSignedInSubscribed;
+
     public LoginView(LoginViewModel viewModel)
     {
         InitializeComponent();
+        _viewModel = viewModel;
         DataContext = viewModel;
-        viewModel.SignedIn += OnSignedIn;
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
     public event RoutedEventHandler? ContinueRequested;
@@ -24,4 +29,26 @@ public partial class LoginView : UserControl
     }
 
     private void OnSignedIn(object? sender, EventArgs e) => ContinueRequested?.Invoke(this, new RoutedEventArgs());
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (_isSignedInSubscribed)
+        {
+            return;
+        }
+
+        _viewModel.SignedIn += OnSignedIn;
+        _isSignedInSubscribed = true;
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (!_isSignedInSubscribed)
+        {
+            return;
+        }
+
+        _viewModel.SignedIn -= OnSignedIn;
+        _isSignedInSubscribed = false;
+    }
 }
