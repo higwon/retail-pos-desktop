@@ -7,7 +7,11 @@
             <Grid>
                 <TextBlock Text="Retail POS" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Border Background="#FFDCFCE7" CornerRadius="12" Padding="12,5" Margin="0,0,18,0"><TextBlock Text="Online" Foreground="#FF166534" FontSize="12"/></Border>
+                    <Border Background="#FFDCFCE7" CornerRadius="12" Padding="12,5" Margin="0,0,12,0">
+                        <TextBlock Text="{Binding ConnectivityText}" Foreground="#FF166534" FontSize="12"/>
+                    </Border>
+                    <TextBlock Text="{Binding CartSummaryText}" Style="{StaticResource SecondaryTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock Text="{Binding SyncSummaryText}" Style="{StaticResource SecondaryTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,18,0"/>
                     <Button Content="Customer Display" Style="{StaticResource SecondaryButtonStyle}"
                             MinHeight="34" Padding="12,4" Margin="0,0,18,0"
                             Click="OnOpenCustomerDisplay" />
@@ -17,7 +21,10 @@
                     <Button Content="Receipt" Style="{StaticResource SecondaryButtonStyle}"
                             MinHeight="34" Padding="12,4" Margin="0,0,18,0"
                             Click="OnOpenReceipt" />
-                    <TextBlock Text="Cashier A" VerticalAlignment="Center"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding CashierText}" />
+                        <TextBlock Text="{Binding StoreTerminalText}" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="11" />
+                    </StackPanel>
                 </StackPanel>
             </Grid>
         </Border>
