@@ -2,6 +2,7 @@ using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Domain.Orders;
 using RetailPOS.Domain.Payments;
+using System.Text.Json;
 
 namespace RetailPOS.Application.Tests;
 
@@ -41,7 +42,35 @@ public sealed class OrderCompletionServiceTests
         Assert.Equal("Order", item.ItemType);
         Assert.Equal(OrderId, item.AggregateId);
         Assert.Contains(OrderId.ToString("N"), item.ReferenceKey);
-        Assert.Contains("\"idempotencyKey\"", item.PayloadJson);
+        using var payload = Payload(item);
+        var root = payload.RootElement;
+        Assert.Equal(1, root.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(StoreId, root.GetProperty("storeId").GetGuid());
+        Assert.Equal(TerminalId, root.GetProperty("terminalId").GetGuid());
+        Assert.Equal(OrderId, root.GetProperty("localOrderId").GetGuid());
+        Assert.Equal($"{StoreId:N}:{TerminalId:N}:{OrderId:N}", root.GetProperty("idempotencyKey").GetString());
+        Assert.Equal(order.LocalOrderNumber, root.GetProperty("localOrderNumber").GetString());
+        Assert.Equal("2026-07-07", root.GetProperty("businessDate").GetString());
+        Assert.Equal(CashierId, root.GetProperty("cashierId").GetGuid());
+        Assert.Equal(3600m, root.GetProperty("subtotalAmount").GetDecimal());
+        Assert.Equal(200m, root.GetProperty("discountAmount").GetDecimal());
+        Assert.Equal(3400m, root.GetProperty("totalAmount").GetDecimal());
+        Assert.Equal(ApprovedAtUtc, root.GetProperty("createdAt").GetDateTimeOffset());
+
+        var line = Assert.Single(root.GetProperty("lines").EnumerateArray());
+        Assert.Equal(Guid.Parse("11111111-0000-0000-0000-000000000001"), line.GetProperty("productId").GetGuid());
+        Assert.Equal("Cola", line.GetProperty("productNameSnapshot").GetString());
+        Assert.Equal(1800m, line.GetProperty("unitPrice").GetDecimal());
+        Assert.Equal(2, line.GetProperty("quantity").GetInt32());
+        Assert.Equal(200m, line.GetProperty("lineDiscountAmount").GetDecimal());
+        Assert.Equal(3400m, line.GetProperty("lineTotalAmount").GetDecimal());
+
+        var payment = Assert.Single(root.GetProperty("payments").EnumerateArray());
+        Assert.Equal("Card", payment.GetProperty("paymentMethod").GetString());
+        Assert.Equal(3400m, payment.GetProperty("approvedAmount").GetDecimal());
+        Assert.Equal("APP-001", payment.GetProperty("approvalCode").GetString());
+        Assert.Equal("TX-001", payment.GetProperty("transactionReference").GetString());
+        Assert.Equal(ApprovedAtUtc, payment.GetProperty("approvedAtUtc").GetDateTimeOffset());
     }
 
     [Fact]
@@ -63,7 +92,10 @@ public sealed class OrderCompletionServiceTests
         Assert.Single(orders.Saved);
         Assert.Equal(PendingCheckoutStatus.Completed, pending.Record.RecoveryStatus);
         Assert.Equal(OrderId, pending.Record.OrderId);
-        Assert.Single(queue.Items);
+        var item = Assert.Single(queue.Items);
+        using var payload = Payload(item);
+        Assert.Equal(1, payload.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(3400m, payload.RootElement.GetProperty("totalAmount").GetDecimal());
     }
 
     [Fact]
@@ -125,6 +157,9 @@ public sealed class OrderCompletionServiceTests
             transaction,
             new StubCheckoutClock(CompletedAtUtc),
             new SequenceCheckoutIdGenerator(Guid.Parse("cccccccc-0000-0000-0000-000000000001")));
+
+    private static JsonDocument Payload(SyncQueueRecord item) =>
+        JsonDocument.Parse(item.PayloadJson ?? throw new InvalidOperationException("Sync queue payload is required."));
 
     private static PendingCheckoutRecord ApprovedCheckout() => new(
         PendingCheckoutId,
