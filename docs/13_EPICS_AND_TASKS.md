@@ -339,6 +339,20 @@ Scope:
 
 ### POS-506 Desktop Order Sync Worker and Retry Policy
 
+Upload due pending local order sync queue records to the API.
+
+Scope:
+
+- Add an application-level order sync worker/use case.
+- Read due pending `SyncQueue` records for order uploads.
+- Deserialize the full order upload payload produced by POS-508.
+- Upload through an order upload API client abstraction.
+- Mark queue items completed after successful or idempotent duplicate-safe upload.
+- Catch upload failures so sync does not crash the POS app.
+- Update retry count, next attempt UTC, and last error summary on failure.
+- Use bounded exponential backoff for automatic attempts: 1m, 2m, 4m, 8m, 16m.
+- Stop automatic upload attempts after 5 failures and leave the item visible for manual/status review.
+
 ### POS-507 Sync Status UI Integration
 
 ### POS-508 Align Local Order Sync Queue Payload with Upload Contract

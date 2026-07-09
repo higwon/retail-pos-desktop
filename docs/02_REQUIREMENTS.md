@@ -141,6 +141,7 @@ Product Phase 2 rules:
 
 - Synchronization retries use exponential backoff.
 - Automatic retry is limited to 5 attempts.
+- MVP order upload retry delays are 1 minute, 2 minutes, 4 minutes, 8 minutes, and 16 minutes.
 - After 5 failed attempts, the item remains visible for manual review or retry.
 
 ### MVP Scope Exclusions
