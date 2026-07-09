@@ -39,6 +39,42 @@ public sealed class ProductGridViewModelTests
     }
 
     [Fact]
+    public async Task ScanBarcodeCommand_WhenBarcodeIsKnown_AddsProductToCart()
+    {
+        var expected = Product("Cola", barcode: "8801000000011");
+        var session = new CheckoutSession();
+        var repository = new StubProductRepository { BarcodeProduct = expected };
+        var viewModel = new ProductGridViewModel(repository, session) { BarcodeText = "  8801000000011  " };
+
+        await viewModel.ScanBarcodeCommand.ExecuteAsync(null);
+
+        var line = Assert.Single(session.Snapshot.Lines);
+        Assert.Equal(expected.Id, line.ProductId);
+        Assert.Equal("8801000000011", repository.LastBarcode);
+        Assert.Same(expected, viewModel.SelectedProduct);
+        Assert.Equal(string.Empty, viewModel.BarcodeText);
+        Assert.False(viewModel.HasBarcodeMessage);
+    }
+
+    [Fact]
+    public async Task ScanBarcodeCommand_WhenBarcodeIsUnknown_ShowsSafeMessageWithoutChangingCart()
+    {
+        var existing = Product("Water");
+        var session = new CheckoutSession();
+        session.AddProduct(existing);
+        var repository = new StubProductRepository();
+        var viewModel = new ProductGridViewModel(repository, session) { BarcodeText = "  missing-code  " };
+
+        await viewModel.ScanBarcodeCommand.ExecuteAsync(null);
+
+        var line = Assert.Single(session.Snapshot.Lines);
+        Assert.Equal(existing.Id, line.ProductId);
+        Assert.Equal("missing-code", repository.LastBarcode);
+        Assert.True(viewModel.HasBarcodeMessage);
+        Assert.DoesNotContain("Exception", viewModel.BarcodeMessage);
+    }
+
+    [Fact]
     public async Task SearchCommand_WhenRepositoryFails_ShowsSafeErrorState()
     {
         var viewModel = new ProductGridViewModel(
@@ -53,10 +89,10 @@ public sealed class ProductGridViewModelTests
         Assert.DoesNotContain("InvalidOperationException", viewModel.ErrorMessage);
     }
 
-    private static Product Product(string name) => new(
+    private static Product Product(string name, string? barcode = null) => new(
         Guid.NewGuid(),
         $"SKU-{name}",
-        Guid.NewGuid().ToString("N"),
+        barcode ?? Guid.NewGuid().ToString("N"),
         name,
         "Beverages",
         1000m);
@@ -65,9 +101,11 @@ public sealed class ProductGridViewModelTests
     {
         public IReadOnlyList<Product> ActiveProducts { get; init; } = [];
         public IReadOnlyList<Product> SearchProducts { get; init; } = [];
+        public Product? BarcodeProduct { get; init; }
         public Exception? Exception { get; init; }
         public int GetActiveCalls { get; private set; }
         public string? LastKeyword { get; private set; }
+        public string? LastBarcode { get; private set; }
 
         public Task<IReadOnlyList<Product>> GetActiveAsync(CancellationToken cancellationToken = default)
         {
@@ -84,8 +122,13 @@ public sealed class ProductGridViewModelTests
         public Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
             Task.FromResult<Product?>(null);
 
-        public Task<Product?> GetByBarcodeAsync(string barcode, CancellationToken cancellationToken = default) =>
-            Task.FromResult<Product?>(null);
+        public Task<Product?> GetByBarcodeAsync(string barcode, CancellationToken cancellationToken = default)
+        {
+            LastBarcode = barcode;
+            return Exception is null
+                ? Task.FromResult(BarcodeProduct)
+                : Task.FromException<Product?>(Exception);
+        }
 
         private Task<IReadOnlyList<Product>> Result(IReadOnlyList<Product> products) =>
             Exception is null
