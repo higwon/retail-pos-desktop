@@ -35,14 +35,30 @@ Before the next product epic, the project is cleaning and consolidating document
 
 ## Next Planned Area
 
-Device simulation and production-readiness tasks are expected next unless issue priority changes.
+POS core workflow completion is next before device simulation begins.
 
 Candidate areas:
+
+- Login MVP and current cashier/session context.
+- POS main workflow state.
+- Cart checkout button flow.
+- Barcode entry fast path.
+- Dashboard MVP binding.
+- Payment simulation state hardening.
+- Receipt print simulation boundary.
+- Cashier happy path end-to-end validation.
+
+## Later Planned Areas
+
+Device simulation follows after the core cashier workflow is demonstrable:
 
 - Barcode scanner simulator.
 - Receipt printer simulator.
 - Card reader simulator.
 - Secondary monitor customer display.
+
+Production readiness follows after core workflow and device simulation:
+
 - Configuration hardening.
 - Logging/audit hardening.
 - Offline and recovery scenario tests.

@@ -275,7 +275,7 @@ recovery screen.
 Goal: Add server integration and reliable synchronization.
 
 Status: Complete for the MVP API and synchronization path. Follow-up reliability,
-observability, and automation work is tracked under EPIC-08.
+observability, and automation work is tracked under later hardening tasks.
 
 ### POS-500 Document Data Ownership and Source of Truth
 
@@ -383,53 +383,219 @@ required by the API upload contract before the Desktop sync worker consumes it.
 
 ---
 
-## EPIC-07 Device Simulation
+## EPIC-07 POS Workflow Completion
 
-Goal: Demonstrate Windows POS peripheral integration concepts.
+Goal: Close the cashier-facing POS workflow before adding richer device simulators.
 
-### POS-601 Barcode Scanner Simulator
+Status: Planned next.
 
-### POS-602 Receipt Printer Simulator
+Reason:
 
-### POS-603 Card Reader Simulator
+- `PosMainViewModel` is still a shell and does not own the main register workflow.
+- The cart checkout button is disabled, so the cashier payment path currently relies on a top-bar shortcut.
+- Barcode entry is not yet a fast path from scan/input to cart.
+- Dashboard values are hardcoded and not bound to operational data.
+- Payment and receipt simulation boundaries need to be shaped before device simulation grows around them.
 
-### POS-604 Secondary Monitor Customer Display
+### POS-601 Login MVP and Session Context
+
+Implement the MVP login workflow and current session context used by the POS shell.
+
+Scope:
+
+- Replace the direct sign-in bypass with a ViewModel command.
+- Validate employee code and password through an application-level login service.
+- Establish a current cashier/session context after successful login.
+- Show user-safe validation and authentication failure messages.
+- Keep the implementation compatible with later cached offline login.
+
+Acceptance criteria:
+
+- Sign-in does not navigate to POS on invalid input.
+- Successful sign-in exposes cashier/session information for the POS shell.
+- Login failure messages are safe and non-technical.
+- Unit tests cover successful login, invalid input, and failed login.
+
+### POS-602 POS Main Workflow State
+
+Turn the POS main shell into a workflow-aware register surface.
+
+Scope:
+
+- Add state to `PosMainViewModel` for cashier, store/terminal, connectivity, cart summary, and sync indicators.
+- Replace hardcoded cashier/online text in the POS header with bound values.
+- Keep navigation and dialog opening behavior thin in the View.
+- Prepare the shell to react to future login, sync, and connectivity state changes.
+
+Acceptance criteria:
+
+- POS header shows bound cashier/session and connectivity values.
+- ViewModel exposes workflow state without referencing Views.
+- Existing product/cart/payment flows continue to work.
+- Tests cover the ViewModel state mapping.
+
+### POS-603 Cart Checkout Button Flow
+
+Make the cart's checkout button the primary payment entry point.
+
+Scope:
+
+- Enable the cart checkout button when the cart has a positive total.
+- Route checkout through a command or event that opens the payment dialog.
+- Remove or demote the top-bar Payment shortcut so cashier flow starts from the cart.
+- Keep receipt dialog behavior after approved payment.
+
+Acceptance criteria:
+
+- Empty cart cannot start checkout.
+- Cart checkout opens the payment dialog for a payable cart.
+- Approved payment still creates the order, receipt preview, and sync queue item.
+- Tests cover checkout command availability and event/command behavior.
+
+### POS-604 Barcode Entry Fast Path
+
+Add a cashier-friendly barcode entry flow.
+
+Scope:
+
+- Add barcode input to the product area or POS shell.
+- On Enter/scanner-like input, look up an active product by barcode.
+- Add a found product directly to the cart.
+- Show a user-safe not-found message without clearing the current cart.
+- Preserve text search and manual Add behavior.
+
+Acceptance criteria:
+
+- Known barcode adds the matching product to the cart.
+- Unknown barcode shows a safe message and does not change the cart.
+- Barcode input is trimmed and treated as a fast path.
+- Tests cover found and not-found barcode flows.
+
+### POS-605 Dashboard MVP Binding
+
+Replace dashboard mock values with MVP operational data.
+
+Scope:
+
+- Bind dashboard cards to real local data where available.
+- Show today's order count and sales total.
+- Show pending/retrying/exhausted sync counts.
+- Show checkout recovery count.
+- Show recent local orders.
+- Show API connectivity status from the existing connectivity monitor state.
+- Remove broken or placeholder currency text.
+
+Acceptance criteria:
+
+- Dashboard no longer displays hardcoded sales/order/sync values.
+- Dashboard handles empty data with useful zero states.
+- User-facing messages are safe and non-technical.
+- Tests cover dashboard snapshot calculation.
+
+### POS-606 Payment Simulation States Hardening
+
+Prepare payment simulation for later card-reader device simulation.
+
+Scope:
+
+- Extend payment simulation states beyond approve/fail where useful for MVP hardening.
+- Add timeout, cancelled, and communication-error style outcomes as application-level results.
+- Keep order completion limited to approved payment results.
+- Keep user-facing messages safe and distinct for each outcome.
+
+Acceptance criteria:
+
+- Only approved payment completes an order.
+- Non-approved outcomes leave the cart recoverable or unchanged according to the current checkout rules.
+- Payment dialog can surface the new outcomes safely.
+- Tests cover each payment simulation outcome.
+
+### POS-607 Receipt Print Simulation Boundary
+
+Separate receipt print simulation from receipt generation.
+
+Scope:
+
+- Introduce an application-level printer abstraction for receipt printing.
+- Move the current print stub behind that abstraction.
+- Keep receipt generation independent from printer simulation.
+- Prepare the boundary for a richer receipt printer simulator in the next epic.
+
+Acceptance criteria:
+
+- Receipt generation still works without a printer.
+- Print command uses the printer abstraction.
+- Print success and failure messages are user-safe.
+- Tests cover print success and simulated failure.
+
+### POS-608 Cashier Happy Path End-to-End Validation
+
+Validate the core cashier path before device simulation begins.
+
+Scope:
+
+- Cover login, barcode/search, cart, discount, checkout, payment, receipt, and sync queue creation.
+- Prefer an automated integration-style test where practical.
+- Add a short manual demo checklist if a UI-only step cannot be automated cleanly.
+- Keep the test deterministic and independent of developer machine state.
+
+Acceptance criteria:
+
+- The happy path can be demonstrated from login to queued order sync.
+- The validation covers at least one discount and approved payment.
+- The validation confirms receipt preview availability.
+- The validation confirms a sync queue item is created.
 
 ---
 
-## EPIC-08 Production Readiness
+## EPIC-08 Device Simulation
+
+Goal: Demonstrate Windows POS peripheral integration concepts.
+
+Status: Planned after EPIC-07 closes the core cashier workflow.
+
+### POS-701 Barcode Scanner Simulator
+
+### POS-702 Receipt Printer Simulator
+
+### POS-703 Card Reader Simulator
+
+### POS-704 Secondary Monitor Customer Display
+
+---
+
+## EPIC-09 Production Readiness
 
 Goal: Improve reliability, performance, test coverage, and portfolio presentation.
 
-Status: Planned next as a sync hardening mini-epic before expanding
-device/peripheral scope too far. These tasks improve operational quality rather than
-adding major cashier-facing features.
+Status: Planned after the core workflow and device simulation epics. Some sync
+hardening work was completed early under the historical POS-711 through POS-715 IDs.
 
-### POS-701 Unit Tests
+### POS-801 Unit Tests
 
-### POS-702 Integration Tests
+### POS-802 Integration Tests
 
-### POS-703 Performance Test Data
+### POS-803 Performance Test Data
 
-### POS-704 Error Handling Polish
+### POS-804 Error Handling Polish
 
-### POS-705 UI Polish
+### POS-805 UI Polish
 
-### POS-706 Demo Guide
+### POS-806 Demo Guide
 
-### POS-707 Portfolio Summary
+### POS-807 Portfolio Summary
 
-### POS-708 Configuration and Environment Hardening
+### POS-808 Configuration and Environment Hardening
 
 Review appsettings, local development defaults, API/Desktop endpoint configuration,
 and machine-specific paths.
 
-### POS-709 Logging and Audit Hardening
+### POS-809 Logging and Audit Hardening
 
 Strengthen operational logging, audit-relevant events, and safe diagnostic context
 without logging sensitive data.
 
-### POS-710 Offline and Recovery Scenario Tests
+### POS-810 Offline and Recovery Scenario Tests
 
 Exercise offline/online transitions, interrupted checkout recovery, sync retries, and
 large product/order scenarios.
