@@ -74,12 +74,18 @@ If reprint history, receipt numbering, or fiscal receipt storage is added later,
 
 Order upload payloads must include:
 
+- `schemaVersion`
 - `storeId`
 - `terminalId`
 - `localOrderId`
 - `idempotencyKey`
+- `localOrderNumber`
 - `businessDate`
-- `schemaVersion`
+- `cashierId`
+- `createdAt`
+- line items with product snapshot, quantity, price, discount, and total
+- approved payments with method, amount, approval code, transaction reference, and approval timestamp
+- subtotal, discount, and total amounts
 
 The idempotency key scope is:
 
