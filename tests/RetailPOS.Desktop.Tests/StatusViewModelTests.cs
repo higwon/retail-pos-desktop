@@ -1,9 +1,11 @@
 using System.Text.Json;
 using System.Net.Http;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.Logging.Abstractions;
 using RetailPOS.Application.Orders;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Sync;
+using RetailPOS.Desktop.Sync;
 using RetailPOS.Desktop.ViewModels;
 
 namespace RetailPOS.Desktop.Tests;
@@ -92,15 +94,82 @@ public sealed class StatusViewModelTests
         Assert.Equal("Sync status has not been loaded yet.", viewModel.StatusMessage);
     }
 
+    [Fact]
+    public async Task SyncStatusMessage_RefreshesStatusAutomatically()
+    {
+        var messenger = new WeakReferenceMessenger();
+        var queue = new RecordingSyncQueueRepository();
+        var viewModel = ViewModel(queue, messenger: messenger);
+        await viewModel.LoadAsync();
+
+        queue.Items.Add(QueueItem(SyncQueueStatus.Pending, retryCount: 0));
+        messenger.Send(new SyncStatusChangedMessage("Sync status updated by background work."));
+
+        await WaitUntilAsync(() => viewModel.Items.Count == 1);
+        Assert.Equal(1, viewModel.PendingCount);
+        Assert.Equal("Sync status updated by background work.", viewModel.StatusMessage);
+    }
+
+    [Fact]
+    public async Task OrderSyncRunCompletedMessage_RefreshesStatusAutomatically()
+    {
+        var messenger = new WeakReferenceMessenger();
+        var queue = new RecordingSyncQueueRepository();
+        var viewModel = ViewModel(queue, messenger: messenger);
+        await viewModel.LoadAsync();
+
+        queue.Items.Add(QueueItem(SyncQueueStatus.Exhausted, retryCount: 5, lastError: "timeout"));
+        messenger.Send(new OrderSyncRunCompletedMessage(new OrderSyncRunResult(1, 0, 0, 1, 0)));
+
+        await WaitUntilAsync(() => viewModel.ReviewCount == 1);
+        Assert.Single(viewModel.Items);
+        Assert.Contains("need review", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    [Fact]
+    public async Task Dispose_UnregistersFromSyncStatusMessages()
+    {
+        var messenger = new WeakReferenceMessenger();
+        var queue = new RecordingSyncQueueRepository();
+        var viewModel = ViewModel(queue, messenger: messenger);
+        await viewModel.LoadAsync();
+
+        viewModel.Dispose();
+        queue.Items.Add(QueueItem(SyncQueueStatus.Pending, retryCount: 0));
+        messenger.Send(new SyncStatusChangedMessage("Should not refresh."));
+        await Task.Delay(50);
+
+        Assert.Empty(viewModel.Items);
+        Assert.Equal("No local sync queue records.", viewModel.StatusMessage);
+    }
+
     private static StatusViewModel ViewModel(
         RecordingSyncQueueRepository queue,
-        IOrderUploadClient? client = null)
+        IOrderUploadClient? client = null,
+        IMessenger? messenger = null)
     {
         var clock = new StubOrderSyncClock(NowUtc);
         return new StatusViewModel(
             new SyncStatusService(queue, clock),
             new OrderSyncService(queue, client ?? new RecordingOrderUploadClient(), clock, NullLogger<OrderSyncService>.Instance),
-            clock);
+            clock,
+            messenger ?? new WeakReferenceMessenger());
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            if (condition())
+            {
+                return;
+            }
+
+            await Task.Delay(25);
+        }
+
+        Assert.True(condition());
     }
 
     private static SyncQueueRecord QueueItem(

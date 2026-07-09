@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -8,6 +9,7 @@ public sealed class ApiConnectivityMonitor(
     IApiConnectivityClient connectivityClient,
     IApiConnectivityStateStore stateStore,
     BackgroundOrderSyncScheduler syncScheduler,
+    IMessenger messenger,
     IOptions<ApiConnectivityMonitorOptions> monitorOptions,
     IOptions<BackgroundOrderSyncOptions> syncOptions,
     ILogger<ApiConnectivityMonitor> logger) : BackgroundService
@@ -53,6 +55,13 @@ public sealed class ApiConnectivityMonitor(
         var previous = stateStore.Current;
         var current = await connectivityClient.CheckAsync(cancellationToken);
         stateStore.Update(current);
+        var changed = previous.Status != current.Status;
+        if (changed)
+        {
+            messenger.Send(new ApiConnectivityChangedMessage(previous, current));
+            messenger.Send(new SyncStatusChangedMessage("API connectivity changed."));
+        }
+
         LogStateChange(previous, current);
 
         if (ShouldTriggerSync(previous, current))
