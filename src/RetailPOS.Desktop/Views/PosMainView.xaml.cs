@@ -12,6 +12,7 @@ public partial class PosMainView : UserControl
     private readonly PosMainViewModel _viewModel;
     private readonly CartPanelView _cartPanel;
     private bool _loadedOnce;
+    private bool _isCheckoutSubscribed;
 
     public PosMainView(
         PosMainViewModel viewModel,
@@ -32,20 +33,20 @@ public partial class PosMainView : UserControl
         _cartPanel = cartPanel;
         ProductRegion.Content = productGrid;
         CartRegion.Content = cartPanel;
-        cartPanel.CheckoutRequested += OnCheckoutRequested;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
 
     private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
     {
+        SubscribeCheckout();
+
         if (_loadedOnce)
         {
             return;
         }
 
         _loadedOnce = true;
-        Loaded -= OnLoaded;
         await _viewModel.LoadAsync();
     }
 
@@ -56,10 +57,26 @@ public partial class PosMainView : UserControl
 
     private void OnCheckoutRequested(object? sender, EventArgs e) => OpenPaymentFlow();
 
+    private void SubscribeCheckout()
+    {
+        if (_isCheckoutSubscribed)
+        {
+            return;
+        }
+
+        _cartPanel.CheckoutRequested += OnCheckoutRequested;
+        _isCheckoutSubscribed = true;
+    }
+
     private void OnUnloaded(object sender, System.Windows.RoutedEventArgs e)
     {
-        Unloaded -= OnUnloaded;
+        if (!_isCheckoutSubscribed)
+        {
+            return;
+        }
+
         _cartPanel.CheckoutRequested -= OnCheckoutRequested;
+        _isCheckoutSubscribed = false;
     }
 
     private void OpenPaymentFlow()

@@ -15,6 +15,7 @@ public partial class NavigationHost : UserControl
     private readonly DashboardView _dashboardView;
     private readonly StatusView _statusView;
     private bool _startupRecoveryChecked;
+    private bool _isLoginSubscribed;
 
     public NavigationHost(LoginView loginView, PosMainView posMainView,
         CheckoutRecoveryView checkoutRecoveryView, DashboardView dashboardView, StatusView statusView,
@@ -29,13 +30,15 @@ public partial class NavigationHost : UserControl
         _checkoutRecoveryView = checkoutRecoveryView;
         _dashboardView = dashboardView;
         _statusView = statusView;
-        _loginView.ContinueRequested += ShowPosMain;
         ContentRoot.Children.Add(_loginView);
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
     private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
     {
+        SubscribeLogin();
+
         if (_startupRecoveryChecked)
         {
             return;
@@ -62,6 +65,28 @@ public partial class NavigationHost : UserControl
         Grid.SetRow(ContentRoot, 1);
         Grid.SetRowSpan(ContentRoot, 1);
         Show(_checkoutRecoveryView);
+    }
+
+    private void SubscribeLogin()
+    {
+        if (_isLoginSubscribed)
+        {
+            return;
+        }
+
+        _loginView.ContinueRequested += ShowPosMain;
+        _isLoginSubscribed = true;
+    }
+
+    private void OnUnloaded(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (!_isLoginSubscribed)
+        {
+            return;
+        }
+
+        _loginView.ContinueRequested -= ShowPosMain;
+        _isLoginSubscribed = false;
     }
 
     private void ShowPosMain(object? sender, System.Windows.RoutedEventArgs e)

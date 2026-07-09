@@ -71,7 +71,8 @@ Development workflow:
 
 - Prefer XAML command binding over code-behind click handlers when the action can be expressed as a command.
 - Do not subscribe from a View to a ViewModel event unless binding, command, messenger, or service patterns are not a good fit.
-- Any event subscription in a View constructor must have a matching unsubscription in `Unloaded` or an explicit dispose path.
+- Any View subscription to ViewModel, child View, service, or other external events must have a matching unsubscription in `Unloaded` or an explicit dispose path.
+- If a View subscribes to an external event in `Loaded`, use a duplicate-subscription guard and unsubscribe in `Unloaded` without detaching the lifecycle handlers.
 - Any `Loaded` async initialization must be idempotent by using a guard such as `_loadedOnce` or by detaching the handler with `Loaded -= OnLoaded`.
 - Do not let ViewModels reference Views, Windows, dialogs, or WPF controls directly.
 - Dialog or window opening should go through a thin View bridge or a dialog/navigation service, not from the ViewModel.
