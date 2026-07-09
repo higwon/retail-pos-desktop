@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -18,6 +19,21 @@ public sealed class BackgroundOrderSyncSchedulerTests
 
         Assert.True(ran);
         Assert.Equal([10], runner.BatchSizes);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_PublishesOrderSyncRunCompletedMessage()
+    {
+        var runner = new RecordingRunner(new OrderSyncRunResult(1, 0, 0, 1, 0));
+        var messenger = new WeakReferenceMessenger();
+        var messages = new List<OrderSyncRunCompletedMessage>();
+        messenger.Register<OrderSyncRunCompletedMessage>(this, (_, message) => messages.Add(message));
+        var scheduler = Scheduler(runner, messenger: messenger);
+
+        await scheduler.RunOnceAsync(batchSize: 10);
+
+        var message = Assert.Single(messages);
+        Assert.Equal(1, message.Result.ExhaustedCount);
     }
 
     [Fact]
@@ -66,13 +82,15 @@ public sealed class BackgroundOrderSyncSchedulerTests
     private static BackgroundOrderSyncScheduler Scheduler(
         IBackgroundOrderSyncRunner runner,
         ILogger<BackgroundOrderSyncScheduler>? logger = null,
-        IApiConnectivityStateStore? stateStore = null)
+        IApiConnectivityStateStore? stateStore = null,
+        IMessenger? messenger = null)
     {
         var services = new ServiceCollection();
         services.AddScoped(_ => runner);
         return new BackgroundOrderSyncScheduler(
             services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>(),
             stateStore ?? StateStore(ApiConnectivityStatus.Online),
+            messenger ?? new WeakReferenceMessenger(),
             Options.Create(new BackgroundOrderSyncOptions
             {
                 Enabled = true,
@@ -90,7 +108,7 @@ public sealed class BackgroundOrderSyncSchedulerTests
         return store;
     }
 
-    private sealed class RecordingRunner : IBackgroundOrderSyncRunner
+    private sealed class RecordingRunner(OrderSyncRunResult? result = null) : IBackgroundOrderSyncRunner
     {
         public List<int> BatchSizes { get; } = [];
 
@@ -99,7 +117,7 @@ public sealed class BackgroundOrderSyncSchedulerTests
             CancellationToken cancellationToken = default)
         {
             BatchSizes.Add(batchSize);
-            return Task.FromResult(new OrderSyncRunResult(1, 1, 0, 0, 0));
+            return Task.FromResult(result ?? new OrderSyncRunResult(1, 1, 0, 0, 0));
         }
     }
 

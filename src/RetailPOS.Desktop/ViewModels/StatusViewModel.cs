@@ -1,12 +1,15 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Sync;
+using RetailPOS.Desktop.Sync;
 
 namespace RetailPOS.Desktop.ViewModels;
 
-public sealed partial class StatusViewModel : ObservableObject
+public sealed partial class StatusViewModel : ObservableObject, IDisposable
 {
     private const int SnapshotCount = 50;
     private const int SyncBatchSize = 10;
@@ -14,18 +17,28 @@ public sealed partial class StatusViewModel : ObservableObject
     private readonly SyncStatusService _syncStatusService;
     private readonly OrderSyncService _orderSyncService;
     private readonly IOrderSyncClock _clock;
+    private readonly IMessenger _messenger;
+    private bool _disposed;
 
     public StatusViewModel(
         SyncStatusService syncStatusService,
         OrderSyncService orderSyncService,
-        IOrderSyncClock clock)
+        IOrderSyncClock clock,
+        IMessenger messenger)
     {
         _syncStatusService = syncStatusService;
         _orderSyncService = orderSyncService;
         _clock = clock;
+        _messenger = messenger;
         RefreshCommand = new AsyncRelayCommand(LoadAsync, () => !IsBusy);
         RunSyncCommand = new AsyncRelayCommand(RunSyncAsync, () => !IsBusy);
-        Items.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasItems));
+        Items.CollectionChanged += OnItemsCollectionChanged;
+        _messenger.Register<SyncStatusChangedMessage>(
+            this,
+            (_, message) => ScheduleAutoRefresh(message.Reason));
+        _messenger.Register<OrderSyncRunCompletedMessage>(
+            this,
+            (_, message) => ScheduleAutoRefresh(SyncRunMessage(message.Result)));
     }
 
     public ObservableCollection<SyncQueueItemViewModel> Items { get; } = [];
@@ -89,6 +102,36 @@ public sealed partial class StatusViewModel : ObservableObject
             StatusMessage = $"Sync run completed. {result.CompletedCount:N0} completed, {result.RetriedCount:N0} retrying, {result.ExhaustedCount:N0} need review.";
         }, cancellationToken);
     }
+
+    private void ScheduleAutoRefresh(string reason)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher is not null && !dispatcher.CheckAccess())
+        {
+            _ = dispatcher.BeginInvoke(() => _ = AutoRefreshAsync(reason));
+            return;
+        }
+
+        _ = AutoRefreshAsync(reason);
+    }
+
+    private Task AutoRefreshAsync(string reason) =>
+        RunBusyAsync(async token =>
+        {
+            var snapshot = await _syncStatusService.GetSnapshotAsync(SnapshotCount, token);
+            ApplySnapshot(snapshot);
+            StatusMessage = string.IsNullOrWhiteSpace(reason)
+                ? "Sync status updated automatically."
+                : reason;
+        }, CancellationToken.None);
+
+    private static string SyncRunMessage(OrderSyncRunResult result) =>
+        $"Sync run completed. {result.CompletedCount:N0} completed, {result.RetriedCount:N0} retrying, {result.ExhaustedCount:N0} need review.";
 
     private async Task RunBusyAsync(
         Func<CancellationToken, Task> operation,
@@ -169,6 +212,21 @@ public sealed partial class StatusViewModel : ObservableObject
         OnPropertyChanged(nameof(CompletedCountText));
         OnPropertyChanged(nameof(ReviewCountText));
         OnPropertyChanged(nameof(HasSelectedItem));
+    }
+
+    private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
+        OnPropertyChanged(nameof(HasItems));
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        Items.CollectionChanged -= OnItemsCollectionChanged;
+        _messenger.UnregisterAll(this);
     }
 }
 

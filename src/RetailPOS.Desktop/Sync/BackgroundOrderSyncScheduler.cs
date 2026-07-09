@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -8,6 +9,7 @@ namespace RetailPOS.Desktop.Sync;
 public sealed class BackgroundOrderSyncScheduler(
     IServiceScopeFactory scopeFactory,
     IApiConnectivityStateStore connectivityState,
+    IMessenger messenger,
     IOptions<BackgroundOrderSyncOptions> options,
     ILogger<BackgroundOrderSyncScheduler> logger) : BackgroundService
 {
@@ -73,6 +75,7 @@ public sealed class BackgroundOrderSyncScheduler(
             using var scope = scopeFactory.CreateScope();
             var runner = scope.ServiceProvider.GetRequiredService<IBackgroundOrderSyncRunner>();
             var result = await runner.RunAsync(batchSize, cancellationToken);
+            messenger.Send(new OrderSyncRunCompletedMessage(result));
             logger.LogInformation(
                 "Background order sync run completed. {ProcessedCount} {CompletedCount} {RetriedCount} {ExhaustedCount} {SkippedCount}",
                 result.ProcessedCount,

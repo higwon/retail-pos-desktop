@@ -1,4 +1,5 @@
 using System.Net.Http;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -104,6 +105,7 @@ public sealed class ApiConnectivityMonitorTests
             client,
             stateStore,
             scheduler,
+            new WeakReferenceMessenger(),
             Options.Create(new ApiConnectivityMonitorOptions
             {
                 Enabled = true,
@@ -129,6 +131,7 @@ public sealed class ApiConnectivityMonitorTests
         return new BackgroundOrderSyncScheduler(
             services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>(),
             stateStore,
+            new WeakReferenceMessenger(),
             Options.Create(new BackgroundOrderSyncOptions
             {
                 Enabled = true,

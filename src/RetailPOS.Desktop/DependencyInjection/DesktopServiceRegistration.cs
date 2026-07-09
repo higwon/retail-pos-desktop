@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using CommunityToolkit.Mvvm.Messaging;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Payments;
 using RetailPOS.Application.Receipts;
@@ -14,6 +15,7 @@ public static class DesktopServiceRegistration
     public static IServiceCollection AddDesktopServices(this IServiceCollection services)
     {
         services.AddScoped<MainWindow>();
+        services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
         services.AddSingleton<GlobalExceptionHandler>();
         services.AddScoped<NavigationHost>();
         services.AddScoped<CheckoutSession>();
