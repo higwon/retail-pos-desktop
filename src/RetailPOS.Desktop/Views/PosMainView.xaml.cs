@@ -10,6 +10,7 @@ public partial class PosMainView : UserControl
     private readonly Func<PaymentDialog> _paymentDialogFactory;
     private readonly Func<ReceiptDialog> _receiptDialogFactory;
     private readonly PosMainViewModel _viewModel;
+    private bool _loadedOnce;
 
     public PosMainView(
         PosMainViewModel viewModel,
@@ -32,8 +33,17 @@ public partial class PosMainView : UserControl
         Loaded += OnLoaded;
     }
 
-    private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e) =>
+    private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (_loadedOnce)
+        {
+            return;
+        }
+
+        _loadedOnce = true;
+        Loaded -= OnLoaded;
         await _viewModel.LoadAsync();
+    }
 
     private void OnOpenCustomerDisplay(object sender, System.Windows.RoutedEventArgs e)
     {

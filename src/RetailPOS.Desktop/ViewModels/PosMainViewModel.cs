@@ -16,6 +16,7 @@ public sealed partial class PosMainViewModel : ObservableObject, IDisposable
     private readonly IApiConnectivityStateStore _connectivityStateStore;
     private readonly SyncStatusService _syncStatusService;
     private readonly IMessenger _messenger;
+    private int _syncRefreshVersion;
     private bool _disposed;
 
     public PosMainViewModel(
@@ -57,6 +58,12 @@ public sealed partial class PosMainViewModel : ObservableObject, IDisposable
     private string _connectivityText = "API status unknown";
 
     [ObservableProperty]
+    private string _connectivityBadgeBackground = "#FFE5E7EB";
+
+    [ObservableProperty]
+    private string _connectivityBadgeForeground = "#FF374151";
+
+    [ObservableProperty]
     private string _cartSummaryText = "Cart empty";
 
     [ObservableProperty]
@@ -75,24 +82,35 @@ public sealed partial class PosMainViewModel : ObservableObject, IDisposable
 
     private async Task RefreshSyncAsync(CancellationToken cancellationToken = default)
     {
+        var version = Interlocked.Increment(ref _syncRefreshVersion);
         try
         {
             var snapshot = await _syncStatusService.GetSnapshotAsync(SyncSnapshotCount, cancellationToken);
+            if (version != Volatile.Read(ref _syncRefreshVersion))
+            {
+                return;
+            }
+
             HasSyncReview = snapshot.ReviewCount > 0;
             var pendingSyncCount = snapshot.PendingCount + snapshot.RetryCount;
             SyncSummaryText = snapshot.ReviewCount > 0
                 ? SyncReviewText(snapshot.ReviewCount)
                 : pendingSyncCount > 0
-                    ? $"{SyncItemText(pendingSyncCount)} pending"
-                    : "Sync queue clear";
+                    ? $"Recent {SyncItemText(pendingSyncCount)} pending"
+                    : "Recent sync queue clear";
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
         }
         catch
         {
+            if (version != Volatile.Read(ref _syncRefreshVersion))
+            {
+                return;
+            }
+
             HasSyncReview = false;
-            SyncSummaryText = "Sync status unavailable";
+            SyncSummaryText = "Recent sync status unavailable";
         }
     }
 
@@ -121,11 +139,11 @@ public sealed partial class PosMainViewModel : ObservableObject, IDisposable
 
     private void ApplyConnectivity(ApiConnectivitySnapshot snapshot)
     {
-        ConnectivityText = snapshot.Status switch
+        (ConnectivityText, ConnectivityBadgeBackground, ConnectivityBadgeForeground) = snapshot.Status switch
         {
-            ApiConnectivityStatus.Online => "API online",
-            ApiConnectivityStatus.Offline => "API offline",
-            _ => "API status unknown"
+            ApiConnectivityStatus.Online => ("API online", "#FFDCFCE7", "#FF166534"),
+            ApiConnectivityStatus.Offline => ("API offline", "#FFFEE2E2", "#FFB91C1C"),
+            _ => ("API status unknown", "#FFE5E7EB", "#FF374151")
         };
     }
 

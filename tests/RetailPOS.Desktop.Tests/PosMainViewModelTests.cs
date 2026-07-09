@@ -31,8 +31,10 @@ public sealed class PosMainViewModelTests
         Assert.Equal("Cashier A (E0001)", viewModel.CashierText);
         Assert.Equal("Store 10000000 | Terminal 20000000", viewModel.StoreTerminalText);
         Assert.Equal("API online", viewModel.ConnectivityText);
+        Assert.Equal("#FFDCFCE7", viewModel.ConnectivityBadgeBackground);
+        Assert.Equal("#FF166534", viewModel.ConnectivityBadgeForeground);
         Assert.Equal("2 items | 3,600 KRW", viewModel.CartSummaryText);
-        Assert.Equal("2 sync items pending", viewModel.SyncSummaryText);
+        Assert.Equal("Recent 2 sync items pending", viewModel.SyncSummaryText);
         Assert.False(viewModel.HasSyncReview);
     }
 
@@ -75,6 +77,30 @@ public sealed class PosMainViewModelTests
             new ApiConnectivitySnapshot(ApiConnectivityStatus.Offline, NowUtc, "HttpRequestException")));
 
         Assert.Equal("API offline", viewModel.ConnectivityText);
+        Assert.Equal("#FFFEE2E2", viewModel.ConnectivityBadgeBackground);
+        Assert.Equal("#FFB91C1C", viewModel.ConnectivityBadgeForeground);
+    }
+
+    [Fact]
+    public async Task ConcurrentSyncRefresh_DoesNotLetOlderSnapshotOverwriteNewerState()
+    {
+        var syncQueue = new GatedSyncQueueRepository();
+        var viewModel = ViewModel(SignedInSession(), syncQueue: syncQueue);
+
+        var olderLoad = viewModel.LoadAsync();
+        await syncQueue.WaitForCallCountAsync(1);
+        var newerLoad = viewModel.LoadAsync();
+        await syncQueue.WaitForCallCountAsync(2);
+
+        syncQueue.CompleteCall(1, [QueueItem(SyncQueueStatus.Pending, retryCount: 0)]);
+        await newerLoad;
+        Assert.Equal("Recent 1 sync item pending", viewModel.SyncSummaryText);
+
+        syncQueue.CompleteCall(0, [QueueItem(SyncQueueStatus.Exhausted, retryCount: 5)]);
+        await olderLoad;
+
+        Assert.Equal("Recent 1 sync item pending", viewModel.SyncSummaryText);
+        Assert.False(viewModel.HasSyncReview);
     }
 
     [Fact]
@@ -101,7 +127,7 @@ public sealed class PosMainViewModelTests
         ICurrentSessionContext sessionContext,
         CheckoutSession? checkoutSession = null,
         IApiConnectivityStateStore? connectivityStateStore = null,
-        RecordingSyncQueueRepository? syncQueue = null,
+        ISyncQueueRepository? syncQueue = null,
         IMessenger? messenger = null)
     {
         var queue = syncQueue ?? new RecordingSyncQueueRepository();
@@ -173,6 +199,84 @@ public sealed class PosMainViewModelTests
             int count,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(_items);
+
+        public Task<bool> ExistsByReferenceKeyAsync(
+            string referenceKey,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task UpdateRetryAsync(
+            Guid id,
+            int retryCount,
+            DateTimeOffset nextAttemptAtUtc,
+            string? lastErrorSummary,
+            DateTimeOffset updatedAtUtc,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task MarkCompletedAsync(
+            Guid id,
+            DateTimeOffset completedAtUtc,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task MarkResolvedAsync(
+            Guid id,
+            DateTimeOffset resolvedAtUtc,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task MarkExhaustedAsync(
+            Guid id,
+            int retryCount,
+            string? lastErrorSummary,
+            DateTimeOffset exhaustedAtUtc,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+    }
+
+    private sealed class GatedSyncQueueRepository : ISyncQueueRepository
+    {
+        private readonly List<TaskCompletionSource<IReadOnlyList<SyncQueueRecord>>> _calls = [];
+
+        public int CallCount => _calls.Count;
+
+        public Task EnqueueAsync(SyncQueueRecord item, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<IReadOnlyList<SyncQueueRecord>> GetDuePendingAsync(
+            DateTimeOffset asOfUtc,
+            int count,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<SyncQueueRecord>>([]);
+
+        public Task<IReadOnlyList<SyncQueueRecord>> GetRecentAsync(
+            int count,
+            CancellationToken cancellationToken = default)
+        {
+            var completion = new TaskCompletionSource<IReadOnlyList<SyncQueueRecord>>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            _calls.Add(completion);
+            return completion.Task;
+        }
+
+        public async Task WaitForCallCountAsync(int count)
+        {
+            for (var attempt = 0; attempt < 20; attempt++)
+            {
+                if (CallCount >= count)
+                {
+                    return;
+                }
+
+                await Task.Delay(25);
+            }
+
+            Assert.True(CallCount >= count);
+        }
+
+        public void CompleteCall(int index, IReadOnlyList<SyncQueueRecord> items) =>
+            _calls[index].SetResult(items);
 
         public Task<bool> ExistsByReferenceKeyAsync(
             string referenceKey,
