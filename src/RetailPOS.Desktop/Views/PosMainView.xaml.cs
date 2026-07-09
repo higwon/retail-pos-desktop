@@ -10,6 +10,7 @@ public partial class PosMainView : UserControl
     private readonly Func<PaymentDialog> _paymentDialogFactory;
     private readonly Func<ReceiptDialog> _receiptDialogFactory;
     private readonly PosMainViewModel _viewModel;
+    private readonly CartPanelView _cartPanel;
     private bool _loadedOnce;
 
     public PosMainView(
@@ -28,10 +29,12 @@ public partial class PosMainView : UserControl
         _customerDisplayFactory = customerDisplayFactory;
         _paymentDialogFactory = paymentDialogFactory;
         _receiptDialogFactory = receiptDialogFactory;
+        _cartPanel = cartPanel;
         ProductRegion.Content = productGrid;
         CartRegion.Content = cartPanel;
         cartPanel.CheckoutRequested += OnCheckoutRequested;
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
     private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
@@ -52,6 +55,12 @@ public partial class PosMainView : UserControl
     }
 
     private void OnCheckoutRequested(object? sender, EventArgs e) => OpenPaymentFlow();
+
+    private void OnUnloaded(object sender, System.Windows.RoutedEventArgs e)
+    {
+        Unloaded -= OnUnloaded;
+        _cartPanel.CheckoutRequested -= OnCheckoutRequested;
+    }
 
     private void OpenPaymentFlow()
     {
