@@ -263,6 +263,11 @@ public sealed class OrderCompletionServiceTests
         public Task<Order?> GetByNumberAsync(string localOrderNumber, CancellationToken cancellationToken = default) =>
             Task.FromResult(Saved.SingleOrDefault(order => order.LocalOrderNumber == localOrderNumber));
 
+        public Task<IReadOnlyList<Order>> GetByBusinessDateAsync(
+            DateOnly businessDate,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Order>>(Saved.Where(order => order.BusinessDate == businessDate).ToArray());
+
         public Task<IReadOnlyList<Order>> GetRecentAsync(int count, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<Order>>(Saved.Take(count).ToArray());
 

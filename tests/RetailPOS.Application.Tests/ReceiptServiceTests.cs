@@ -82,6 +82,11 @@ public sealed class ReceiptServiceTests
         public Task<Order?> GetByNumberAsync(string localOrderNumber, CancellationToken cancellationToken = default) =>
             Task.FromResult(order?.LocalOrderNumber == localOrderNumber ? order : null);
 
+        public Task<IReadOnlyList<Order>> GetByBusinessDateAsync(
+            DateOnly businessDate,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Order>>(order?.BusinessDate == businessDate ? [order] : []);
+
         public Task<IReadOnlyList<Order>> GetRecentAsync(int count, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<Order>>(order is null ? [] : [order]);
 

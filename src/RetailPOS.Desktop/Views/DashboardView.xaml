@@ -1,20 +1,142 @@
 <UserControl x:Class="RetailPOS.Desktop.Views.DashboardView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{StaticResource AppBackgroundBrush}">
         <StackPanel Margin="32">
-            <Grid Margin="0,0,0,24"><StackPanel><TextBlock Text="Operations dashboard" Style="{StaticResource TitleTextBlockStyle}"/><TextBlock Text="Today · Register overview" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,6,0,0"/></StackPanel><Border Style="{StaticResource StatusPillStyle}" HorizontalAlignment="Right" VerticalAlignment="Top"><TextBlock Text="ALL SYSTEMS NORMAL" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold"/></Border></Grid>
-            <UniformGrid Columns="4" Margin="0,0,0,20">
-                <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0"><StackPanel><TextBlock Text="Net sales" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="₩1,284,000" FontSize="24" FontWeight="Bold" Margin="0,10,0,0"/><TextBlock Text="+8.4% from yesterday" Foreground="{StaticResource SuccessBrush}" Margin="0,8,0,0"/></StackPanel></Border>
-                <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0"><StackPanel><TextBlock Text="Orders" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="86" FontSize="24" FontWeight="Bold" Margin="0,10,0,0"/><TextBlock Text="Average ₩14,930" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,8,0,0"/></StackPanel></Border>
-                <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0"><StackPanel><TextBlock Text="Pending sync" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="3" FontSize="24" FontWeight="Bold" Margin="0,10,0,0"/><TextBlock Text="Oldest 4 min ago" Foreground="{StaticResource WarningBrush}" Margin="0,8,0,0"/></StackPanel></Border>
-                <Border Style="{StaticResource PanelBorderStyle}" Padding="20"><StackPanel><TextBlock Text="Register uptime" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="7h 42m" FontSize="24" FontWeight="Bold" Margin="0,10,0,0"/><TextBlock Text="Online" Foreground="{StaticResource SuccessBrush}" Margin="0,8,0,0"/></StackPanel></Border>
-            </UniformGrid>
-            <Grid Margin="0,0,0,20"><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                <Border Style="{StaticResource PanelBorderStyle}" Padding="24"><StackPanel><TextBlock Text="Sales by hour" FontSize="18" FontWeight="SemiBold"/><Grid Height="210" Margin="0,24,0,0" VerticalAlignment="Bottom"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><Rectangle Grid.Column="0" Height="60" Fill="{StaticResource PrimaryBrush}" VerticalAlignment="Bottom" Margin="10,0"/><Rectangle Grid.Column="1" Height="100" Fill="{StaticResource PrimaryBrush}" VerticalAlignment="Bottom" Margin="10,0"/><Rectangle Grid.Column="2" Height="82" Fill="{StaticResource PrimaryBrush}" VerticalAlignment="Bottom" Margin="10,0"/><Rectangle Grid.Column="3" Height="150" Fill="{StaticResource PrimaryBrush}" VerticalAlignment="Bottom" Margin="10,0"/><Rectangle Grid.Column="4" Height="126" Fill="{StaticResource PrimaryBrush}" VerticalAlignment="Bottom" Margin="10,0"/><Rectangle Grid.Column="5" Height="178" Fill="{StaticResource PrimaryBrush}" VerticalAlignment="Bottom" Margin="10,0"/><Rectangle Grid.Column="6" Height="142" Fill="{StaticResource PrimaryBrush}" VerticalAlignment="Bottom" Margin="10,0"/><Rectangle Grid.Column="7" Height="192" Fill="{StaticResource PrimaryBrush}" VerticalAlignment="Bottom" Margin="10,0"/></Grid></StackPanel></Border>
-                <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="24"><StackPanel><TextBlock Text="Needs attention" FontSize="18" FontWeight="SemiBold"/><Border Background="{StaticResource WarningMutedBrush}" CornerRadius="6" Padding="14" Margin="0,20,0,10"><StackPanel><TextBlock Text="3 orders waiting to sync" FontWeight="SemiBold"/><TextBlock Text="Network is available" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,4,0,0"/></StackPanel></Border><Border Background="{StaticResource DangerMutedBrush}" CornerRadius="6" Padding="14"><StackPanel><TextBlock Text="1 checkout needs review" FontWeight="SemiBold"/><TextBlock Text="Approval was recorded" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,4,0,0"/></StackPanel></Border></StackPanel></Border>
+            <Grid Margin="0,0,0,24">
+                <StackPanel>
+                    <TextBlock Text="Operations dashboard" Style="{StaticResource TitleTextBlockStyle}" />
+                    <TextBlock Text="Today | Register overview"
+                               Style="{StaticResource SecondaryTextBlockStyle}"
+                               Margin="0,6,0,0" />
+                    <TextBlock Text="{Binding LastUpdatedText}"
+                               Style="{StaticResource SecondaryTextBlockStyle}"
+                               FontSize="11"
+                               Margin="0,6,0,0" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top">
+                    <TextBlock Text="{Binding ConnectivityText}"
+                               Style="{StaticResource SecondaryTextBlockStyle}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,12,0" />
+                    <Button Content="Refresh"
+                            Command="{Binding RefreshCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            MinWidth="88"
+                            Margin="0,0,12,0" />
+                    <Border Style="{StaticResource StatusPillStyle}"
+                            Background="{Binding DashboardStatusBackground}">
+                        <TextBlock Text="{Binding DashboardStatusText}"
+                                   Foreground="{Binding DashboardStatusForeground}"
+                                   FontWeight="SemiBold" />
+                    </Border>
+                </StackPanel>
             </Grid>
-            <Border Style="{StaticResource PanelBorderStyle}" Padding="24"><StackPanel><TextBlock Text="Recent orders" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,16"/><Grid Background="{StaticResource AppBackgroundBrush}" Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="ORDER" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="TIME" FontWeight="SemiBold"/><TextBlock Grid.Column="2" Text="STATUS" FontWeight="SemiBold"/><TextBlock Grid.Column="3" Text="TOTAL" FontWeight="SemiBold" HorizontalAlignment="Right"/></Grid><Grid Margin="0,8"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="#000124"/><TextBlock Grid.Column="1" Text="15:42"/><TextBlock Grid.Column="2" Text="Completed" Foreground="{StaticResource SuccessBrush}"/><TextBlock Grid.Column="3" Text="₩15,000" HorizontalAlignment="Right"/></Grid></StackPanel></Border>
+
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="{StaticResource DangerBrush}"
+                       Margin="0,0,0,16"
+                       Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+            <UniformGrid Columns="4" Margin="0,0,0,20">
+                <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="Net sales" Style="{StaticResource SecondaryTextBlockStyle}" />
+                        <TextBlock Text="{Binding NetSalesText}" FontSize="24" FontWeight="Bold" Margin="0,10,0,0" />
+                        <TextBlock Text="{Binding AverageOrderText}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="Orders" Style="{StaticResource SecondaryTextBlockStyle}" />
+                        <TextBlock Text="{Binding OrderCountText}" FontSize="24" FontWeight="Bold" Margin="0,10,0,0" />
+                        <TextBlock Text="Completed today" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="Sync queue" Style="{StaticResource SecondaryTextBlockStyle}" />
+                        <TextBlock Text="{Binding PendingSyncText}" FontSize="24" FontWeight="Bold" Margin="0,10,0,0" />
+                        <TextBlock Text="{Binding RetrySyncText}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource PanelBorderStyle}" Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="Recovery" Style="{StaticResource SecondaryTextBlockStyle}" />
+                        <TextBlock Text="{Binding CheckoutRecoveryText}" FontSize="24" FontWeight="Bold" Margin="0,10,0,0" />
+                        <TextBlock Text="{Binding SyncReviewText}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <Grid Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Style="{StaticResource PanelBorderStyle}" Padding="24">
+                    <StackPanel>
+                        <TextBlock Text="Recent local orders" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,16" />
+                        <Grid Background="{StaticResource AppBackgroundBrush}" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="ORDER" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="1" Text="TIME" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="2" Text="STATUS" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="3" Text="TOTAL" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding RecentOrders}"
+                                      Visibility="{Binding HasRecentOrders, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition />
+                                            <ColumnDefinition />
+                                            <ColumnDefinition />
+                                            <ColumnDefinition />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding OrderNumber}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding CreatedAtText}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding StatusText}" Foreground="{StaticResource SuccessBrush}" />
+                                        <TextBlock Grid.Column="3" Text="{Binding TotalText}" HorizontalAlignment="Right" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="{Binding EmptyRecentOrdersText}"
+                                   Style="{StaticResource SecondaryTextBlockStyle}"
+                                   Margin="0,16,0,0"
+                                   Visibility="{Binding HasNoRecentOrders, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="24">
+                    <StackPanel>
+                        <TextBlock Text="Needs attention" FontSize="18" FontWeight="SemiBold" />
+                        <Border Background="{Binding AttentionBackground}" CornerRadius="6" Padding="14" Margin="0,20,0,0">
+                            <StackPanel>
+                                <TextBlock Text="{Binding AttentionTitle}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding AttentionDetail}"
+                                           Style="{StaticResource SecondaryTextBlockStyle}"
+                                           Margin="0,4,0,0"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </StackPanel>
     </ScrollViewer>
 </UserControl>
