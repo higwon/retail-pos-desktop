@@ -97,6 +97,23 @@ public sealed class OrderSyncServiceTests
     }
 
     [Fact]
+    public async Task ProcessDueAsync_NonOrderItemIsSkippedWithoutStatusChange()
+    {
+        var queue = new RecordingSyncQueueRepository(QueueItem(itemType: "Product"));
+        var client = new RecordingOrderUploadClient();
+        var service = Service(queue, client);
+
+        var result = await service.ProcessDueAsync(AsOfUtc, 10);
+
+        Assert.Equal(1, result.SkippedCount);
+        Assert.Equal(0, result.ExhaustedCount);
+        Assert.Empty(client.Payloads);
+        Assert.Empty(queue.CompletedIds);
+        Assert.Empty(queue.Retries);
+        Assert.Empty(queue.Exhausted);
+    }
+
+    [Fact]
     public async Task ProcessDueAsync_IdempotencyConflictMarksExhaustedForReview()
     {
         var queue = new RecordingSyncQueueRepository(QueueItem());
@@ -119,9 +136,9 @@ public sealed class OrderSyncServiceTests
         IOrderUploadClient client) =>
         new(queue, client, new StubOrderSyncClock(CompletedAtUtc));
 
-    private static SyncQueueRecord QueueItem(int retryCount = 0) => new(
+    private static SyncQueueRecord QueueItem(int retryCount = 0, string itemType = "Order") => new(
         QueueItemId,
-        "Order",
+        itemType,
         Guid.Parse("bbbbbbbb-0000-0000-0000-000000000001"),
         JsonSerializer.Serialize(Payload(), new JsonSerializerOptions(JsonSerializerDefaults.Web)),
         "10000000000000000000000000000001:20000000000000000000000000000001:bbbbbbbb000000000000000000000001",

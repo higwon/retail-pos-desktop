@@ -47,13 +47,19 @@ public sealed class OrderSyncService(
         var completed = 0;
         var retried = 0;
         var exhausted = 0;
+        var skipped = 0;
 
         foreach (var item in dueItems)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (!string.Equals(item.ItemType, OrderItemType, StringComparison.OrdinalIgnoreCase) ||
-                item.RetryCount >= MaxAutomaticAttempts)
+            if (!string.Equals(item.ItemType, OrderItemType, StringComparison.OrdinalIgnoreCase))
+            {
+                skipped++;
+                continue;
+            }
+
+            if (item.RetryCount >= MaxAutomaticAttempts)
             {
                 await MarkExhaustedAsync(item, item.RetryCount, "Automatic retry limit reached.", cancellationToken);
                 exhausted++;
@@ -94,7 +100,7 @@ public sealed class OrderSyncService(
             }
         }
 
-        return new OrderSyncRunResult(dueItems.Count, completed, retried, exhausted);
+        return new OrderSyncRunResult(dueItems.Count, completed, retried, exhausted, skipped);
     }
 
     private static OrderUploadPayload DeserializePayload(SyncQueueRecord item)
@@ -145,4 +151,5 @@ public sealed record OrderSyncRunResult(
     int ProcessedCount,
     int CompletedCount,
     int RetriedCount,
-    int ExhaustedCount);
+    int ExhaustedCount,
+    int SkippedCount);
