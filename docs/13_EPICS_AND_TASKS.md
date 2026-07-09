@@ -356,6 +356,17 @@ Scope:
 
 ### POS-507 Sync Status UI Integration
 
+Bind the Desktop status screen to local sync queue state.
+
+Scope:
+
+- Add an application-level sync status snapshot service.
+- Show pending, retrying, completed, and manual-review queue counts.
+- Show recent sync queue records and selected item details.
+- Add manual refresh and run-sync commands.
+- Invoke the POS-506 order sync worker from the status screen.
+- Keep sensitive or overly technical failure details out of user-facing status text.
+
 ### POS-508 Align Local Order Sync Queue Payload with Upload Contract
 
 Expand the local order sync queue payload so it contains the full completed-order data

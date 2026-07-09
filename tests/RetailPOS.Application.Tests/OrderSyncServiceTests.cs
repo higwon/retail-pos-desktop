@@ -218,6 +218,11 @@ public sealed class OrderSyncServiceTests
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<SyncQueueRecord>>(items.Take(count).ToArray());
 
+        public Task<IReadOnlyList<SyncQueueRecord>> GetRecentAsync(
+            int count,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<SyncQueueRecord>>(items.Take(count).ToArray());
+
         public Task<bool> ExistsByReferenceKeyAsync(
             string referenceKey,
             CancellationToken cancellationToken = default) =>

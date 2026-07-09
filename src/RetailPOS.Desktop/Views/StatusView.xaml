@@ -2,12 +2,117 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid Background="{StaticResource AppBackgroundBrush}" Margin="32">
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-        <Grid><StackPanel><TextBlock Text="System status" Style="{StaticResource TitleTextBlockStyle}"/><TextBlock Text="Connectivity and synchronization overview" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,6,0,0"/></StackPanel><TextBlock Text="Last checked just now" Style="{StaticResource SecondaryTextBlockStyle}" HorizontalAlignment="Right" VerticalAlignment="Center"/></Grid>
-        <UniformGrid Grid.Row="1" Columns="3" Margin="0,24,0,20"><Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0"><Grid><StackPanel><TextBlock Text="Network" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="Connected" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel><Border Style="{StaticResource StatusPillStyle}" HorizontalAlignment="Right" VerticalAlignment="Top"><TextBlock Text="ONLINE" Foreground="{StaticResource SuccessBrush}"/></Border></Grid></Border><Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0"><Grid><StackPanel><TextBlock Text="Local database" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="Available" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel><Border Style="{StaticResource StatusPillStyle}" HorizontalAlignment="Right" VerticalAlignment="Top"><TextBlock Text="READY" Foreground="{StaticResource SuccessBrush}"/></Border></Grid></Border><Border Style="{StaticResource PanelBorderStyle}" Padding="20"><Grid><StackPanel><TextBlock Text="Pending queue" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="3 items" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel><Border Style="{StaticResource StatusPillStyle}" Background="{StaticResource WarningMutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Top"><TextBlock Text="WAITING" Foreground="{StaticResource WarningBrush}"/></Border></Grid></Border></UniformGrid>
-        <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="3*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
-            <Border Style="{StaticResource PanelBorderStyle}" Padding="24"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><TextBlock Text="Synchronization queue" FontSize="18" FontWeight="SemiBold"/><StackPanel Grid.Row="1" Margin="0,20,0,0"><Border Background="{StaticResource SelectionBrush}" CornerRadius="6" Padding="16"><Grid><StackPanel><TextBlock Text="Order #000124" FontWeight="SemiBold"/><TextBlock Text="Queued 4 minutes ago" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,4,0,0"/></StackPanel><TextBlock Text="Selected" Foreground="{StaticResource PrimaryBlueBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/></Grid></Border><Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16"><Grid><StackPanel><TextBlock Text="Order #000123" FontWeight="SemiBold"/><TextBlock Text="Queued 3 minutes ago" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,4,0,0"/></StackPanel><TextBlock Text="Waiting" Foreground="{StaticResource WarningBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/></Grid></Border><Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16"><Grid><StackPanel><TextBlock Text="Order #000122" FontWeight="SemiBold"/><TextBlock Text="Queued 1 minute ago" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,4,0,0"/></StackPanel><TextBlock Text="Waiting" Foreground="{StaticResource WarningBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/></Grid></Border></StackPanel></Grid></Border>
-            <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="24"><StackPanel><TextBlock Text="Queue item details" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="Order #000124" FontSize="20" FontWeight="SemiBold" Margin="0,24,0,18"/><Grid Margin="0,0,0,12"><TextBlock Text="Created" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="15:42" HorizontalAlignment="Right"/></Grid><Grid Margin="0,0,0,12"><TextBlock Text="Attempts" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="0" HorizontalAlignment="Right"/></Grid><Grid Margin="0,0,0,24"><TextBlock Text="Last error" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="None" HorizontalAlignment="Right"/></Grid><Button Content="Retry now" Margin="0,0,0,10"/><Button Content="View details" Style="{StaticResource SecondaryButtonStyle}"/><TextBlock Text="Demo shell only. Queue actions are not connected." Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,22,0,0"/></StackPanel></Border>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid>
+            <StackPanel>
+                <TextBlock Text="System status" Style="{StaticResource TitleTextBlockStyle}" />
+                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,6,0,0" />
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" Margin="0,8,0,0" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <TextBlock Text="{Binding LastCheckedText}" Style="{StaticResource SecondaryTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,16,0" />
+                <Button Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0" />
+                <Button Content="Run sync" Command="{Binding RunSyncCommand}" />
+            </StackPanel>
+        </Grid>
+
+        <UniformGrid Grid.Row="1" Columns="4" Margin="0,24,0,20">
+            <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="Pending" Style="{StaticResource SecondaryTextBlockStyle}" />
+                    <TextBlock Text="{Binding PendingCountText}" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="Retrying" Style="{StaticResource SecondaryTextBlockStyle}" />
+                    <TextBlock Text="{Binding RetryCountText}" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="Needs review" Style="{StaticResource SecondaryTextBlockStyle}" />
+                    <TextBlock Text="{Binding ReviewCountText}" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource PanelBorderStyle}" Padding="20">
+                <StackPanel>
+                    <TextBlock Text="Completed" Style="{StaticResource SecondaryTextBlockStyle}" />
+                    <TextBlock Text="{Binding CompletedCountText}" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="2*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource PanelBorderStyle}" Padding="24">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Synchronization queue" FontSize="18" FontWeight="SemiBold" />
+                    <ListBox Grid.Row="1"
+                             Margin="0,20,0,0"
+                             ItemsSource="{Binding Items}"
+                             SelectedItem="{Binding SelectedItem}"
+                             BorderThickness="0"
+                             Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding CreatedAtText}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding StatusText}" VerticalAlignment="Center" Margin="16,0,0,0" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="24">
+                <StackPanel>
+                    <TextBlock Text="Queue item details" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SelectedItem.Title}" FontSize="20" FontWeight="SemiBold" Margin="0,24,0,18" />
+                    <Grid Margin="0,0,0,12">
+                        <TextBlock Text="Status" Style="{StaticResource SecondaryTextBlockStyle}" />
+                        <TextBlock Text="{Binding SelectedItem.StatusText}" HorizontalAlignment="Right" />
+                    </Grid>
+                    <Grid Margin="0,0,0,12">
+                        <TextBlock Text="Attempts" Style="{StaticResource SecondaryTextBlockStyle}" />
+                        <TextBlock Text="{Binding SelectedItem.RetryCountText}" HorizontalAlignment="Right" />
+                    </Grid>
+                    <Grid Margin="0,0,0,12">
+                        <TextBlock Text="Next attempt" Style="{StaticResource SecondaryTextBlockStyle}" />
+                        <TextBlock Text="{Binding SelectedItem.NextAttemptText}" HorizontalAlignment="Right" />
+                    </Grid>
+                    <Grid Margin="0,0,0,12">
+                        <TextBlock Text="Updated" Style="{StaticResource SecondaryTextBlockStyle}" />
+                        <TextBlock Text="{Binding SelectedItem.UpdatedAtText}" HorizontalAlignment="Right" />
+                    </Grid>
+                    <TextBlock Text="Last error" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,12,0,6" />
+                    <TextBlock Text="{Binding SelectedItem.LastErrorSummary}" TextWrapping="Wrap" />
+                    <TextBlock Text="Reference" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,18,0,6" />
+                    <TextBlock Text="{Binding SelectedItem.ReferenceKeyShort}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
         </Grid>
     </Grid>
 </UserControl>
