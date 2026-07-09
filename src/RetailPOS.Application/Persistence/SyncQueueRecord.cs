@@ -17,5 +17,6 @@ public enum SyncQueueStatus
 {
     Pending,
     Completed,
-    Resolved
+    Resolved,
+    Exhausted
 }

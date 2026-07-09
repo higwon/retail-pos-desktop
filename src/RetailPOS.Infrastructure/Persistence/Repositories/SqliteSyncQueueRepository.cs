@@ -78,6 +78,22 @@ public sealed class SqliteSyncQueueRepository(LocalPosDbContext dbContext) : ISy
         CancellationToken cancellationToken = default) =>
         SetStatusAsync(id, SyncQueueStatus.Resolved, resolvedAtUtc, cancellationToken);
 
+    public async Task MarkExhaustedAsync(
+        Guid id,
+        int retryCount,
+        string? lastErrorSummary,
+        DateTimeOffset exhaustedAtUtc,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(retryCount);
+        var entity = await FindRequiredAsync(id, cancellationToken);
+        entity.Status = (int)SyncQueueStatus.Exhausted;
+        entity.RetryCount = retryCount;
+        entity.LastErrorSummary = string.IsNullOrWhiteSpace(lastErrorSummary) ? null : lastErrorSummary.Trim();
+        entity.UpdatedAtUtc = UtcTime.ToStorage(exhaustedAtUtc, nameof(exhaustedAtUtc));
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task SetStatusAsync(
         Guid id,
         SyncQueueStatus status,

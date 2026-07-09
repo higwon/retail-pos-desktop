@@ -298,6 +298,10 @@ public sealed class OrderCompletionServiceTests
         public Task MarkResolvedAsync(Guid id, DateTimeOffset resolvedAtUtc,
             CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+
+        public Task MarkExhaustedAsync(Guid id, int retryCount, string? lastErrorSummary,
+            DateTimeOffset exhaustedAtUtc, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
     }
 
     private sealed class RecordingLocalTransaction : ILocalTransaction
