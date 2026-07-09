@@ -141,7 +141,7 @@
                 </Border>
                 <Button Content="Checkout"
                         Style="{StaticResource PrimaryBlueButtonStyle}"
-                        IsEnabled="False"
+                        Command="{Binding CheckoutCommand}"
                         Margin="0,0,0,10" />
                 <Grid>
                     <Grid.ColumnDefinitions>

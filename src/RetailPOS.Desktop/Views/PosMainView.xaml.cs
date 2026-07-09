@@ -30,6 +30,7 @@ public partial class PosMainView : UserControl
         _receiptDialogFactory = receiptDialogFactory;
         ProductRegion.Content = productGrid;
         CartRegion.Content = cartPanel;
+        cartPanel.CheckoutRequested += OnCheckoutRequested;
         Loaded += OnLoaded;
     }
 
@@ -50,7 +51,9 @@ public partial class PosMainView : UserControl
         _customerDisplayFactory().Show();
     }
 
-    private void OnOpenPayment(object sender, System.Windows.RoutedEventArgs e)
+    private void OnCheckoutRequested(object? sender, EventArgs e) => OpenPaymentFlow();
+
+    private void OpenPaymentFlow()
     {
         _paymentDialogFactory().ShowDialog();
         if (_receiptPreviewState.HasReceipt)

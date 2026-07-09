@@ -22,9 +22,12 @@ public sealed partial class CartPanelViewModel : ObservableObject, IDisposable
         ApplyFixedDiscountCommand = new RelayCommand(ApplyFixedDiscount, () => HasItems);
         ApplyPercentageDiscountCommand = new RelayCommand(ApplyPercentageDiscount, () => HasItems);
         ClearDiscountCommand = new RelayCommand(checkoutSession.ClearDiscount, () => HasDiscount);
+        CheckoutCommand = new RelayCommand(RequestCheckout, () => CanCheckout);
         _checkoutSession.Changed += OnCheckoutChanged;
         Refresh();
     }
+
+    public event EventHandler? CheckoutRequested;
 
     public ObservableCollection<CartLineViewModel> Lines { get; } = [];
     public IRelayCommand<Guid> IncreaseQuantityCommand { get; }
@@ -34,6 +37,7 @@ public sealed partial class CartPanelViewModel : ObservableObject, IDisposable
     public IRelayCommand ApplyFixedDiscountCommand { get; }
     public IRelayCommand ApplyPercentageDiscountCommand { get; }
     public IRelayCommand ClearDiscountCommand { get; }
+    public IRelayCommand CheckoutCommand { get; }
 
     [ObservableProperty]
     private int _itemCount;
@@ -58,6 +62,7 @@ public sealed partial class CartPanelViewModel : ObservableObject, IDisposable
     private bool _hasDiscount;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanCheckout))]
     private decimal _total;
 
     [ObservableProperty]
@@ -66,6 +71,7 @@ public sealed partial class CartPanelViewModel : ObservableObject, IDisposable
 
     public bool IsEmpty => !HasItems;
     public bool HasDiscountError => !string.IsNullOrEmpty(DiscountErrorMessage);
+    public bool CanCheckout => Total > 0;
 
     private void OnCheckoutChanged(object? sender, EventArgs e) => Refresh();
 
@@ -110,7 +116,10 @@ public sealed partial class CartPanelViewModel : ObservableObject, IDisposable
         ApplyFixedDiscountCommand.NotifyCanExecuteChanged();
         ApplyPercentageDiscountCommand.NotifyCanExecuteChanged();
         ClearDiscountCommand.NotifyCanExecuteChanged();
+        CheckoutCommand.NotifyCanExecuteChanged();
     }
+
+    private void RequestCheckout() => CheckoutRequested?.Invoke(this, EventArgs.Empty);
 
     private void ApplyFixedDiscount() => ApplyDiscount(_checkoutSession.ApplyFixedDiscount);
 

@@ -125,6 +125,42 @@ public sealed class CartBindingViewModelTests
     }
 
     [Fact]
+    public void CheckoutCommand_IsDisabledUntilCartHasPositiveTotal()
+    {
+        var session = new CheckoutSession();
+        var viewModel = new CartPanelViewModel(session);
+
+        Assert.False(viewModel.CanCheckout);
+        Assert.False(viewModel.CheckoutCommand.CanExecute(null));
+
+        session.AddProduct(Product("Water", 1000m));
+
+        Assert.True(viewModel.CanCheckout);
+        Assert.True(viewModel.CheckoutCommand.CanExecute(null));
+
+        viewModel.DiscountInput = "5000";
+        viewModel.ApplyFixedDiscountCommand.Execute(null);
+
+        Assert.Equal(0m, viewModel.Total);
+        Assert.False(viewModel.CanCheckout);
+        Assert.False(viewModel.CheckoutCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void CheckoutCommand_RaisesCheckoutRequestedForPayableCart()
+    {
+        var session = new CheckoutSession();
+        var viewModel = new CartPanelViewModel(session);
+        var requestCount = 0;
+        viewModel.CheckoutRequested += (_, _) => requestCount++;
+        session.AddProduct(Product("Water", 1000m));
+
+        viewModel.CheckoutCommand.Execute(null);
+
+        Assert.Equal(1, requestCount);
+    }
+
+    [Fact]
     public void Dispose_UnsubscribesFromCheckoutSessionChanges()
     {
         var session = new CheckoutSession();
