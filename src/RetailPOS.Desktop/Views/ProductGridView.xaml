@@ -9,12 +9,42 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
             <TextBlock Text="Products" Style="{StaticResource TitleTextBlockStyle}" />
 
-            <Grid Grid.Row="1" Margin="0,18,0,22">
+            <Grid Grid.Row="1" Margin="0,18,0,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox Text="{Binding BarcodeText, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="Scan barcode">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding ScanBarcodeCommand}" />
+                    </TextBox.InputBindings>
+                </TextBox>
+                <Button Grid.Column="1"
+                        Content="Scan"
+                        Command="{Binding ScanBarcodeCommand}"
+                        Style="{StaticResource PrimaryBlueButtonStyle}"
+                        MinWidth="88"
+                        Margin="10,0,0,0" />
+                <TextBlock Grid.Row="1"
+                           Grid.ColumnSpan="2"
+                           Text="{Binding BarcodeMessage}"
+                           Foreground="{StaticResource DangerBrush}"
+                           Margin="0,8,0,0"
+                           Visibility="{Binding HasBarcodeMessage, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </Grid>
+
+            <Grid Grid.Row="2" Margin="0,0,0,22">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -33,7 +63,7 @@
                         Margin="10,0,0,0" />
             </Grid>
 
-            <Grid Grid.Row="2">
+            <Grid Grid.Row="3">
                 <ItemsControl ItemsSource="{Binding Products}"
                               Visibility="{Binding HasProducts, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <ItemsControl.ItemsPanel>

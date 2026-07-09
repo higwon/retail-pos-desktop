@@ -12,6 +12,7 @@ public sealed partial class ProductGridViewModel : ObservableObject
     private readonly IProductRepository _productRepository;
     private readonly CheckoutSession _checkoutSession;
     private readonly AsyncRelayCommand _searchCommand;
+    private readonly AsyncRelayCommand _scanBarcodeCommand;
     private bool _isLoaded;
 
     public ProductGridViewModel(IProductRepository productRepository, CheckoutSession checkoutSession)
@@ -19,12 +20,14 @@ public sealed partial class ProductGridViewModel : ObservableObject
         _productRepository = productRepository;
         _checkoutSession = checkoutSession;
         _searchCommand = new AsyncRelayCommand(SearchAsync);
+        _scanBarcodeCommand = new AsyncRelayCommand(ScanBarcodeAsync);
         AddProductCommand = new RelayCommand<Product>(AddProduct);
     }
 
     public ObservableCollection<Product> Products { get; } = [];
     public IAsyncRelayCommand SearchCommand => _searchCommand;
     public IRelayCommand<Product> AddProductCommand { get; }
+    public IAsyncRelayCommand ScanBarcodeCommand => _scanBarcodeCommand;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasProducts))]
@@ -39,11 +42,19 @@ public sealed partial class ProductGridViewModel : ObservableObject
     private string _searchText = string.Empty;
 
     [ObservableProperty]
+    private string _barcodeText = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasBarcodeMessage))]
+    private string? _barcodeMessage;
+
+    [ObservableProperty]
     private Product? _selectedProduct;
 
     public bool HasProducts => !IsLoading && Products.Count > 0;
     public bool IsEmpty => !IsLoading && !HasError && Products.Count == 0;
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+    public bool HasBarcodeMessage => !string.IsNullOrEmpty(BarcodeMessage);
 
     private void AddProduct(Product? product)
     {
@@ -71,6 +82,7 @@ public sealed partial class ProductGridViewModel : ObservableObject
     {
         IsLoading = true;
         ErrorMessage = null;
+        BarcodeMessage = null;
         SelectedProduct = null;
 
         try
@@ -98,6 +110,38 @@ public sealed partial class ProductGridViewModel : ObservableObject
             IsLoading = false;
             OnPropertyChanged(nameof(HasProducts));
             OnPropertyChanged(nameof(IsEmpty));
+        }
+    }
+
+    private async Task ScanBarcodeAsync(CancellationToken cancellationToken)
+    {
+        var barcode = BarcodeText.Trim();
+        if (string.IsNullOrEmpty(barcode))
+        {
+            return;
+        }
+
+        BarcodeMessage = null;
+
+        try
+        {
+            var product = await _productRepository.GetByBarcodeAsync(barcode, cancellationToken);
+            if (product is null)
+            {
+                BarcodeMessage = "Product barcode was not found. Cart was not changed.";
+                return;
+            }
+
+            SelectedProduct = product;
+            BarcodeText = string.Empty;
+            _checkoutSession.AddProduct(product);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch
+        {
+            BarcodeMessage = "Barcode lookup could not be completed. Try again.";
         }
     }
 }
