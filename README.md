@@ -1,50 +1,40 @@
 # Retail POS Desktop
 
-A portfolio-oriented Windows desktop POS system built with C# and .NET.
+A portfolio-oriented Windows desktop POS system built with C# and .NET 8.
 
-The project focuses on offline-first retail sales workflows, local database management, server synchronization, peripheral device integration, customer-facing display simulation, and maintainable Windows application architecture.
+The project focuses on offline-first retail sales, recoverable checkout, local SQLite persistence, central API synchronization, simulated POS devices, and maintainable WPF architecture.
 
-## Project Goal
+## Current Scope
 
-This project demonstrates professional Windows application engineering skills for retail/POS environments.
+- WPF desktop client using MVVM and CommunityToolkit.Mvvm.
+- Local SQLite persistence through EF Core.
+- Recoverable checkout using `PendingCheckout` before payment approval.
+- Order upload synchronization with retry, idempotency, background scheduling, connectivity monitoring, and status refresh.
+- ASP.NET Core API skeleton with health, product sync, order upload, ProblemDetails, request logging, and idempotency handling.
+- Simulated UI flows for login, POS main, payment, receipt, checkout recovery, customer display, dashboard, and sync status.
 
-Key goals:
+## Documentation
 
-- Build a WPF-based desktop POS client using MVVM.
-- Support offline sales processing with a local SQLite database.
-- Synchronize local sales data with a central ASP.NET Core API.
-- Model realistic retail business logic such as products, carts, orders, payments, discounts, stock, and receipts.
-- Simulate Windows peripheral devices such as barcode scanners, receipt printers, card readers, and customer-facing displays.
-- Keep the architecture clean, testable, and suitable for long-term maintenance.
+Start here:
 
-## Recommended Reading Order
+1. [Project Overview](docs/project-overview.md)
+2. [Architecture](docs/architecture.md)
+3. [Roadmap](docs/roadmap.md)
 
-Codex or any AI coding agent should read the documents in this order before generating code:
+For implementation planning:
 
-1. [AI Instructions](docs/00_AI_INSTRUCTIONS.md)
-2. [Project Specification](docs/01_PROJECT_SPEC.md)
-3. [Requirements](docs/02_REQUIREMENTS.md)
-4. [Architecture](docs/03_ARCHITECTURE.md)
-5. [Database](docs/04_DATABASE.md)
-6. [API Specification](docs/05_API_SPEC.md)
-7. [UI Guidelines](docs/06_UI_GUIDELINES.md)
-8. [Screen Flow](docs/07_SCREEN_FLOW.md)
-9. [Roadmap](docs/08_ROADMAP.md)
-10. [Coding Convention](docs/09_CODING_CONVENTION.md)
-11. [Task Backlog](docs/10_TASK_BACKLOG.md)
-12. [UI Design](docs/11_UI_DESIGN.md)
-13. [UI Changelog](docs/12_UI_CHANGELOG.md)
-14. [Epics and Tasks](docs/13_EPICS_AND_TASKS.md)
-15. [Project Board](docs/14_PROJECT_BOARD.md)
-16. [Coding Standards](docs/15_CODING_STANDARDS.md)
-17. [Branch Strategy](docs/16_BRANCH_STRATEGY.md)
-18. [Definition of Done](docs/17_DEFINITION_OF_DONE.md)
-19. [Local Persistence](docs/18_LOCAL_PERSISTENCE.md)
-20. [Repository Design](docs/19_REPOSITORY_DESIGN.md)
-21. [Entity Mapping](docs/20_ENTITY_MAPPING.md)
-22. [Persistence Flow](docs/21_PERSISTENCE_FLOW.md)
-23. [Data Ownership](docs/22_DATA_OWNERSHIP.md)
-24. Architecture Decision Records under [docs/ADR](docs/ADR)
+- [Epics and Tasks](docs/epics-and-tasks.md)
+- [Development Workflow](docs/development-workflow.md)
+- [Repository Agent Guide](docs/agent-guide.md)
+
+For specific areas:
+
+- [API Contracts](docs/api-contracts.md)
+- [Sync and Offline](docs/sync-and-offline.md)
+- [UI Guide](docs/ui-guide.md)
+- [Decisions](docs/decisions.md)
+
+AI coding agents should also read [AGENTS.md](AGENTS.md) before working in this repository.
 
 ## Figma UI Reference
 
@@ -52,28 +42,25 @@ Figma file:
 
 https://www.figma.com/design/G71mpke3GSKytIXRqsjD8D/Retail-POS-UI
 
-The Figma file is the primary UI reference for WPF implementation. Follow `docs/11_UI_DESIGN.md` before implementing UI screens.
+The Figma file is the primary UI reference for WPF screen implementation. Use [UI Guide](docs/ui-guide.md) for repository-specific mapping notes.
 
-## Target Technology Stack
+## Technology Stack
 
-- C#
-- .NET 8
+- C# and .NET 8
 - WPF
 - MVVM
 - CommunityToolkit.Mvvm
-- Microsoft.Extensions.DependencyInjection
-- SQLite for local offline storage
-- SQL Server for central server storage
+- Microsoft.Extensions.Hosting and DependencyInjection
+- EF Core with SQLite for local offline storage
 - ASP.NET Core Web API
-- REST API
-- Socket communication where useful
-- Serilog or Microsoft.Extensions.Logging
-- xUnit or NUnit for tests
+- Serilog for desktop structured logging
+- xUnit tests
 
-## High-Level Solution Structure
+## Solution Structure
 
 ```text
 RetailPOS
+|- AGENTS.md
 |- docs
 |- src
 |  |- RetailPOS.Desktop
@@ -82,6 +69,7 @@ RetailPOS
 |  |- RetailPOS.Infrastructure
 |  `- RetailPOS.Api
 `- tests
+   |- RetailPOS.Api.Tests
    |- RetailPOS.Application.Tests
    |- RetailPOS.Desktop.Tests
    |- RetailPOS.Domain.Tests
@@ -90,20 +78,18 @@ RetailPOS
 
 ## Core Scenario
 
-The cashier can continue selling products even when the network is unavailable.
+The cashier can keep selling products even when the API is unavailable.
 
 1. Cashier logs in.
 2. Product is scanned or searched.
-3. Cart is updated.
-4. Customer display is updated.
-5. Discounts are applied.
-6. A recoverable pending checkout is stored locally.
-7. Payment is approved through a simulator.
-8. The order is stored locally and the pending checkout is completed.
-9. Receipt is printed through a simulator.
-10. When the network returns, pending orders are synchronized with the server.
+3. Cart and customer display update.
+4. Manual discount is applied if needed.
+5. `PendingCheckout` is stored locally.
+6. Payment is approved through a simulator.
+7. Order is stored locally and queued for sync.
+8. Receipt is shown through the simulator flow.
+9. Background sync uploads pending orders when the API is reachable.
 
 ## Development Rule
 
-Do not implement everything at once.
-Build the project step by step, commit by commit, according to the roadmap and task backlog.
+Build the project step by step, issue by issue. Keep each PR focused, update docs when project rules change, and keep code behavior aligned with the current source-of-truth documents.

@@ -1,8 +1,16 @@
 # Epics and Task Breakdown
 
-This document defines the Jira-style task structure for the Retail POS Desktop project.
+This document defines the Jira-style task structure for the Retail POS Desktop project. It is the implementation scope source of truth for creating GitHub Issues and choosing the next PR.
 
 All implementation work should be tracked by a `POS-XXX` task ID.
+
+## Maintenance Rule
+
+- Keep this file as an implementation planning source, not a changelog.
+- Completed epics should be summarized, not expanded forever.
+- New issues should be created from the current or next epic section.
+- Detailed discussion belongs in GitHub Issues and PRs.
+- If this file becomes too large, split only the completed historical detail, not the active planning source.
 
 Use the same task ID in:
 
@@ -62,7 +70,7 @@ Acceptance criteria:
 
 ### POS-002 Configure Project References
 
-Configure project references according to `docs/03_ARCHITECTURE.md`.
+Configure project references according to `docs/architecture.md`.
 
 Acceptance criteria:
 
@@ -101,7 +109,7 @@ Add initial ResourceDictionary files for colors, typography, buttons, and layout
 Acceptance criteria:
 
 - Resource dictionaries are structured for future screen styling.
-- Theme values align with `docs/11_UI_DESIGN.md`.
+- Theme values align with `docs/ui-guide.md`.
 - No feature-specific styling is added yet.
 
 ### POS-006 Add Logging Foundation
