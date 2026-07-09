@@ -284,6 +284,10 @@ public sealed class OrderCompletionServiceTests
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<SyncQueueRecord>>(Items.Take(count).ToArray());
 
+        public Task<IReadOnlyList<SyncQueueRecord>> GetRecentAsync(int count,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<SyncQueueRecord>>(Items.Take(count).ToArray());
+
         public Task<bool> ExistsByReferenceKeyAsync(string referenceKey, CancellationToken cancellationToken = default) =>
             Task.FromResult(Items.Any(item => item.ReferenceKey == referenceKey));
 

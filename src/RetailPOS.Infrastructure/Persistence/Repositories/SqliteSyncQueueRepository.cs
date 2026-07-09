@@ -40,6 +40,20 @@ public sealed class SqliteSyncQueueRepository(LocalPosDbContext dbContext) : ISy
         return entities.Select(item => item.ToRecord()).ToList();
     }
 
+    public async Task<IReadOnlyList<SyncQueueRecord>> GetRecentAsync(
+        int count,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
+        var entities = await dbContext.SyncQueue.AsNoTracking()
+            .OrderByDescending(item => item.UpdatedAtUtc)
+            .ThenByDescending(item => item.CreatedAtUtc)
+            .ThenBy(item => item.Id)
+            .Take(count)
+            .ToListAsync(cancellationToken);
+        return entities.Select(item => item.ToRecord()).ToList();
+    }
+
     public Task<bool> ExistsByReferenceKeyAsync(
         string referenceKey,
         CancellationToken cancellationToken = default)

@@ -179,6 +179,9 @@ public sealed class PersistenceRepositoryTests
         await repository.MarkExhaustedAsync(later.Id, 5, "timeout", now.AddMinutes(3));
         var remaining = await repository.GetDuePendingAsync(now.AddMinutes(2), 10);
         Assert.Empty(remaining);
+
+        var recent = await repository.GetRecentAsync(10);
+        Assert.Equal([later.Id, first.Id, second.Id], recent.Select(item => item.Id));
     }
 
     [Fact]
@@ -282,6 +285,11 @@ public sealed class PersistenceRepositoryTests
 
         public Task<IReadOnlyList<SyncQueueRecord>> GetDuePendingAsync(
             DateTimeOffset asOfUtc,
+            int count,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<SyncQueueRecord>>([]);
+
+        public Task<IReadOnlyList<SyncQueueRecord>> GetRecentAsync(
             int count,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<SyncQueueRecord>>([]);

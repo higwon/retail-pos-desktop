@@ -24,6 +24,7 @@ public static class SyncServiceRegistration
 
         services.AddScoped<ProductSyncService>();
         services.AddScoped<OrderSyncService>();
+        services.AddScoped<SyncStatusService>();
         services.AddSingleton<IOrderSyncClock, SystemOrderSyncClock>();
 
         return services;
