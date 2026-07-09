@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RetailPOS.Desktop.DependencyInjection;
 using RetailPOS.Desktop.Diagnostics;
+using RetailPOS.Desktop.Sync;
 using RetailPOS.Infrastructure.DependencyInjection;
 using RetailPOS.Infrastructure.Persistence;
 using Serilog;
@@ -35,6 +36,11 @@ public partial class App : System.Windows.Application
             builder.Services.AddSerilog(CreateLogger(builder.Configuration), dispose: true);
             builder.Services.AddSingleton<System.Windows.Application>(this);
             builder.Services.AddLocalPersistence(builder.Configuration);
+            builder.Services.AddApiSyncClient(ApiBaseAddress(builder.Configuration));
+            builder.Services.Configure<BackgroundOrderSyncOptions>(
+                builder.Configuration.GetSection(BackgroundOrderSyncOptions.SectionName));
+            builder.Services.AddScoped<IBackgroundOrderSyncRunner, BackgroundOrderSyncRunner>();
+            builder.Services.AddHostedService<BackgroundOrderSyncScheduler>();
             builder.Services.AddDesktopServices();
 
             _host = builder.Build();
@@ -49,6 +55,8 @@ public partial class App : System.Windows.Application
                     .InitializeAsync();
             }
             logger.LogInformation("Retail POS local database is ready.");
+
+            await _host.StartAsync();
 
             _uiScope = _host.Services.CreateAsyncScope();
             var mainWindow = _uiScope.Value.ServiceProvider.GetRequiredService<MainWindow>();
@@ -103,11 +111,28 @@ public partial class App : System.Windows.Application
             ? level
             : Serilog.Events.LogEventLevel.Information;
 
+    private static Uri ApiBaseAddress(IConfiguration configuration)
+    {
+        var value = configuration["ApiSync:BaseAddress"];
+        return Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            ? uri
+            : new Uri("http://localhost:5000/");
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
         if (_host is not null)
         {
             _host.Services.GetService<ILogger<App>>()?.LogInformation("Retail POS exiting with code {ExitCode}.", e.ApplicationExitCode);
+            try
+            {
+                _host.StopAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+            }
+            catch (Exception exception)
+            {
+                _host.Services.GetService<ILogger<App>>()?
+                    .LogWarning(exception, "Retail POS host did not stop cleanly.");
+            }
         }
 
         _exceptionHandler?.Unregister();
