@@ -35,6 +35,18 @@ public sealed class SqliteOrderRepository(LocalPosDbContext dbContext) : IOrderR
         return entity?.ToDomain();
     }
 
+    public async Task<IReadOnlyList<Order>> GetByBusinessDateAsync(
+        DateOnly businessDate,
+        CancellationToken cancellationToken = default)
+    {
+        var entities = await Query()
+            .Where(order => order.BusinessDate == businessDate)
+            .OrderByDescending(order => order.CreatedAtUtc)
+            .ThenByDescending(order => order.LocalOrderId)
+            .ToListAsync(cancellationToken);
+        return entities.Select(order => order.ToDomain()).ToList();
+    }
+
     public async Task<IReadOnlyList<Order>> GetRecentAsync(
         int count,
         CancellationToken cancellationToken = default)
