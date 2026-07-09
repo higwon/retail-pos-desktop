@@ -133,7 +133,7 @@ Request:
   "storeId": "guid",
   "terminalId": "guid",
   "localOrderId": "guid",
-  "idempotencyKey": "client-generated-guid",
+  "idempotencyKey": "store:guid:terminal:guid:localOrder:guid",
   "localOrderNumber": "POS-20260702-000001",
   "businessDate": "2026-07-02",
   "cashierId": "guid",
@@ -189,7 +189,8 @@ Query parameters:
 
 ### POST /api/sync/orders
 
-Batch upload endpoint for pending local orders.
+Future batch upload endpoint for pending local orders. The MVP implementation uses
+`POST /api/orders` for single-order upload and idempotent retry behavior.
 
 Request:
 
@@ -205,7 +206,7 @@ Response:
 {
   "results": [
     {
-      "idempotencyKey": "client-generated-guid",
+      "idempotencyKey": "store:guid:terminal:guid:localOrder:guid",
       "serverOrderId": "guid",
       "status": "Synced",
       "errorMessage": null

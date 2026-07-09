@@ -266,7 +266,8 @@ recovery screen.
 
 Goal: Add server integration and reliable synchronization.
 
-Status: Todo.
+Status: Complete for the MVP API and synchronization path. Follow-up reliability,
+observability, and automation work is tracked under EPIC-08.
 
 ### POS-500 Document Data Ownership and Source of Truth
 
@@ -392,7 +393,7 @@ Goal: Demonstrate Windows POS peripheral integration concepts.
 
 Goal: Improve reliability, performance, test coverage, and portfolio presentation.
 
-Run this hardening phase after EPIC-06 API and Synchronization and before expanding
+Status: Planned next as a sync hardening mini-epic before expanding
 device/peripheral scope too far. These tasks improve operational quality rather than
 adding major cashier-facing features.
 
@@ -424,3 +425,69 @@ without logging sensitive data.
 
 Exercise offline/online transitions, interrupted checkout recovery, sync retries, and
 large product/order scenarios.
+
+### POS-711 Add Sync Integration Tests from SQLite Queue to API Upload
+
+Add end-to-end style tests that cover the real local sync path across SQLite
+repositories, the order sync worker, and the API order upload boundary.
+
+Scope:
+
+- Use a temporary SQLite database for local queue/order state.
+- Exercise due `SyncQueue` order records through `OrderSyncService`.
+- Send uploads to an in-process API host or equivalent test HTTP boundary.
+- Verify successful uploads mark queue items completed.
+- Verify idempotency conflicts and validation failures become manual-review work
+  instead of crashing the POS app.
+- Keep the tests deterministic and isolated from developer machine state.
+
+### POS-712 Add Background Order Sync Scheduler
+
+Run order synchronization automatically while the Desktop app is open.
+
+Scope:
+
+- Add a Desktop background scheduler using the existing `OrderSyncService`.
+- Use bounded periodic execution with cancellation on app shutdown.
+- Avoid overlapping sync runs.
+- Respect existing retry due times and max automatic retry behavior.
+- Log scheduler start, completion, skip, and failure events.
+- Keep manual `Run sync` available from the Status screen.
+
+### POS-713 Add API Connectivity Monitor and Reconnect-Triggered Sync
+
+Detect whether the configured API is reachable and trigger sync after recovery.
+
+Scope:
+
+- Add an application-level connectivity abstraction.
+- Prefer API health checks over OS network status as the source of truth.
+- Track online, offline, and degraded states.
+- Trigger a bounded sync attempt when the API becomes reachable again.
+- Surface connectivity state for future header/status UI binding.
+- Avoid tight retry loops while the API remains unavailable.
+
+### POS-714 Add Messenger-Based Sync Status Refresh
+
+Reduce manual refresh dependence by notifying view models when sync state changes.
+
+Scope:
+
+- Use CommunityToolkit messenger patterns already used by the Desktop stack.
+- Publish messages after sync run completion, queue exhaustion, and connectivity changes.
+- Refresh `StatusViewModel` automatically when relevant messages arrive.
+- Define unregister/disposal rules for message-recipient view models.
+- Keep user-safe failure text in the UI.
+
+### POS-715 Add Serilog Structured Logging and Sync Audit Events
+
+Introduce structured operational logs for Desktop and API diagnostics.
+
+Scope:
+
+- Add Serilog through the existing `ILogger` abstraction.
+- Write Desktop logs under the configured local app data directory.
+- Keep API logs console-friendly for local development and CI.
+- Log sync run start/completion/failure, exhausted queue items, idempotency conflicts,
+  and connectivity changes with structured properties.
+- Do not log sensitive payment, auth, token, or secret data.

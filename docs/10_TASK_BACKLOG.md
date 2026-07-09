@@ -7,7 +7,9 @@
 - Task 3 domain models: complete.
 - Task 4 local persistence and repeatable product seed data: complete through EPIC-04.
 - Task 5 checkout MVP: complete through EPIC-05 (`POS-401` through `POS-409`).
-- Task 6 API and synchronization: ready to begin with EPIC-06 (`POS-500` through `POS-508`).
+- Task 6 API and synchronization: complete through EPIC-06 (`POS-500` through `POS-508`).
+- EPIC-08 sync hardening: recommended next before device simulation. GitHub Issues
+  #83 through #87 track `POS-711` through `POS-715`.
 
 This file is a coarse product backlog. For implementation order and scope, use the active
 GitHub Issue together with `docs/13_EPICS_AND_TASKS.md`.
@@ -115,8 +117,9 @@ Acceptance criteria:
 Add the central API skeleton and local synchronization path for product download and
 order upload.
 
-Status: Todo. GitHub Issues POS-500 through POS-508 define the implementation order
-and detailed scope.
+Status: Complete. GitHub Issues POS-500 through POS-508 define the implemented MVP
+API and synchronization scope. Follow-up automation, observability, and integration
+coverage are tracked under EPIC-08 sync hardening.
 
 Acceptance criteria:
 
@@ -130,12 +133,17 @@ Acceptance criteria:
 
 ## Later Tasks
 
-- Add ASP.NET Core API.
+- Harden ASP.NET Core API behavior.
 - Add SQL Server persistence.
-- Add order synchronization.
-- Add sync retry policy.
-- Add idempotency key handling.
-- Add exponential backoff with at most 5 automatic retry attempts.
+- Harden order synchronization behavior.
+- Harden sync retry and manual-review behavior.
+- Harden idempotency conflict diagnostics.
+- Keep exponential backoff bounded at 5 automatic retry attempts.
+- Add SQLite to worker to API integration tests.
+- Add background order sync scheduler.
+- Add API connectivity monitoring and reconnect-triggered sync.
+- Add messenger-based sync status refresh.
+- Add Serilog structured logging and sync audit events.
 - Add real secondary-monitor placement for Customer Display.
 - Add admin dashboard.
 - Add performance test data.
