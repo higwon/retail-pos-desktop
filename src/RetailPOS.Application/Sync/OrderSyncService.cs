@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using RetailPOS.Application.Orders;
 using RetailPOS.Application.Persistence;
 
@@ -8,7 +9,8 @@ namespace RetailPOS.Application.Sync;
 public sealed class OrderSyncService(
     ISyncQueueRepository syncQueueRepository,
     IOrderUploadClient orderUploadClient,
-    IOrderSyncClock clock)
+    IOrderSyncClock clock,
+    ILogger<OrderSyncService> logger)
 {
     public const int MaxAutomaticAttempts = 5;
     private const string OrderItemType = "Order";
@@ -43,6 +45,11 @@ public sealed class OrderSyncService(
             throw new ArgumentOutOfRangeException(nameof(count), "count must be greater than zero.");
         }
 
+        logger.LogInformation(
+            "Order sync run started. {AsOfUtc} {BatchSize}",
+            asOfUtc,
+            count);
+
         var dueItems = await syncQueueRepository.GetDuePendingAsync(asOfUtc, count, cancellationToken);
         var completed = 0;
         var retried = 0;
@@ -55,6 +62,10 @@ public sealed class OrderSyncService(
 
             if (!string.Equals(item.ItemType, OrderItemType, StringComparison.OrdinalIgnoreCase))
             {
+                logger.LogDebug(
+                    "Sync queue item skipped because item type is not supported. {SyncQueueItemId} {ItemType}",
+                    item.Id,
+                    item.ItemType);
                 skipped++;
                 continue;
             }
@@ -62,6 +73,11 @@ public sealed class OrderSyncService(
             if (item.RetryCount >= MaxAutomaticAttempts)
             {
                 await MarkExhaustedAsync(item, item.RetryCount, "Automatic retry limit reached.", cancellationToken);
+                logger.LogWarning(
+                    "Order sync item exhausted before upload because retry limit was already reached. {SyncQueueItemId} {AggregateId} {RetryCount}",
+                    item.Id,
+                    item.AggregateId,
+                    item.RetryCount);
                 exhausted++;
                 continue;
             }
@@ -71,11 +87,21 @@ public sealed class OrderSyncService(
                 var payload = DeserializePayload(item);
                 await orderUploadClient.UploadAsync(payload, cancellationToken);
                 await syncQueueRepository.MarkCompletedAsync(item.Id, UtcNow(), cancellationToken);
+                logger.LogInformation(
+                    "Order sync item completed. {SyncQueueItemId} {AggregateId} {RetryCount}",
+                    item.Id,
+                    item.AggregateId,
+                    item.RetryCount);
                 completed++;
             }
             catch (OrderUploadConflictException exception)
             {
                 await MarkExhaustedAsync(item, item.RetryCount, Summarize(exception), cancellationToken);
+                logger.LogWarning(
+                    "Order sync item exhausted after idempotency conflict. {SyncQueueItemId} {AggregateId} {RetryCount}",
+                    item.Id,
+                    item.AggregateId,
+                    item.RetryCount);
                 exhausted++;
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
@@ -84,6 +110,12 @@ public sealed class OrderSyncService(
                 if (retryCount >= MaxAutomaticAttempts)
                 {
                     await MarkExhaustedAsync(item, retryCount, Summarize(exception), cancellationToken);
+                    logger.LogWarning(
+                        "Order sync item exhausted after upload failure. {SyncQueueItemId} {AggregateId} {RetryCount} {ExceptionType}",
+                        item.Id,
+                        item.AggregateId,
+                        retryCount,
+                        exception.GetType().Name);
                     exhausted++;
                     continue;
                 }
@@ -96,9 +128,24 @@ public sealed class OrderSyncService(
                     Summarize(exception),
                     UtcNow(),
                     cancellationToken);
+                logger.LogWarning(
+                    "Order sync item scheduled for retry. {SyncQueueItemId} {AggregateId} {RetryCount} {NextAttemptAtUtc} {ExceptionType}",
+                    item.Id,
+                    item.AggregateId,
+                    retryCount,
+                    nextAttemptAtUtc,
+                    exception.GetType().Name);
                 retried++;
             }
         }
+
+        logger.LogInformation(
+            "Order sync run completed. {ProcessedCount} {CompletedCount} {RetriedCount} {ExhaustedCount} {SkippedCount}",
+            dueItems.Count,
+            completed,
+            retried,
+            exhausted,
+            skipped);
 
         return new OrderSyncRunResult(dueItems.Count, completed, retried, exhausted, skipped);
     }

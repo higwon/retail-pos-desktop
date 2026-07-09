@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using RetailPOS.Application.Orders;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Sync;
@@ -131,10 +133,30 @@ public sealed class OrderSyncServiceTests
         Assert.Equal("idempotency conflict", exhausted.LastErrorSummary);
     }
 
+    [Fact]
+    public async Task ProcessDueAsync_UploadFailureLogsSafeStructuredContext()
+    {
+        var queue = new RecordingSyncQueueRepository(QueueItem());
+        var client = new RecordingOrderUploadClient(
+            exception: new HttpRequestException("payment gateway password=secret"));
+        var logger = new RecordingLogger<OrderSyncService>();
+        var service = Service(queue, client, logger);
+
+        await service.ProcessDueAsync(AsOfUtc, 10);
+
+        Assert.Contains(logger.Messages, message => message.Contains("scheduled for retry", StringComparison.OrdinalIgnoreCase));
+        Assert.All(logger.Messages, message =>
+        {
+            Assert.DoesNotContain("password", message, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("secret", message, StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
     private static OrderSyncService Service(
         ISyncQueueRepository queue,
-        IOrderUploadClient client) =>
-        new(queue, client, new StubOrderSyncClock(CompletedAtUtc));
+        IOrderUploadClient client,
+        ILogger<OrderSyncService>? logger = null) =>
+        new(queue, client, new StubOrderSyncClock(CompletedAtUtc), logger ?? NullLogger<OrderSyncService>.Instance);
 
     private static SyncQueueRecord QueueItem(int retryCount = 0, string itemType = "Order") => new(
         QueueItemId,
@@ -284,4 +306,22 @@ public sealed class OrderSyncServiceTests
         int RetryCount,
         string? LastErrorSummary,
         DateTimeOffset ExhaustedAtUtc);
+
+    private sealed class RecordingLogger<T> : ILogger<T>
+    {
+        public List<string> Messages { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Messages.Add(formatter(state, exception));
+        }
+    }
 }

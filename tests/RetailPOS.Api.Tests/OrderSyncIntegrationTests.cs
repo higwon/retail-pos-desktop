@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using RetailPOS.Application.Orders;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Sync;
@@ -133,6 +134,7 @@ public sealed class OrderSyncIntegrationTests
                 .Build();
             var apiFactory = new WebApplicationFactory<Program>();
             var services = new ServiceCollection();
+            services.AddLogging();
             services.AddLocalPersistence(configuration);
             services.AddSingleton<IOrderSyncClock>(new StubOrderSyncClock(NowUtc));
             services.AddScoped<IOrderUploadClient>(_ => new HttpOrderUploadClient(apiFactory.CreateClient()));
