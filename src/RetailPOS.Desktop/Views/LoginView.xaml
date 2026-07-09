@@ -5,6 +5,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="900" d:DesignWidth="1440">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
@@ -51,12 +55,21 @@
                     <TextBlock Text="Sign in to start a sales session." Style="{StaticResource SecondaryTextBlockStyle}"
                                Margin="0,8,0,30" />
                     <TextBlock Text="Employee Code" Margin="0,0,0,8" FontWeight="SemiBold" />
-                    <TextBox Text="{Binding EmployeeCode}" Margin="0,0,0,20" />
+                    <TextBox Text="{Binding EmployeeCode, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,20" />
                     <TextBlock Text="Password" Margin="0,0,0,8" FontWeight="SemiBold" />
                     <PasswordBox MinHeight="44" Padding="12,8" Margin="0,0,0,28"
-                                 BorderBrush="{StaticResource BorderBrush}" />
+                                 BorderBrush="{StaticResource BorderBrush}"
+                                 PasswordChanged="OnPasswordChanged" />
                     <Button Content="Sign in" Style="{StaticResource PrimaryBlueButtonStyle}"
-                            Click="OnContinueClick" />
+                            Command="{Binding SignInCommand}" />
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Style="{StaticResource SecondaryTextBlockStyle}"
+                               Foreground="#FFB91C1C"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               HorizontalAlignment="Center"
+                               Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}"
+                               Margin="0,14,0,0" />
                     <TextBlock Text="Offline sign-in uses the last verified access profile."
                                Style="{StaticResource SecondaryTextBlockStyle}" FontSize="12"
                                HorizontalAlignment="Center" Margin="0,18,0,0" />

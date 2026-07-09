@@ -76,6 +76,13 @@ Default desktop log path:
 %LOCALAPPDATA%\RetailPOS\logs
 ```
 
+MVP demo login accounts:
+
+```text
+Cashier: E0001 / 1234
+Manager: M0001 / 1234
+```
+
 ## PR Description
 
 Include:

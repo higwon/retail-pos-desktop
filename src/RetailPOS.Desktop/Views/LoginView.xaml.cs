@@ -10,9 +10,18 @@ public partial class LoginView : UserControl
     {
         InitializeComponent();
         DataContext = viewModel;
+        viewModel.SignedIn += OnSignedIn;
     }
 
     public event RoutedEventHandler? ContinueRequested;
 
-    private void OnContinueClick(object sender, RoutedEventArgs e) => ContinueRequested?.Invoke(this, e);
+    private void OnPasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is LoginViewModel viewModel && sender is PasswordBox passwordBox)
+        {
+            viewModel.Password = passwordBox.Password;
+        }
+    }
+
+    private void OnSignedIn(object? sender, EventArgs e) => ContinueRequested?.Invoke(this, new RoutedEventArgs());
 }

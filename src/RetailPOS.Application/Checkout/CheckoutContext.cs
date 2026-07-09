@@ -7,15 +7,6 @@ public interface ICheckoutContextProvider
     CheckoutContext GetCurrent();
 }
 
-public sealed class DemoCheckoutContextProvider : ICheckoutContextProvider
-{
-    public static readonly Guid DemoStoreId = Guid.Parse("10000000-0000-0000-0000-000000000001");
-    public static readonly Guid DemoTerminalId = Guid.Parse("20000000-0000-0000-0000-000000000001");
-    public static readonly Guid DemoCashierId = Guid.Parse("30000000-0000-0000-0000-000000000001");
-
-    public CheckoutContext GetCurrent() => new(DemoStoreId, DemoTerminalId, DemoCashierId);
-}
-
 public interface ICheckoutClock
 {
     DateTimeOffset UtcNow { get; }
