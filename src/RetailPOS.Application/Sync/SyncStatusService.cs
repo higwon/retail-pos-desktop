@@ -31,8 +31,8 @@ public sealed class SyncStatusService(
 
         return new SyncStatusSnapshot(
             checkedAtUtc,
-            items.Count(item => item.Status == SyncQueueStatus.Pending),
-            items.Count(item => item.RetryCount > 0 && item.Status == SyncQueueStatus.Pending),
+            items.Count(item => item.Status == SyncQueueStatus.Pending && item.RetryCount == 0),
+            items.Count(item => item.Status == SyncQueueStatus.Pending && item.RetryCount > 0),
             items.Count(item => item.Status == SyncQueueStatus.Completed),
             items.Count(item => item.Status is SyncQueueStatus.Exhausted or SyncQueueStatus.Resolved),
             items);

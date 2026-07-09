@@ -24,7 +24,7 @@ public sealed class StatusViewModelTests
         await viewModel.LoadAsync();
 
         Assert.Equal(4, viewModel.Items.Count);
-        Assert.Equal(2, viewModel.PendingCount);
+        Assert.Equal(1, viewModel.PendingCount);
         Assert.Equal(1, viewModel.RetryCount);
         Assert.Equal(1, viewModel.CompletedCount);
         Assert.Equal(1, viewModel.ReviewCount);
@@ -76,6 +76,19 @@ public sealed class StatusViewModelTests
         Assert.Equal(1, viewModel.RetryCount);
         Assert.Equal("Sync attempt failed. Review terminal logs.", Assert.Single(viewModel.Items).LastErrorSummary);
         Assert.Contains("retrying", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task LoadAsync_DoesNotReloadWhileBusy()
+    {
+        var queue = new RecordingSyncQueueRepository(QueueItem(SyncQueueStatus.Pending, retryCount: 0));
+        var viewModel = ViewModel(queue);
+        viewModel.IsBusy = true;
+
+        await viewModel.LoadAsync();
+
+        Assert.Empty(viewModel.Items);
+        Assert.Equal("Sync status has not been loaded yet.", viewModel.StatusMessage);
     }
 
     private static StatusViewModel ViewModel(

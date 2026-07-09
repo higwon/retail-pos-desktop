@@ -94,6 +94,11 @@ public sealed partial class StatusViewModel : ObservableObject
         Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken)
     {
+        if (IsBusy)
+        {
+            return;
+        }
+
         IsBusy = true;
         ErrorMessage = null;
 
