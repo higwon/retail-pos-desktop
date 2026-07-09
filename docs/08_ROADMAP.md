@@ -8,7 +8,8 @@
 - UI shell placeholders: complete ahead of the original phase ordering
 - Phase 3 local SQLite persistence: complete
 - Phases 4 and 5 / EPIC-05 Checkout MVP: complete
-- Phase 6 / EPIC-06 API and synchronization: ready to start
+- Phase 6 / EPIC-06 API and synchronization: complete for MVP
+- EPIC-08 sync hardening mini-epic: recommended next before device simulation
 
 Phase numbers describe capability groups, not a strict implementation sequence. GitHub
 Issues and `docs/13_EPICS_AND_TASKS.md` define the active implementation order.
@@ -137,9 +138,10 @@ feat: implement checkout and receipt flow
 
 Goal: Add central server API.
 
-Status: Ready to start under EPIC-06 API and Synchronization. Begin with data
-ownership documentation, then API skeleton, product sync, order upload, idempotency,
-local sync payload alignment, sync worker/retry, and sync status UI.
+Status: Complete for the MVP API and synchronization path. EPIC-06 delivered data
+ownership documentation, the API skeleton, product sync contracts, order upload,
+idempotency, local sync payload alignment, the order sync worker/retry behavior, and
+the sync status UI.
 
 Tasks:
 
@@ -165,6 +167,10 @@ feat: add POS server API
 
 Goal: Synchronize local orders with server.
 
+Status: MVP queueing, upload, retry, and status visibility were implemented in
+EPIC-06. Remaining automatic scheduling, network recovery, and deeper scenario
+coverage are tracked in EPIC-08 sync hardening work.
+
 Tasks:
 
 - SyncQueue table
@@ -172,6 +178,9 @@ Tasks:
 - Retry logic
 - Idempotency key support
 - Sync status UI
+- Background sync scheduler
+- API connectivity monitor and reconnect-triggered sync
+- Messenger-based status refresh
 
 Expected commit:
 
@@ -218,6 +227,11 @@ Tasks:
 - Error recovery
 - Retry policy refinement
 - Exponential backoff with a maximum of 5 automatic attempts
+- SQLite to worker to API integration tests
+- Background order sync scheduler
+- API connectivity monitor and automatic re-sync after recovery
+- Messenger-based sync UI refresh
+- Serilog structured logging and sync audit events
 
 Expected commit:
 
