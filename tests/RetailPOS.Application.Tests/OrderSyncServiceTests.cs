@@ -63,22 +63,25 @@ public sealed class OrderSyncServiceTests
     }
 
     [Fact]
-    public async Task ProcessDueAsync_FifthFailureRecordsMaxRetryDelay()
+    public async Task ProcessDueAsync_FifthFailureMarksExhaustedForReview()
     {
         var queue = new RecordingSyncQueueRepository(QueueItem(retryCount: 4));
         var client = new RecordingOrderUploadClient(exception: new HttpRequestException("timeout"));
         var service = Service(queue, client);
 
-        await service.ProcessDueAsync(AsOfUtc, 10);
+        var result = await service.ProcessDueAsync(AsOfUtc, 10);
 
-        var retry = Assert.Single(queue.Retries);
-        Assert.Equal(OrderSyncService.MaxAutomaticAttempts, retry.RetryCount);
-        Assert.Equal(AsOfUtc.AddMinutes(16), retry.NextAttemptAtUtc);
+        Assert.Equal(0, result.RetriedCount);
+        Assert.Equal(1, result.ExhaustedCount);
+        var exhausted = Assert.Single(queue.Exhausted);
+        Assert.Equal(OrderSyncService.MaxAutomaticAttempts, exhausted.RetryCount);
+        Assert.Equal("timeout", exhausted.LastErrorSummary);
         Assert.Empty(queue.CompletedIds);
+        Assert.Empty(queue.Retries);
     }
 
     [Fact]
-    public async Task ProcessDueAsync_MaxAttemptItemRemainsPendingForReview()
+    public async Task ProcessDueAsync_MaxAttemptItemIsMarkedExhaustedForReview()
     {
         var queue = new RecordingSyncQueueRepository(QueueItem(retryCount: 5));
         var client = new RecordingOrderUploadClient();
@@ -86,10 +89,29 @@ public sealed class OrderSyncServiceTests
 
         var result = await service.ProcessDueAsync(AsOfUtc, 10);
 
-        Assert.Equal(1, result.SkippedCount);
+        Assert.Equal(1, result.ExhaustedCount);
         Assert.Empty(client.Payloads);
         Assert.Empty(queue.CompletedIds);
         Assert.Empty(queue.Retries);
+        Assert.Equal(QueueItemId, Assert.Single(queue.Exhausted).Id);
+    }
+
+    [Fact]
+    public async Task ProcessDueAsync_IdempotencyConflictMarksExhaustedForReview()
+    {
+        var queue = new RecordingSyncQueueRepository(QueueItem());
+        var client = new RecordingOrderUploadClient(
+            exception: new OrderUploadConflictException("idempotency conflict"));
+        var service = Service(queue, client);
+
+        var result = await service.ProcessDueAsync(AsOfUtc, 10);
+
+        Assert.Equal(0, result.RetriedCount);
+        Assert.Equal(1, result.ExhaustedCount);
+        Assert.Empty(queue.Retries);
+        var exhausted = Assert.Single(queue.Exhausted);
+        Assert.Equal(0, exhausted.RetryCount);
+        Assert.Equal("idempotency conflict", exhausted.LastErrorSummary);
     }
 
     private static OrderSyncService Service(
@@ -168,6 +190,7 @@ public sealed class OrderSyncServiceTests
     {
         public List<Guid> CompletedIds { get; } = [];
         public List<RetryUpdate> Retries { get; } = [];
+        public List<ExhaustedUpdate> Exhausted { get; } = [];
 
         public Task EnqueueAsync(SyncQueueRecord item, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
@@ -209,6 +232,17 @@ public sealed class OrderSyncServiceTests
             DateTimeOffset resolvedAtUtc,
             CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+
+        public Task MarkExhaustedAsync(
+            Guid id,
+            int retryCount,
+            string? lastErrorSummary,
+            DateTimeOffset exhaustedAtUtc,
+            CancellationToken cancellationToken = default)
+        {
+            Exhausted.Add(new ExhaustedUpdate(id, retryCount, lastErrorSummary, exhaustedAtUtc));
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class StubOrderSyncClock(DateTimeOffset utcNow) : IOrderSyncClock
@@ -222,4 +256,10 @@ public sealed class OrderSyncServiceTests
         DateTimeOffset NextAttemptAtUtc,
         string? LastErrorSummary,
         DateTimeOffset UpdatedAtUtc);
+
+    private sealed record ExhaustedUpdate(
+        Guid Id,
+        int RetryCount,
+        string? LastErrorSummary,
+        DateTimeOffset ExhaustedAtUtc);
 }

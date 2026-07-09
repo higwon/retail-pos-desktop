@@ -176,8 +176,9 @@ public sealed class PersistenceRepositoryTests
 
         await repository.UpdateRetryAsync(first.Id, 1, now.AddMinutes(5), "offline", now.AddMinutes(2));
         await repository.MarkCompletedAsync(second.Id, now.AddMinutes(2));
+        await repository.MarkExhaustedAsync(later.Id, 5, "timeout", now.AddMinutes(3));
         var remaining = await repository.GetDuePendingAsync(now.AddMinutes(2), 10);
-        Assert.Equal(later.Id, Assert.Single(remaining).Id);
+        Assert.Empty(remaining);
     }
 
     [Fact]
@@ -298,6 +299,10 @@ public sealed class PersistenceRepositoryTests
 
         public Task MarkResolvedAsync(Guid id, DateTimeOffset resolvedAtUtc,
             CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task MarkExhaustedAsync(Guid id, int retryCount, string? lastErrorSummary,
+            DateTimeOffset exhaustedAtUtc, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
     }
 

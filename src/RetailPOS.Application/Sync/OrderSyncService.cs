@@ -46,7 +46,7 @@ public sealed class OrderSyncService(
         var dueItems = await syncQueueRepository.GetDuePendingAsync(asOfUtc, count, cancellationToken);
         var completed = 0;
         var retried = 0;
-        var skipped = 0;
+        var exhausted = 0;
 
         foreach (var item in dueItems)
         {
@@ -55,7 +55,8 @@ public sealed class OrderSyncService(
             if (!string.Equals(item.ItemType, OrderItemType, StringComparison.OrdinalIgnoreCase) ||
                 item.RetryCount >= MaxAutomaticAttempts)
             {
-                skipped++;
+                await MarkExhaustedAsync(item, item.RetryCount, "Automatic retry limit reached.", cancellationToken);
+                exhausted++;
                 continue;
             }
 
@@ -66,9 +67,21 @@ public sealed class OrderSyncService(
                 await syncQueueRepository.MarkCompletedAsync(item.Id, UtcNow(), cancellationToken);
                 completed++;
             }
+            catch (OrderUploadConflictException exception)
+            {
+                await MarkExhaustedAsync(item, item.RetryCount, Summarize(exception), cancellationToken);
+                exhausted++;
+            }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
                 var retryCount = item.RetryCount + 1;
+                if (retryCount >= MaxAutomaticAttempts)
+                {
+                    await MarkExhaustedAsync(item, retryCount, Summarize(exception), cancellationToken);
+                    exhausted++;
+                    continue;
+                }
+
                 var nextAttemptAtUtc = asOfUtc + RetryDelays[Math.Min(retryCount, MaxAutomaticAttempts) - 1];
                 await syncQueueRepository.UpdateRetryAsync(
                     item.Id,
@@ -81,7 +94,7 @@ public sealed class OrderSyncService(
             }
         }
 
-        return new OrderSyncRunResult(dueItems.Count, completed, retried, skipped);
+        return new OrderSyncRunResult(dueItems.Count, completed, retried, exhausted);
     }
 
     private static OrderUploadPayload DeserializePayload(SyncQueueRecord item)
@@ -106,6 +119,18 @@ public sealed class OrderSyncService(
         return value;
     }
 
+    private Task MarkExhaustedAsync(
+        SyncQueueRecord item,
+        int retryCount,
+        string? lastErrorSummary,
+        CancellationToken cancellationToken) =>
+        syncQueueRepository.MarkExhaustedAsync(
+            item.Id,
+            retryCount,
+            lastErrorSummary,
+            UtcNow(),
+            cancellationToken);
+
     private static string Summarize(Exception exception)
     {
         var message = string.IsNullOrWhiteSpace(exception.Message)
@@ -120,4 +145,4 @@ public sealed record OrderSyncRunResult(
     int ProcessedCount,
     int CompletedCount,
     int RetriedCount,
-    int SkippedCount);
+    int ExhaustedCount);

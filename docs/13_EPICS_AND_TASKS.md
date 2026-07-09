@@ -351,7 +351,8 @@ Scope:
 - Catch upload failures so sync does not crash the POS app.
 - Update retry count, next attempt UTC, and last error summary on failure.
 - Use bounded exponential backoff for automatic attempts: 1m, 2m, 4m, 8m, 16m.
-- Stop automatic upload attempts after 5 failures and leave the item visible for manual/status review.
+- Stop automatic upload attempts after 5 failures by marking the queue item `Exhausted` for manual/status review.
+- Treat order upload idempotency conflicts as non-retryable and mark the queue item `Exhausted`.
 
 ### POS-507 Sync Status UI Integration
 

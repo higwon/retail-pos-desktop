@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Net;
 using RetailPOS.Application.Orders;
 
 namespace RetailPOS.Infrastructure.Sync;
@@ -13,6 +14,11 @@ public sealed class HttpOrderUploadClient(HttpClient httpClient) : IOrderUploadC
             "api/orders",
             payload,
             cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+        {
+            throw new OrderUploadConflictException("Order upload API returned an idempotency conflict.");
+        }
 
         response.EnsureSuccessStatusCode();
 

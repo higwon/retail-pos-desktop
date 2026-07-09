@@ -126,6 +126,7 @@ until category management is implemented.
 For order upload records, `PayloadJson` stores the complete API upload payload shape, including `schemaVersion`, order identity, order number, cashier, business date, UTC timestamps, line items, totals, approved payments, and idempotency key.
 
 Automatic retries use exponential backoff and stop after 5 attempts. Exhausted items remain available for manual review or retry.
+`Exhausted` queue records are no longer selected by automatic due-pending sync queries.
 
 #### DeviceLogs
 

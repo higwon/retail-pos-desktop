@@ -25,4 +25,10 @@ public interface ISyncQueueRepository
         Guid id,
         DateTimeOffset resolvedAtUtc,
         CancellationToken cancellationToken = default);
+    Task MarkExhaustedAsync(
+        Guid id,
+        int retryCount,
+        string? lastErrorSummary,
+        DateTimeOffset exhaustedAtUtc,
+        CancellationToken cancellationToken = default);
 }
