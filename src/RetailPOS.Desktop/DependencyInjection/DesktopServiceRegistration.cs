@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using CommunityToolkit.Mvvm.Messaging;
+using RetailPOS.Application.Authentication;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Payments;
 using RetailPOS.Application.Receipts;
@@ -21,7 +22,12 @@ public static class DesktopServiceRegistration
         services.AddScoped<CheckoutSession>();
         services.AddScoped<CheckoutDisplayState>();
         services.AddScoped<ReceiptPreviewState>();
-        services.AddSingleton<ICheckoutContextProvider, DemoCheckoutContextProvider>();
+        services.AddScoped<CurrentSessionContext>();
+        services.AddScoped<ICurrentSessionContext>(provider =>
+            provider.GetRequiredService<CurrentSessionContext>());
+        services.AddScoped<ICheckoutContextProvider>(provider =>
+            provider.GetRequiredService<CurrentSessionContext>());
+        services.AddScoped<ILoginService, DemoLoginService>();
         services.AddSingleton<ICheckoutClock, SystemCheckoutClock>();
         services.AddSingleton<ICheckoutIdGenerator, GuidCheckoutIdGenerator>();
         services.AddSingleton<IReceiptContextProvider, DemoReceiptContextProvider>();
