@@ -8,6 +8,7 @@ using RetailPOS.Desktop.Controls;
 using RetailPOS.Desktop.Diagnostics;
 using RetailPOS.Desktop.ViewModels;
 using RetailPOS.Desktop.Views;
+using RetailPOS.Infrastructure.Devices;
 
 namespace RetailPOS.Desktop.DependencyInjection;
 
@@ -31,6 +32,8 @@ public static class DesktopServiceRegistration
         services.AddSingleton<ICheckoutClock, SystemCheckoutClock>();
         services.AddSingleton<ICheckoutIdGenerator, GuidCheckoutIdGenerator>();
         services.AddSingleton<IReceiptContextProvider, DemoReceiptContextProvider>();
+        services.AddSingleton<IReceiptPrinter>(provider =>
+            new LocalReceiptPrinter(provider.GetRequiredService<TimeProvider>()));
         services.AddSingleton<IPaymentSimulator, LocalPaymentSimulator>();
         services.AddScoped<IRecoverablePaymentStartService, RecoverablePaymentStartService>();
         services.AddScoped<IOrderCompletionService, OrderCompletionService>();

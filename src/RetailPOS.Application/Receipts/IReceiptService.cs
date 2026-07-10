@@ -11,10 +11,6 @@ public interface IReceiptService
     Task<ReceiptPreview> GenerateAsync(
         Guid localOrderId,
         CancellationToken cancellationToken = default);
-
-    Task<ReceiptPrintResult> PrintAsync(
-        ReceiptPreview receipt,
-        CancellationToken cancellationToken = default);
 }
 
 public sealed record ReceiptPreview(
@@ -44,11 +40,6 @@ public sealed record ReceiptPreviewPayment(
     PaymentMethod Method,
     decimal Amount,
     string? ApprovalCode);
-
-public sealed record ReceiptPrintResult(
-    bool Succeeded,
-    DateTimeOffset PrintedAtUtc,
-    string Message);
 
 public sealed class ReceiptService(
     IOrderRepository orderRepository,
@@ -94,18 +85,6 @@ public sealed class ReceiptService(
                 payment.ApprovalCode)));
 
         return ToPreview(receipt, order.BusinessDate);
-    }
-
-    public Task<ReceiptPrintResult> PrintAsync(
-        ReceiptPreview receipt,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(receipt);
-        var printedAtUtc = EnsureUtc(clock.UtcNow, nameof(clock.UtcNow));
-        return Task.FromResult(new ReceiptPrintResult(
-            true,
-            printedAtUtc,
-            "Receipt print simulated."));
     }
 
     private static ReceiptPreview ToPreview(Receipt receipt, DateOnly businessDate)

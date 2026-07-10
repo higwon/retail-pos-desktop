@@ -14,7 +14,7 @@ public sealed class ReceiptViewModelTests
         var state = new ReceiptPreviewState();
         state.Set(Receipt());
 
-        var viewModel = new ReceiptViewModel(new StubReceiptService(), state);
+        var viewModel = new ReceiptViewModel(new StubReceiptPrinter(), state);
 
         Assert.True(viewModel.HasReceipt);
         Assert.Equal("LOCAL-001", viewModel.OrderNumber);
@@ -24,17 +24,67 @@ public sealed class ReceiptViewModelTests
     }
 
     [Fact]
-    public async Task PrintCommand_UsesLocalPrintSimulation()
+    public async Task PrintCommand_ShowsPrinterSuccessMessage()
     {
         var state = new ReceiptPreviewState();
         state.Set(Receipt());
-        var service = new StubReceiptService();
-        var viewModel = new ReceiptViewModel(service, state);
+        var printer = new StubReceiptPrinter();
+        var viewModel = new ReceiptViewModel(printer, state);
 
         await viewModel.PrintCommand.ExecuteAsync(null);
 
-        Assert.NotNull(service.PrintedReceipt);
-        Assert.Equal("Receipt print simulated.", viewModel.StatusMessage);
+        Assert.NotNull(printer.PrintedReceipt);
+        Assert.Equal("Receipt printed successfully.", viewModel.StatusMessage);
+        Assert.Null(viewModel.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task PrintCommand_ShowsUserSafePrinterFailureMessage()
+    {
+        var state = new ReceiptPreviewState();
+        state.Set(Receipt());
+        var printer = new StubReceiptPrinter(succeeds: false);
+        var viewModel = new ReceiptViewModel(printer, state);
+
+        await viewModel.PrintCommand.ExecuteAsync(null);
+
+        Assert.NotNull(printer.PrintedReceipt);
+        Assert.Null(viewModel.StatusMessage);
+        Assert.Equal("Receipt could not be printed. Try again.", viewModel.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task PrintCommand_ClearsPreviousSuccessMessageWhenRetryFails()
+    {
+        var state = new ReceiptPreviewState();
+        state.Set(Receipt());
+        var printer = new StubReceiptPrinter();
+        var viewModel = new ReceiptViewModel(printer, state);
+
+        await viewModel.PrintCommand.ExecuteAsync(null);
+        printer.Succeeds = false;
+        await viewModel.PrintCommand.ExecuteAsync(null);
+
+        Assert.Null(viewModel.StatusMessage);
+        Assert.Equal("Receipt could not be printed. Try again.", viewModel.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task PrintCommand_ClearsPreviousSuccessMessageWhenRetryThrows()
+    {
+        var state = new ReceiptPreviewState();
+        state.Set(Receipt());
+        var printer = new StubReceiptPrinter();
+        var viewModel = new ReceiptViewModel(printer, state);
+
+        await viewModel.PrintCommand.ExecuteAsync(null);
+        printer.ThrowOnPrint = true;
+        await viewModel.PrintCommand.ExecuteAsync(null);
+
+        Assert.Null(viewModel.StatusMessage);
+        Assert.Equal(
+            "Receipt could not be printed. The order is already completed; try again.",
+            viewModel.ErrorMessage);
     }
 
     [Fact]
@@ -43,8 +93,8 @@ public sealed class ReceiptViewModelTests
         var state = new ReceiptPreviewState();
         state.Set(Receipt());
 
-        _ = new ReceiptViewModel(new StubReceiptService(), state);
-        var reopened = new ReceiptViewModel(new StubReceiptService(), state);
+        _ = new ReceiptViewModel(new StubReceiptPrinter(), state);
+        var reopened = new ReceiptViewModel(new StubReceiptPrinter(), state);
 
         Assert.True(reopened.HasReceipt);
         Assert.Equal("LOCAL-001", reopened.OrderNumber);
@@ -65,24 +115,28 @@ public sealed class ReceiptViewModelTests
         3400m,
         "receipt");
 
-    private sealed class StubReceiptService : IReceiptService
+    private sealed class StubReceiptPrinter(bool succeeds = true) : IReceiptPrinter
     {
         public ReceiptPreview? PrintedReceipt { get; private set; }
-
-        public Task<ReceiptPreview> GenerateAsync(
-            Guid localOrderId,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult(Receipt());
+        public bool Succeeds { get; set; } = succeeds;
+        public bool ThrowOnPrint { get; set; }
 
         public Task<ReceiptPrintResult> PrintAsync(
             ReceiptPreview receipt,
             CancellationToken cancellationToken = default)
         {
+            if (ThrowOnPrint)
+            {
+                throw new InvalidOperationException("Simulated printer failure.");
+            }
+
             PrintedReceipt = receipt;
             return Task.FromResult(new ReceiptPrintResult(
-                true,
-                IssuedAtUtc,
-                "Receipt print simulated."));
+                Succeeds,
+                Succeeds ? IssuedAtUtc : null,
+                Succeeds
+                    ? "Receipt printed successfully."
+                    : "Receipt could not be printed. Try again."));
         }
     }
 }

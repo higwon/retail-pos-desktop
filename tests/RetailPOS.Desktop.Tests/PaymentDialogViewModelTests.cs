@@ -320,14 +320,6 @@ public sealed class PaymentDialogViewModelTests
             return Task.FromResult(Receipt(localOrderId));
         }
 
-        public Task<ReceiptPrintResult> PrintAsync(
-            ReceiptPreview receipt,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult(new ReceiptPrintResult(
-                true,
-                ApprovedAtUtc,
-                "Receipt print simulated."));
-
         private static ReceiptPreview Receipt(Guid orderId) => new(
             "Retail Store",
             "Local POS Terminal",
