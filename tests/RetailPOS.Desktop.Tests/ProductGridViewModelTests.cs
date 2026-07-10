@@ -75,6 +75,25 @@ public sealed class ProductGridViewModelTests
     }
 
     [Fact]
+    public async Task ProcessBarcodeAsync_ForScannerDoesNotMutateManualBarcodeText()
+    {
+        var expected = Product("Cola", barcode: "known");
+        var session = new CheckoutSession();
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository { BarcodeProduct = expected },
+            session)
+        {
+            BarcodeText = "manual-fallback"
+        };
+
+        var found = await viewModel.ProcessBarcodeAsync(" known ");
+
+        Assert.True(found);
+        Assert.Equal("manual-fallback", viewModel.BarcodeText);
+        Assert.Single(session.Snapshot.Lines);
+    }
+
+    [Fact]
     public async Task SearchCommand_WhenRepositoryFails_ShowsSafeErrorState()
     {
         var viewModel = new ProductGridViewModel(

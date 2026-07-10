@@ -1,4 +1,5 @@
 using RetailPOS.Desktop.ViewModels;
+using RetailPOS.Desktop.DeviceSimulation;
 using System.Windows.Controls;
 
 namespace RetailPOS.Desktop.Views;
@@ -11,6 +12,7 @@ public partial class PosMainView : UserControl
     private readonly Func<ReceiptDialog> _receiptDialogFactory;
     private readonly PosMainViewModel _viewModel;
     private readonly CartPanelView _cartPanel;
+    private readonly BarcodeScannerCoordinator _barcodeScannerCoordinator;
     private bool _loadedOnce;
     private bool _isCheckoutSubscribed;
 
@@ -18,6 +20,7 @@ public partial class PosMainView : UserControl
         PosMainViewModel viewModel,
         ProductGridView productGrid,
         CartPanelView cartPanel,
+        BarcodeScannerCoordinator barcodeScannerCoordinator,
         ReceiptPreviewState receiptPreviewState,
         Func<CustomerDisplayWindow> customerDisplayFactory,
         Func<PaymentDialog> paymentDialogFactory,
@@ -31,6 +34,7 @@ public partial class PosMainView : UserControl
         _paymentDialogFactory = paymentDialogFactory;
         _receiptDialogFactory = receiptDialogFactory;
         _cartPanel = cartPanel;
+        _barcodeScannerCoordinator = barcodeScannerCoordinator;
         ProductRegion.Content = productGrid;
         CartRegion.Content = cartPanel;
         Loaded += OnLoaded;
@@ -40,6 +44,7 @@ public partial class PosMainView : UserControl
     private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
     {
         SubscribeCheckout();
+        _barcodeScannerCoordinator.Start();
 
         if (_loadedOnce)
         {
@@ -70,6 +75,7 @@ public partial class PosMainView : UserControl
 
     private void OnUnloaded(object sender, System.Windows.RoutedEventArgs e)
     {
+        _barcodeScannerCoordinator.Stop();
         if (!_isCheckoutSubscribed)
         {
             return;
