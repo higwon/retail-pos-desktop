@@ -75,6 +75,7 @@ public static class DesktopServiceRegistration
         services.AddTransient<DeviceSimulatorViewModel>();
         services.AddTransient<ReceiptPrinterSimulatorViewModel>();
         services.AddTransient<BarcodeScannerSimulatorViewModel>();
+        services.AddTransient<CardTerminalSimulatorViewModel>();
         services.AddTransient<CheckoutRecoveryViewModel>();
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<StatusViewModel>();

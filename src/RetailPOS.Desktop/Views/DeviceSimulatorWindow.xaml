@@ -204,6 +204,24 @@
                     </StackPanel>
                 </Grid>
             </TabItem>
+            <TabItem Header="Card Terminal">
+                <StackPanel Margin="0,18,0,0" DataContext="{Binding CardTerminal}">
+                    <Border Style="{StaticResource PanelBorderStyle}" Padding="24">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="Connection" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding ConnectionState}" FontSize="18" FontWeight="SemiBold"/></StackPanel>
+                            <StackPanel Grid.Column="1"><TextBlock Text="Current state" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding OperationalState}" FontSize="18" FontWeight="SemiBold"/></StackPanel>
+                            <StackPanel Grid.Column="2"><TextBlock Text="Last outcome" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding LastOutcome}" FontSize="18" FontWeight="SemiBold"/></StackPanel>
+                            <StackPanel Grid.Column="3" Orientation="Horizontal"><Button Content="Connect" Command="{Binding ConnectCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" Margin="0,0,8,0"/><Button Content="Disconnect" Command="{Binding DisconnectCommand}" Style="{StaticResource SecondaryButtonStyle}"/></StackPanel>
+                        </Grid>
+                    </Border>
+                    <Grid Margin="0,18,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="18"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Text="Next outcome" FontWeight="SemiBold"/><ComboBox ItemsSource="{Binding Scenarios}" SelectedItem="{Binding SelectedScenario}"/></StackPanel>
+                        <StackPanel Grid.Column="2"><TextBlock Text="Response delay (ms)" FontWeight="SemiBold"/><TextBox Text="{Binding ResponseDelayMilliseconds, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0"><Button Content="Reset" Command="{Binding ResetCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,10,0"/><Button Content="Apply" Command="{Binding ApplyCommand}" Style="{StaticResource PrimaryBlueButtonStyle}"/></StackPanel>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource SuccessBrush}" Margin="0,18,0,0"/><TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}"/>
+                </StackPanel>
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>

@@ -7,17 +7,65 @@ namespace RetailPOS.Desktop.ViewModels;
 
 public sealed class DeviceSimulatorViewModel(
     ReceiptPrinterSimulatorViewModel receiptPrinter,
-    BarcodeScannerSimulatorViewModel barcodeScanner) : IDisposable
+    BarcodeScannerSimulatorViewModel barcodeScanner,
+    CardTerminalSimulatorViewModel cardTerminal) : IDisposable
 {
     public string EnvironmentName => "Development";
     public ReceiptPrinterSimulatorViewModel ReceiptPrinter { get; } = receiptPrinter;
     public BarcodeScannerSimulatorViewModel BarcodeScanner { get; } = barcodeScanner;
+    public CardTerminalSimulatorViewModel CardTerminal { get; } = cardTerminal;
 
     public void Dispose()
     {
         ReceiptPrinter.Dispose();
         BarcodeScanner.Dispose();
+        CardTerminal.Dispose();
     }
+}
+
+public sealed partial class CardTerminalSimulatorViewModel : ObservableObject, IDisposable
+{
+    private readonly IPaymentTerminalSimulatorControl _control;
+    private bool _disposed;
+    public CardTerminalSimulatorViewModel(IPaymentTerminalSimulatorControl control)
+    {
+        _control = control;
+        Scenarios = Enum.GetValues<PaymentTerminalSimulationScenario>();
+        ConnectCommand = new RelayCommand(control.Connect, () => !IsConnected);
+        DisconnectCommand = new RelayCommand(control.Disconnect, () => IsConnected);
+        ApplyCommand = new RelayCommand(Apply, () => !IsBusy);
+        ResetCommand = new RelayCommand(control.Reset, () => !IsBusy);
+        control.StateChanged += OnChanged; Refresh();
+    }
+    public IReadOnlyList<PaymentTerminalSimulationScenario> Scenarios { get; }
+    public IRelayCommand ConnectCommand { get; }
+    public IRelayCommand DisconnectCommand { get; }
+    public IRelayCommand ApplyCommand { get; }
+    public IRelayCommand ResetCommand { get; }
+    [ObservableProperty] private PaymentTerminalSimulationScenario _selectedScenario;
+    [ObservableProperty] private int _responseDelayMilliseconds;
+    [ObservableProperty] private string _connectionState = "";
+    [ObservableProperty] private string _operationalState = "";
+    [ObservableProperty] private string _lastOutcome = "None";
+    [ObservableProperty] private bool _isConnected;
+    [ObservableProperty] private bool _isBusy;
+    [ObservableProperty] private string? _statusMessage;
+    [ObservableProperty] private string? _errorMessage;
+    private void Apply()
+    {
+        if (ResponseDelayMilliseconds is < 0 or > 60000) { ErrorMessage = "Enter a delay from 0 to 60000 ms."; StatusMessage = null; return; }
+        _control.ConfigureNext(new(SelectedScenario, TimeSpan.FromMilliseconds(ResponseDelayMilliseconds)));
+        ErrorMessage = null; StatusMessage = "Card terminal settings applied.";
+    }
+    private void OnChanged(object? s, EventArgs e) { var d = System.Windows.Application.Current?.Dispatcher; if (d is not null && !d.CheckAccess()) { _ = d.BeginInvoke(Refresh); return; } Refresh(); }
+    private void Refresh()
+    {
+        var current = _control.Current; SelectedScenario = current.Scenario; ResponseDelayMilliseconds = (int)current.ResponseDelay.TotalMilliseconds;
+        ConnectionState = _control.ConnectionState.ToString(); OperationalState = _control.OperationalState.ToString(); LastOutcome = _control.LastOutcome?.ToString() ?? "None";
+        IsConnected = _control.ConnectionState == PaymentTerminalConnectionState.Connected; IsBusy = _control.OperationalState is PaymentTerminalOperationalState.WaitingForCard or PaymentTerminalOperationalState.Processing;
+        ConnectCommand.NotifyCanExecuteChanged(); DisconnectCommand.NotifyCanExecuteChanged(); ApplyCommand.NotifyCanExecuteChanged(); ResetCommand.NotifyCanExecuteChanged();
+    }
+    public void Dispose() { if (_disposed) return; _disposed = true; _control.StateChanged -= OnChanged; }
 }
 
 public sealed partial class BarcodeScannerSimulatorViewModel : ObservableObject, IDisposable
