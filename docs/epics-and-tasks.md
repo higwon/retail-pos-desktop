@@ -593,7 +593,8 @@ Acceptance criteria:
 
 Goal: Demonstrate Windows POS peripheral integration concepts.
 
-Status: Active.
+Status: Complete for the original device-simulation scope. Interactive request/response
+workflows and cashier UX follow-ups are tracked below before EPIC-09.
 
 Delivery guidance:
 
@@ -703,6 +704,166 @@ Acceptance criteria:
 - Cart, discount, payment-waiting, failure, and completion states continue to update.
 - Closing the terminal UI scope closes and disposes the customer display.
 - Monitor selection and placement logic have focused tests where practical.
+
+---
+
+## EPIC-08 Follow-up: Interactive Devices and POS UX
+
+Goal: Turn the device simulator into an operator-driven integration demo and remove
+the most visible cashier workflow and layout friction before production-readiness work.
+
+Status: Planned before EPIC-09.
+
+Delivery guidance:
+
+- Recommended order is POS-705, POS-706/POS-707, POS-708, POS-709, POS-710,
+  then POS-716.
+- Simulator requests and responses must remain separate from production business ports.
+- Do not block simulator interaction behind modal cashier windows.
+- Preserve fail-closed payment and pending-checkout policies.
+
+### POS-705 Interactive Device Request/Response Foundation
+
+Replace preselected one-shot device outcomes with pending request sessions that expose
+POS request data to the simulator and wait for an operator response.
+
+Acceptance criteria:
+
+- The shared request lifecycle is explicitly limited to Pending, Completed, Cancelled,
+  TimedOut, Disconnected, and Disposed.
+- Only Pending may transition to one terminal state; every later transition or duplicate
+  response is rejected deterministically.
+- Printer and card requests have an immutable payload, independent request identity,
+  received/completed timestamps, payload summary, and preserved business identity such as
+  receipt/order or payment-attempt ID without conflating the two identities.
+- Requests preserve arrival order and use a documented per-device single-active-request or
+  bounded-pending policy.
+- Completion continuations run asynchronously; no external event/callback is invoked while
+  an internal lock is held.
+- The simulator receives requests without cashier ViewModels depending on simulator controls.
+- Pending requests support cancellation, timeout, disconnect, disposal, and late-response rejection.
+- A bounded in-memory recent history retains the latest 20 to 50 completed requests with
+  request ID, device, received/completed time, result, and safe payload summary.
+- The simulator distinguishes Pending Requests from Recent Completed Requests.
+- Simulator controls remain usable while receipt/payment workflow windows are open; dialog
+  ownership is changed from modal where required without allowing duplicate workflow windows.
+- The Device Simulator presents a polished shared request queue/detail pattern without a
+  premature generic hardware framework.
+
+### POS-706 Interactive Receipt Printer Workflow and Receipt Status UX
+
+Show print request details and complete printing only after the simulator operator sends a
+typed result.
+
+Acceptance criteria:
+
+- A print request displays receipt/order identity, store/register/cashier data, line items,
+  totals, payments, and requested time in the simulator.
+- Structured receipt data is formatted into a plain-text printable preview visible before response;
+  generating real ESC/POS bytes remains out of scope.
+- The operator can respond Printed, Paper out, Cover open, Disconnected, Timeout, Cancelled,
+  or Failed; the POS receives exactly that typed result.
+- Busy is an automatic rejection for a new request while the device already has an active request,
+  not an operator-selected response for the current pending request.
+- Receipt preview remains usable while a print request is pending and the simulator can be
+  operated at the same time.
+- Retry creates a new request ID while preserving the same receipt/order identity, and the POS
+  never reports print success before a Printed response.
+- A retry after failure replaces stale failure/success feedback clearly.
+- Receipt status/success/error text uses one consistent location near the header instead of
+  splitting status and error feedback between the top and bottom.
+- Retry and late/duplicate response behavior have focused tests.
+
+### POS-707 Interactive Card Terminal Workflow and Payment Result Layout
+
+Show authorization request data in the simulator and let the operator send the terminal result.
+
+Acceptance criteria:
+
+- The simulator shows payment-attempt identity, amount, request time, terminal state, and
+  pending-checkout-safe context without exposing sensitive card data.
+- The operator can send Approve, Decline, confirmed Cancel, Timeout, Communication loss, or
+  Unknown; only Approve completes an order.
+- Approve uses deterministic default approval code and transaction reference values derived
+  safely from the request/attempt; the operator may edit those two values only.
+- Approved amount always equals the requested whole-KRW amount and approved timestamp is UTC;
+  partial approval or operator-edited amount is out of scope.
+- A payment attempt can be approved only once. Unknown or any other terminal result cannot be
+  changed by a late Approve response.
+- Approval code and transaction reference are generated/displayed without overlapping or clipping.
+- Closing payment UI, disconnect, timeout, and responses after cancellation preserve the
+  POS-610 Unknown and review policy.
+- Overlap, duplicate response, and attempt-identity preservation are tested.
+- If POS UI closes after response, persistence/recovery still records the terminal result.
+- Request/history payloads never contain card number, track data, card token, or equivalent
+  sensitive payment data.
+
+### POS-708 Barcode Scanner Product Picker
+
+Let the simulator operator choose an active product instead of requiring knowledge of raw
+barcode values.
+
+Acceptance criteria:
+
+- The Barcode Scanner tab loads active products with name, SKU, category, price, and barcode.
+- Products can be searched by name, SKU, or barcode and filtered by the same category source
+  used by POS-710; large result sets use UI virtualization.
+- Product Picker and Manual Barcode are visibly distinct modes.
+- The selected product barcode is previewed; Emit Scan keeps the selection so rapid repeated
+  scans of the same item remain convenient.
+- Manual barcode entry remains available for unknown/error testing.
+- Products without a usable barcode cannot be emitted and show a safe explanation.
+- Existing background-callback, disconnect/reconnect, and repeated-scan behavior remains covered.
+
+### POS-709 POS Device Connectivity Status
+
+Expose cashier-facing device readiness separately from developer simulator controls.
+
+Acceptance criteria:
+
+- The common UI model exposes Availability (Available, Unavailable, Disabled), Readiness
+  (Ready, Busy, Attention, Unknown), and a device-specific user-safe Detail string.
+- Initial Unknown, simulator Disabled, and physical/device Unavailable remain distinguishable.
+- Last-change time is stored in UTC and displayed in local time.
+- State refreshes automatically, serializes event bursts safely, and does not expose Retry,
+  Connect, scenario, or other device controls.
+- The POS header shows only an aggregate such as Devices: Ready or Devices: 1 Attention;
+  per-device detail belongs on the Status screen.
+- The model remains suitable for real adapters, including customer-display states such as
+  monitor unavailable, window open, and window closed without forcing Connected terminology.
+
+### POS-710 Catalog and Cart Interaction Polish
+
+Make product discovery and cart entry direct, filterable, and keyboard accessible.
+
+Acceptance criteria:
+
+- Product categories are derived/bound and selecting one filters the product grid while search
+  and barcode paths continue to work.
+- Clicking a product tile adds it to the cart; the redundant Add button is removed with keyboard
+  and accessibility behavior preserved.
+- Placeholder Hold Cart is removed unless a real hold/resume workflow is deliberately scoped.
+- Product-picker and cashier category filtering share one category source.
+- Focused tests cover category/search interaction, repeated tile activation, keyboard access,
+  and cart quantities.
+
+### POS-716 Navigation, Session, and Layout Polish
+
+Add a safe sign-out lifecycle and resolve the remaining high-visibility navigation/layout issues.
+
+Acceptance criteria:
+
+- The POS header removes redundant status copy, aligns the API connectivity indicator, and keeps
+  essential cashier/store/terminal context.
+- Sign-out cancels pending device operations, stops scanner coordination, closes payment/receipt
+  and customer-display windows, clears cart, checkout/session and receipt-preview state, clears
+  CurrentSessionContext, and returns to login.
+- Signing in again starts without state from the previous cashier session.
+- Dashboard order rows size or wrap so order/status text is not clipped at supported window sizes.
+- The affected POS, payment, receipt, navigation, and dashboard screens receive a consistent
+  spacing/typography polish and focused ViewModel/UI tests.
+- A lifecycle test covers cart contents, open customer display, pending device request, sign-out,
+  cancellation/cleanup, login navigation, and clean re-login.
 
 ---
 
