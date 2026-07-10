@@ -81,6 +81,7 @@ public sealed partial class ReceiptViewModel : ObservableObject
         }
 
         IsBusy = true;
+        StatusMessage = null;
         ErrorMessage = null;
 
         try

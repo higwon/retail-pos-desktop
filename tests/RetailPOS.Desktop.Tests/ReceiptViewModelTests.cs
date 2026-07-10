@@ -49,7 +49,42 @@ public sealed class ReceiptViewModelTests
         await viewModel.PrintCommand.ExecuteAsync(null);
 
         Assert.NotNull(printer.PrintedReceipt);
+        Assert.Null(viewModel.StatusMessage);
         Assert.Equal("Receipt could not be printed. Try again.", viewModel.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task PrintCommand_ClearsPreviousSuccessMessageWhenRetryFails()
+    {
+        var state = new ReceiptPreviewState();
+        state.Set(Receipt());
+        var printer = new StubReceiptPrinter();
+        var viewModel = new ReceiptViewModel(printer, state);
+
+        await viewModel.PrintCommand.ExecuteAsync(null);
+        printer.Succeeds = false;
+        await viewModel.PrintCommand.ExecuteAsync(null);
+
+        Assert.Null(viewModel.StatusMessage);
+        Assert.Equal("Receipt could not be printed. Try again.", viewModel.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task PrintCommand_ClearsPreviousSuccessMessageWhenRetryThrows()
+    {
+        var state = new ReceiptPreviewState();
+        state.Set(Receipt());
+        var printer = new StubReceiptPrinter();
+        var viewModel = new ReceiptViewModel(printer, state);
+
+        await viewModel.PrintCommand.ExecuteAsync(null);
+        printer.ThrowOnPrint = true;
+        await viewModel.PrintCommand.ExecuteAsync(null);
+
+        Assert.Null(viewModel.StatusMessage);
+        Assert.Equal(
+            "Receipt could not be printed. The order is already completed; try again.",
+            viewModel.ErrorMessage);
     }
 
     [Fact]
@@ -83,16 +118,23 @@ public sealed class ReceiptViewModelTests
     private sealed class StubReceiptPrinter(bool succeeds = true) : IReceiptPrinter
     {
         public ReceiptPreview? PrintedReceipt { get; private set; }
+        public bool Succeeds { get; set; } = succeeds;
+        public bool ThrowOnPrint { get; set; }
 
         public Task<ReceiptPrintResult> PrintAsync(
             ReceiptPreview receipt,
             CancellationToken cancellationToken = default)
         {
+            if (ThrowOnPrint)
+            {
+                throw new InvalidOperationException("Simulated printer failure.");
+            }
+
             PrintedReceipt = receipt;
             return Task.FromResult(new ReceiptPrintResult(
-                succeeds,
-                succeeds ? IssuedAtUtc : null,
-                succeeds
+                Succeeds,
+                Succeeds ? IssuedAtUtc : null,
+                Succeeds
                     ? "Receipt printed successfully."
                     : "Receipt could not be printed. Try again."));
         }
