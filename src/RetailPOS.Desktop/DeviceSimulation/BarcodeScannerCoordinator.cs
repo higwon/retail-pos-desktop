@@ -28,48 +28,78 @@ public sealed class BarcodeScannerCoordinator(
 {
     private readonly SemaphoreSlim _scanGate = new(1, 1);
     private readonly CancellationTokenSource _lifetimeCancellation = new();
+    private readonly object _sessionSync = new();
+    private CancellationTokenSource? _sessionCancellation;
     private bool _started;
     private bool _disposed;
 
     public void Start()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_started)
+        lock (_sessionSync)
         {
-            return;
-        }
+            if (_started)
+            {
+                return;
+            }
 
-        scanner.BarcodeScanned += OnBarcodeScanned;
-        _started = true;
+            _sessionCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                _lifetimeCancellation.Token);
+            scanner.BarcodeScanned += OnBarcodeScanned;
+            _started = true;
+        }
     }
 
     public void Stop()
     {
-        if (!_started)
+        CancellationTokenSource? sessionCancellation;
+        lock (_sessionSync)
         {
-            return;
+            if (!_started)
+            {
+                return;
+            }
+
+            scanner.BarcodeScanned -= OnBarcodeScanned;
+            _started = false;
+            sessionCancellation = _sessionCancellation;
+            _sessionCancellation = null;
         }
 
-        scanner.BarcodeScanned -= OnBarcodeScanned;
-        _started = false;
+        sessionCancellation?.Cancel();
+        sessionCancellation?.Dispose();
     }
 
     private async void OnBarcodeScanned(object? sender, BarcodeScannedEventArgs e)
     {
+        CancellationToken sessionToken;
+        lock (_sessionSync)
+        {
+            if (!_started || _sessionCancellation is null)
+            {
+                return;
+            }
+
+            sessionToken = _sessionCancellation.Token;
+        }
+
         try
         {
-            await _scanGate.WaitAsync(_lifetimeCancellation.Token);
+            await _scanGate.WaitAsync(sessionToken);
             try
             {
                 await dispatcher.InvokeAsync(() =>
-                    productGrid.ProcessBarcodeAsync(e.Barcode, _lifetimeCancellation.Token));
+                {
+                    sessionToken.ThrowIfCancellationRequested();
+                    return productGrid.ProcessBarcodeAsync(e.Barcode, sessionToken);
+                });
             }
             finally
             {
                 _scanGate.Release();
             }
         }
-        catch (OperationCanceledException) when (_lifetimeCancellation.IsCancellationRequested)
+        catch (OperationCanceledException) when (sessionToken.IsCancellationRequested)
         {
         }
         catch (Exception exception)

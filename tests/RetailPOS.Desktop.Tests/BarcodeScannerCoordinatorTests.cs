@@ -87,6 +87,38 @@ public sealed class BarcodeScannerCoordinatorTests
         Assert.Equal(1, Assert.Single(session.Snapshot.Lines).Quantity);
     }
 
+    [Fact]
+    public async Task StopCancelsAcceptedScansWaitingForGateAndRestartUsesNewSession()
+    {
+        var product = Product("Water", "known");
+        var session = new CheckoutSession();
+        using var scanner = new SimulatedBarcodeScanner();
+        var viewModel = new ProductGridViewModel(new StubProductRepository(product), session);
+        var dispatcher = new BlockingFirstDispatcher();
+        using var coordinator = new BarcodeScannerCoordinator(
+            scanner,
+            viewModel,
+            dispatcher,
+            NullLogger<BarcodeScannerCoordinator>.Instance);
+        coordinator.Start();
+
+        await scanner.EmitAsync("known");
+        await dispatcher.FirstInvocationStarted;
+        await scanner.EmitAsync("known");
+
+        coordinator.Stop();
+        dispatcher.ReleaseFirstInvocation();
+        await dispatcher.FirstInvocationCompleted;
+
+        Assert.Empty(session.Snapshot.Lines);
+
+        coordinator.Start();
+        await scanner.EmitAsync("known");
+        await WaitUntilAsync(() => session.Snapshot.Lines.Count == 1);
+
+        Assert.Equal(1, Assert.Single(session.Snapshot.Lines).Quantity);
+    }
+
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
@@ -113,6 +145,44 @@ public sealed class BarcodeScannerCoordinatorTests
         {
             InvocationCount++;
             await action();
+        }
+    }
+
+    private sealed class BlockingFirstDispatcher : IUiDispatcher
+    {
+        private readonly TaskCompletionSource _firstStarted =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _firstRelease =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _firstCompleted =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _invocationCount;
+
+        public Task FirstInvocationStarted => _firstStarted.Task;
+        public Task FirstInvocationCompleted => _firstCompleted.Task;
+        public bool CheckAccess() => false;
+
+        public void ReleaseFirstInvocation() => _firstRelease.TrySetResult();
+
+        public async Task InvokeAsync(Func<Task> action)
+        {
+            var invocation = Interlocked.Increment(ref _invocationCount);
+            if (invocation != 1)
+            {
+                await action();
+                return;
+            }
+
+            _firstStarted.TrySetResult();
+            try
+            {
+                await _firstRelease.Task;
+                await action();
+            }
+            finally
+            {
+                _firstCompleted.TrySetResult();
+            }
         }
     }
 

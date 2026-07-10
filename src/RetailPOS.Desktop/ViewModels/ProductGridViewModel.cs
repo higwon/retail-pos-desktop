@@ -132,6 +132,7 @@ public sealed partial class ProductGridViewModel : ObservableObject
         string barcode,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         barcode = barcode.Trim();
         if (string.IsNullOrEmpty(barcode))
         {
@@ -143,6 +144,7 @@ public sealed partial class ProductGridViewModel : ObservableObject
         try
         {
             var product = await _productRepository.GetByBarcodeAsync(barcode, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             if (product is null)
             {
                 BarcodeMessage = "Product barcode was not found. Cart was not changed.";
