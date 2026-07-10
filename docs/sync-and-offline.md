@@ -2,6 +2,9 @@
 
 ## Offline Login
 
+This section defines the accepted target policy. The current portfolio build uses
+deterministic demo accounts and does not yet persist an employee authentication cache.
+
 - First login on a terminal requires the API.
 - After a successful online login, the app stores the minimum employee authentication data required for offline login.
 - Offline login is allowed only for cached employees.
@@ -46,6 +49,10 @@ Cart confirmed
 On startup, if a pending checkout is in `ApprovedButOrderNotCreated`, the user is routed to recovery. Recovery recreates the order idempotently or leaves the item for manager review.
 
 ## Stock Rules
+
+This section defines the target stock policy. The current implementation persists
+synchronized server stock quantities, but it does not yet calculate pending local
+deductions or expose estimated local stock.
 
 - Server stock is authoritative.
 - Local stock is an estimated display value.

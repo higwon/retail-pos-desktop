@@ -29,33 +29,31 @@ For the implementation scope, task IDs, acceptance criteria, and issue creation 
 - API connectivity monitor.
 - Messenger-based sync status refresh.
 
-## Current Transition
+## Completed POS Workflow
 
-Before the next product epic, the project is cleaning and consolidating documentation so future issues have a smaller source-of-truth set.
+EPIC-07 completed the cashier-facing workflow:
+
+- Demo login and current cashier/session context.
+- Workflow-aware POS header and operational dashboard.
+- Cart checkout as the primary payment entry point.
+- Barcode fast path with text-search fallback.
+- Hardened payment outcomes and a receipt-printer boundary.
+- Deterministic cashier happy-path validation through SQLite order and sync-queue persistence.
 
 ## Next Planned Area
 
-POS core workflow completion is next before device simulation begins.
-
-Candidate areas:
-
-- Login MVP and current cashier/session context.
-- POS main workflow state.
-- Cart checkout button flow.
-- Barcode entry fast path.
-- Dashboard MVP binding.
-- Payment simulation state hardening.
-- Receipt print simulation boundary.
-- Cashier happy path end-to-end validation.
-
-## Later Planned Areas
-
-Device simulation follows after the core cashier workflow is demonstrable:
+EPIC-08 demonstrates device integration concepts after the POS-609 architecture
+readiness work and POS-610 payment-terminal boundary hardening:
 
 - Barcode scanner simulator.
 - Receipt printer simulator.
 - Card reader simulator.
 - Secondary monitor customer display.
+
+Simulator controls remain separate from cashier business commands. Real hardware
+adapters remain Phase 2.
+
+## Later Planned Areas
 
 Production readiness follows after core workflow and device simulation:
 

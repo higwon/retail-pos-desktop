@@ -37,7 +37,7 @@ The project emphasizes:
 
 ## MVP Features
 
-- Cached employee login for offline mode after a successful online login.
+- Demo cashier and manager login with current terminal session context.
 - Product lookup from local SQLite.
 - Cart operations.
 - Manual amount and manual rate discounts.
@@ -50,6 +50,21 @@ The project emphasizes:
 - API connectivity monitor.
 - Background sync scheduler.
 - Sync status UI refresh through messenger notifications.
+
+## Current Implementation and Target Policies
+
+The current portfolio implementation and the accepted production-oriented policies are
+not always at the same delivery stage.
+
+- Current login uses deterministic demo accounts and does not persist an employee
+  authentication cache.
+- Cached employee login, seven-day offline validity, and synchronized permission
+  snapshots remain the accepted target policy.
+- Current product sync persists server stock quantities in the local cache.
+- Pending local-order stock deduction and estimated local stock remain target behavior
+  for later hardening.
+- Device simulation is the next active epic. Production hardware adapters and
+  advanced multi-display administration remain Phase 2.
 
 ## MVP Exclusions
 
