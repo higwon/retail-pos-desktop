@@ -17,117 +17,145 @@ public sealed class RecoverablePaymentStartServiceTests
     private static readonly DateTimeOffset ApprovedAtUtc = new(2026, 7, 7, 1, 0, 5, TimeSpan.Zero);
 
     [Fact]
-    public async Task StartAsync_SavesAwaitingPaymentBeforeCallingSimulator()
+    public async Task StartAsync_SavesPendingAttemptBeforeCallingTerminal()
     {
         var repository = new RecordingPendingCheckoutRepository();
-        var simulator = new RecordingPaymentSimulator(repository, ApprovedResult());
-        var service = Service(repository, simulator);
+        var terminal = new StubPaymentTerminal(Approved(), request =>
+        {
+            Assert.Single(repository.Saved);
+            Assert.Equal(PendingCheckoutStatus.AwaitingPayment, repository.Saved[0].RecoveryStatus);
+            Assert.Equal(request.PaymentAttemptId, repository.Saved[0].Id);
+        });
 
-        await service.StartAsync(Cart(), PaymentMethod.Card);
+        var result = await Service(repository, terminal).StartAsync(Cart(), PaymentMethod.Card);
 
-        Assert.True(simulator.WasCalled);
-        Assert.Equal(2, repository.Saved.Count);
-        Assert.Equal(PendingCheckoutStatus.AwaitingPayment, repository.Saved[0].RecoveryStatus);
-        Assert.Equal(PaymentStatus.Pending, repository.Saved[0].PaymentStatus);
-        Assert.Null(repository.Saved[0].OrderId);
-        Assert.Equal(PendingCheckoutStatus.ApprovedButOrderNotCreated, repository.Saved[1].RecoveryStatus);
-    }
-
-    [Fact]
-    public async Task StartAsync_ApprovedPaymentUpdatesSameRecordForRecovery()
-    {
-        var repository = new RecordingPendingCheckoutRepository();
-        var service = Service(repository, new RecordingPaymentSimulator(repository, ApprovedResult()));
-
-        var result = await service.StartAsync(Cart(), PaymentMethod.Card);
-        var approved = repository.Saved[1];
-
-        Assert.True(result.IsApproved);
+        Assert.Equal(PendingCheckoutId, terminal.Request?.PaymentAttemptId);
         Assert.Equal(PendingCheckoutId, result.PendingCheckoutId);
         Assert.Equal(OrderId, result.OrderId);
-        Assert.Equal(PendingCheckoutId, approved.Id);
-        Assert.Equal(StoreId, approved.StoreId);
-        Assert.Equal(TerminalId, approved.TerminalId);
-        Assert.Equal(CashierId, approved.CashierId);
-        Assert.Equal(PendingCheckoutStatus.ApprovedButOrderNotCreated, approved.RecoveryStatus);
-        Assert.Equal(PaymentStatus.Approved, approved.PaymentStatus);
-        Assert.Equal(3600m, approved.ApprovedAmount);
-        Assert.Equal("APP-CARD-000000003600", approved.ApprovalCode);
-        Assert.Equal("SIM-CARD-20260707010005-000000003600", approved.TransactionReference);
-        Assert.Equal(ApprovedAtUtc, approved.PaymentApprovedAtUtc);
-        Assert.Equal(ApprovedAtUtc, approved.LastUpdatedAtUtc);
-        Assert.Contains("SIM-CARD-20260707010005-000000003600", approved.PaymentSnapshotJson);
+        Assert.Equal(PendingCheckoutStatus.ApprovedButOrderNotCreated, repository.Saved[1].RecoveryStatus);
+        Assert.Equal(PaymentStatus.Approved, repository.Saved[1].PaymentStatus);
     }
 
     [Fact]
-    public async Task StartAsync_FailedPaymentUpdatesSameRecordWithoutOrder()
+    public async Task StartAsync_FailedCardPaymentDoesNotCreateOrder()
     {
         var repository = new RecordingPendingCheckoutRepository();
-        var service = Service(repository, new RecordingPaymentSimulator(repository, FailedResult()));
-
-        var result = await service.StartAsync(Cart(), PaymentMethod.Card, PaymentSimulationMode.Fail);
-        var failed = repository.Saved[1];
+        var result = await Service(repository, new StubPaymentTerminal(Failed()))
+            .StartAsync(Cart(), PaymentMethod.Card);
 
         Assert.False(result.IsApproved);
         Assert.Null(result.OrderId);
-        Assert.Equal(PendingCheckoutId, failed.Id);
-        Assert.Equal(PendingCheckoutStatus.PaymentFailed, failed.RecoveryStatus);
-        Assert.Equal(PaymentStatus.Failed, failed.PaymentStatus);
-        Assert.Null(failed.OrderId);
-        Assert.Null(failed.ApprovedAmount);
-        Assert.Null(failed.ApprovalCode);
-        Assert.Null(failed.TransactionReference);
-        Assert.Null(failed.PaymentApprovedAtUtc);
-        Assert.Contains("Payment was declined by the local simulator.", failed.PaymentSnapshotJson);
-    }
-
-    [Theory]
-    [InlineData(PaymentSimulationMode.Timeout, PaymentStatus.Failed, "Payment timed out. Keep the cart and try again.")]
-    [InlineData(PaymentSimulationMode.Cancel, PaymentStatus.Cancelled, "Payment was cancelled. Cart was not changed.")]
-    [InlineData(PaymentSimulationMode.CommunicationError, PaymentStatus.Failed, "Payment terminal communication failed. Try again or ask a manager to review checkout status.")]
-    public async Task StartAsync_NonApprovedPaymentUpdatesSameRecordWithoutOrder(
-        PaymentSimulationMode mode,
-        PaymentStatus expectedStatus,
-        string expectedMessage)
-    {
-        var repository = new RecordingPendingCheckoutRepository();
-        var service = Service(repository, new RecordingPaymentSimulator(
-            repository,
-            NonApprovedResult(expectedStatus, expectedMessage)));
-
-        var result = await service.StartAsync(Cart(), PaymentMethod.Card, mode);
-        var failed = repository.Saved[1];
-
-        Assert.False(result.IsApproved);
-        Assert.Null(result.OrderId);
-        Assert.Equal(PendingCheckoutId, failed.Id);
-        Assert.Equal(PendingCheckoutStatus.PaymentFailed, failed.RecoveryStatus);
-        Assert.Equal(expectedStatus, failed.PaymentStatus);
-        Assert.Null(failed.OrderId);
-        Assert.Null(failed.ApprovedAmount);
-        Assert.Null(failed.ApprovalCode);
-        Assert.Null(failed.TransactionReference);
-        Assert.Null(failed.PaymentApprovedAtUtc);
-        Assert.Contains(expectedStatus.ToString(), failed.PaymentSnapshotJson);
-        Assert.Contains(expectedMessage, failed.PaymentSnapshotJson);
+        Assert.Equal(PendingCheckoutStatus.PaymentFailed, repository.Saved[1].RecoveryStatus);
+        Assert.Equal(PaymentStatus.Failed, repository.Saved[1].PaymentStatus);
     }
 
     [Fact]
-    public async Task StartAsync_RejectsEmptyCart()
+    public async Task StartAsync_UnknownCardOutcomeRequiresManagerReview()
     {
-        var service = Service(
-            new RecordingPendingCheckoutRepository(),
-            new RecordingPaymentSimulator(new RecordingPendingCheckoutRepository(), ApprovedResult()));
+        var repository = new RecordingPendingCheckoutRepository();
+        var result = await Service(repository, new StubPaymentTerminal(Unknown()))
+            .StartAsync(Cart(), PaymentMethod.Card);
+
+        Assert.True(result.IsUnknown);
+        Assert.Null(result.OrderId);
+        Assert.Equal(PendingCheckoutStatus.ManagerReviewRequired, repository.Saved[1].RecoveryStatus);
+        Assert.Equal(PaymentStatus.Unknown, repository.Saved[1].PaymentStatus);
+    }
+
+    [Fact]
+    public async Task StartAsync_UnsupportedTerminalResultFailsClosed()
+    {
+        var repository = new RecordingPendingCheckoutRepository();
+        var unsupported = Approved() with { Status = PaymentStatus.Pending };
+
+        var result = await Service(repository, new StubPaymentTerminal(unsupported))
+            .StartAsync(Cart(), PaymentMethod.Card);
+
+        Assert.True(result.IsUnknown);
+        Assert.Equal(PendingCheckoutStatus.ManagerReviewRequired, result.RecoveryStatus);
+    }
+
+    [Fact]
+    public async Task StartAsync_CashBypassesPaymentTerminal()
+    {
+        var repository = new RecordingPendingCheckoutRepository();
+        var terminal = new StubPaymentTerminal(Approved());
+        var cash = new StubCashPaymentProcessor(Approved());
+
+        var result = await Service(repository, terminal, cash)
+            .StartAsync(Cart(), PaymentMethod.Cash);
+
+        Assert.Null(terminal.Request);
+        Assert.Equal(PendingCheckoutId, cash.Request?.PaymentAttemptId);
+        Assert.True(result.IsApproved);
+    }
+
+    [Fact]
+    public async Task StartAsync_CancellationAfterDispatchPersistsUnknownOutcome()
+    {
+        var repository = new RecordingPendingCheckoutRepository();
+        var terminal = new CancellingPaymentTerminal();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        var result = await Service(repository, terminal)
+            .StartAsync(Cart(), PaymentMethod.Card, cancellation.Token);
+
+        Assert.False(terminal.WasCalled);
+        Assert.Equal(PaymentStatus.Cancelled, result.PaymentStatus);
+        Assert.Equal(PendingCheckoutStatus.PaymentFailed, result.RecoveryStatus);
+
+        using var dispatchedCancellation = new CancellationTokenSource();
+        var secondRepository = new RecordingPendingCheckoutRepository();
+        var secondTerminal = new CancellingPaymentTerminal();
+        var task = Service(secondRepository, secondTerminal)
+            .StartAsync(Cart(), PaymentMethod.Card, dispatchedCancellation.Token);
+        await secondTerminal.Started.Task;
+        dispatchedCancellation.Cancel();
+
+        var dispatchedResult = await task;
+
+        Assert.True(dispatchedResult.IsUnknown);
+        Assert.Equal(PendingCheckoutStatus.ManagerReviewRequired, secondRepository.Saved[1].RecoveryStatus);
+    }
+
+    [Fact]
+    public async Task StartAsync_RejectsOverlappingAttempts()
+    {
+        var repository = new RecordingPendingCheckoutRepository();
+        var terminal = new BlockingPaymentTerminal();
+        var service = Service(repository, terminal);
+        var first = service.StartAsync(Cart(), PaymentMethod.Card);
+        await terminal.Started.Task;
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.StartAsync(new CartSnapshot([], 0m, null, null, 0m, 0m), PaymentMethod.Card));
+            service.StartAsync(Cart(), PaymentMethod.Card));
+
+        terminal.Complete(Approved());
+        await first;
+        Assert.Equal(2, repository.Saved.Count);
+    }
+
+    [Fact]
+    public async Task StartAsync_RejectsNewAttemptWhileTerminalHasUnresolvedPayment()
+    {
+        var repository = new RecordingPendingCheckoutRepository();
+        repository.Saved.Add(Pending(PendingCheckoutStatus.ManagerReviewRequired));
+        var terminal = new StubPaymentTerminal(Approved());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Service(repository, terminal).StartAsync(Cart(), PaymentMethod.Card));
+
+        Assert.Null(terminal.Request);
     }
 
     private static RecoverablePaymentStartService Service(
         IPendingCheckoutRepository repository,
-        IPaymentSimulator simulator) => new(
+        IPaymentTerminal terminal,
+        ICashPaymentProcessor? cash = null) => new(
             repository,
-            simulator,
+            terminal,
+            cash ?? new StubCashPaymentProcessor(Approved()),
             new StubCheckoutContextProvider(),
             new StubCheckoutClock(CreatedAtUtc),
             new SequenceCheckoutIdGenerator(PendingCheckoutId, OrderId));
@@ -135,62 +163,85 @@ public sealed class RecoverablePaymentStartServiceTests
     private static CartSnapshot Cart()
     {
         var session = new CheckoutSession();
-        session.AddProduct(Product("Cola", 1800m));
-        session.AddProduct(Product("Cola", 1800m));
+        session.AddProduct(new Product(
+            Guid.NewGuid(), "SKU-Cola", Guid.NewGuid().ToString("N"), "Cola", "Beverages", 3600m));
         return session.Snapshot;
     }
 
-    private static Product Product(string name, decimal price) => new(
-        Guid.NewGuid(), $"SKU-{name}", Guid.NewGuid().ToString("N"), name, "Beverages", price);
+    private static PaymentAuthorizationResult Approved() => new(
+        PaymentStatus.Approved, 3600m, 3600m, "APP-1", "TERM-1", ApprovedAtUtc, null);
 
-    private static PaymentSimulationResult ApprovedResult() => new(
-        PaymentStatus.Approved,
-        PaymentMethod.Card,
-        3600m,
-        3600m,
-        "APP-CARD-000000003600",
-        "SIM-CARD-20260707010005-000000003600",
-        ApprovedAtUtc,
-        null);
+    private static PaymentAuthorizationResult Failed() => new(
+        PaymentStatus.Failed, 3600m, null, null, null, null, "Payment was declined.");
 
-    private static PaymentSimulationResult FailedResult() => new(
-        PaymentStatus.Failed,
-        PaymentMethod.Card,
-        3600m,
-        null,
-        null,
-        null,
-        null,
-        "Payment was declined by the local simulator.");
+    private static PaymentAuthorizationResult Unknown() => new(
+        PaymentStatus.Unknown, 3600m, null, null, null, null, "Approval status is unknown.");
 
-    private static PaymentSimulationResult NonApprovedResult(
-        PaymentStatus status,
-        string failureMessage) => new(
-        status,
-        PaymentMethod.Card,
-        3600m,
-        null,
-        null,
-        null,
-        null,
-        failureMessage);
+    private static PendingCheckoutRecord Pending(PendingCheckoutStatus status) => new(
+        Guid.NewGuid(), StoreId, TerminalId, CashierId, CreatedAtUtc, status,
+        "{}", "{}", PaymentStatus.Unknown, null, null, null, null, null, null, CreatedAtUtc);
 
-    private sealed class RecordingPaymentSimulator(
-        RecordingPendingCheckoutRepository repository,
-        PaymentSimulationResult result) : IPaymentSimulator
+    private sealed class StubPaymentTerminal(
+        PaymentAuthorizationResult result,
+        Action<PaymentAuthorizationRequest>? onRequest = null) : IPaymentTerminal
     {
+        public PaymentAuthorizationRequest? Request { get; private set; }
+
+        public Task<PaymentAuthorizationResult> AuthorizeAsync(
+            PaymentAuthorizationRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            Request = request;
+            onRequest?.Invoke(request);
+            return Task.FromResult(result);
+        }
+    }
+
+    private sealed class StubCashPaymentProcessor(PaymentAuthorizationResult result) : ICashPaymentProcessor
+    {
+        public CashPaymentRequest? Request { get; private set; }
+
+        public Task<PaymentAuthorizationResult> AcceptAsync(
+            CashPaymentRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            Request = request;
+            return Task.FromResult(result);
+        }
+    }
+
+    private sealed class CancellingPaymentTerminal : IPaymentTerminal
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public bool WasCalled { get; private set; }
 
-        public Task<PaymentSimulationResult> SimulateAsync(
-            PaymentSimulationRequest request,
+        public async Task<PaymentAuthorizationResult> AuthorizeAsync(
+            PaymentAuthorizationRequest request,
             CancellationToken cancellationToken = default)
         {
             WasCalled = true;
-            Assert.Single(repository.Saved);
-            Assert.Equal(PendingCheckoutStatus.AwaitingPayment, repository.Saved[0].RecoveryStatus);
-            Assert.Equal(PaymentStatus.Pending, repository.Saved[0].PaymentStatus);
-            return Task.FromResult(result);
+            Started.SetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            throw new InvalidOperationException("Unreachable");
         }
+    }
+
+    private sealed class BlockingPaymentTerminal : IPaymentTerminal
+    {
+        private readonly TaskCompletionSource<PaymentAuthorizationResult> _completion =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task<PaymentAuthorizationResult> AuthorizeAsync(
+            PaymentAuthorizationRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            Started.SetResult();
+            return _completion.Task;
+        }
+
+        public void Complete(PaymentAuthorizationResult result) => _completion.SetResult(result);
     }
 
     private sealed class RecordingPendingCheckoutRepository : IPendingCheckoutRepository
@@ -207,23 +258,13 @@ public sealed class RecoverablePaymentStartServiceTests
             Task.FromResult(Saved.LastOrDefault(checkout => checkout.Id == id));
 
         public Task<IReadOnlyList<PendingCheckoutRecord>> GetUnresolvedAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<PendingCheckoutRecord>>(Saved);
+            cancellationToken.IsCancellationRequested
+                ? Task.FromCanceled<IReadOnlyList<PendingCheckoutRecord>>(cancellationToken)
+                : Task.FromResult<IReadOnlyList<PendingCheckoutRecord>>(Saved.ToArray());
 
-        public Task MarkCompletedAsync(
-            Guid id,
-            Guid orderId,
-            DateTimeOffset completedAtUtc,
-            CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
-
-        public Task MarkManagerReviewRequiredAsync(
-            Guid id,
-            DateTimeOffset updatedAtUtc,
-            CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
-
-        public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
+        public Task MarkCompletedAsync(Guid id, Guid orderId, DateTimeOffset completedAtUtc, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task MarkManagerReviewRequiredAsync(Guid id, DateTimeOffset updatedAtUtc, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     private sealed class StubCheckoutContextProvider : ICheckoutContextProvider
@@ -239,7 +280,6 @@ public sealed class RecoverablePaymentStartServiceTests
     private sealed class SequenceCheckoutIdGenerator(params Guid[] ids) : ICheckoutIdGenerator
     {
         private int _index;
-
         public Guid NewId() => ids[_index++];
     }
 }

@@ -22,6 +22,7 @@ public sealed record CheckoutRecoveryRecord(
     Guid TerminalId,
     Guid CashierId,
     DateTimeOffset CreatedAtUtc,
+    PendingCheckoutStatus RecoveryStatus,
     decimal ApprovedAmount,
     string PaymentMethod,
     string? ApprovalCode,
@@ -33,6 +34,7 @@ public sealed record CheckoutRecoveryRecord(
     decimal DiscountAmount,
     decimal CartTotal,
     bool IsSnapshotReadable,
+    bool CanCompleteOrder,
     string? WarningMessage);
 
 public sealed record CheckoutRecoveryLine(
@@ -57,7 +59,9 @@ public sealed class CheckoutRecoveryService(
     {
         var records = await pendingCheckoutRepository.GetUnresolvedAsync(cancellationToken);
         return records
-            .Where(record => record.RecoveryStatus == PendingCheckoutStatus.ApprovedButOrderNotCreated)
+            .Where(record => record.RecoveryStatus is
+                PendingCheckoutStatus.ApprovedButOrderNotCreated or
+                PendingCheckoutStatus.ManagerReviewRequired)
             .Select(ToRecoveryRecord)
             .ToList();
     }
@@ -99,7 +103,18 @@ public sealed class CheckoutRecoveryService(
     {
         var snapshotResult = RestoreCartSnapshot(record.CartSnapshotJson);
         var snapshot = snapshotResult.Snapshot;
-        var requiresManagerReview = !snapshotResult.IsReadable || !HasCompleteApprovedPaymentMetadata(record);
+        var canCompleteOrder =
+            record.RecoveryStatus == PendingCheckoutStatus.ApprovedButOrderNotCreated &&
+            snapshotResult.IsReadable &&
+            HasCompleteApprovedPaymentMetadata(record);
+        var approvedAmount = record.PaymentStatus == RetailPOS.Domain.Payments.PaymentStatus.Approved
+            ? record.ApprovedAmount ?? (snapshotResult.IsReadable ? snapshot.Total : 0m)
+            : 0m;
+        var warningMessage = record.PaymentStatus == RetailPOS.Domain.Payments.PaymentStatus.Unknown
+            ? "Payment approval status is unknown. Manager review is required before retry."
+            : canCompleteOrder
+                ? null
+                : "Checkout data needs manager review.";
 
         return new CheckoutRecoveryRecord(
             record.Id,
@@ -107,7 +122,8 @@ public sealed class CheckoutRecoveryService(
             record.TerminalId,
             record.CashierId,
             record.CreatedAtUtc,
-            record.ApprovedAmount ?? (snapshotResult.IsReadable ? snapshot.Total : 0m),
+            record.RecoveryStatus,
+            approvedAmount,
             record.PaymentStatus.ToString(),
             record.ApprovalCode,
             record.TransactionReference,
@@ -123,10 +139,9 @@ public sealed class CheckoutRecoveryService(
             snapshotResult.IsReadable ? snapshot.Subtotal : 0m,
             snapshotResult.IsReadable ? snapshot.DiscountAmount : 0m,
             snapshotResult.IsReadable ? snapshot.Total : 0m,
-            !requiresManagerReview,
-            requiresManagerReview
-                ? "Checkout data needs manager review."
-                : null);
+            snapshotResult.IsReadable,
+            canCompleteOrder,
+            warningMessage);
     }
 
     private static RestoredCartSnapshot RestoreCartSnapshot(string cartSnapshotJson)

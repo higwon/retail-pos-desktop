@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RetailPOS.Application.Checkout;
+using RetailPOS.Application.Persistence;
 
 namespace RetailPOS.Desktop.ViewModels;
 
@@ -14,8 +15,10 @@ public sealed partial class CheckoutRecoveryViewModel : ObservableObject
         _checkoutRecoveryService = checkoutRecoveryService;
         Items.CollectionChanged += OnItemsChanged;
         LoadCommand = new AsyncRelayCommand(LoadAsync);
-        CompleteOrderCommand = new AsyncRelayCommand(CompleteOrderAsync, CanActOnSelectedItem);
-        RequestManagerReviewCommand = new AsyncRelayCommand(RequestManagerReviewAsync, CanActOnSelectedItem);
+        CompleteOrderCommand = new AsyncRelayCommand(CompleteOrderAsync, CanCompleteSelectedItem);
+        RequestManagerReviewCommand = new AsyncRelayCommand(
+            RequestManagerReviewAsync,
+            CanRequestManagerReview);
     }
 
     public ObservableCollection<CheckoutRecoveryItemViewModel> Items { get; } = [];
@@ -55,8 +58,8 @@ public sealed partial class CheckoutRecoveryViewModel : ObservableObject
 
             SelectedItem = Items.FirstOrDefault();
             StatusMessage = Items.Count == 0
-                ? "No approved checkout needs recovery."
-                : $"{Items.Count:N0} approved checkout requires recovery.";
+                ? "No checkout needs recovery or review."
+                : $"{Items.Count:N0} checkout requires recovery or review.";
         }
         catch (Exception)
         {
@@ -140,7 +143,11 @@ public sealed partial class CheckoutRecoveryViewModel : ObservableObject
         NotifyCommandStateChanged();
     }
 
-    private bool CanActOnSelectedItem() => SelectedItem is not null && !IsBusy;
+    private bool CanCompleteSelectedItem() =>
+        SelectedItem?.CanCompleteOrder == true && !IsBusy;
+
+    private bool CanRequestManagerReview() =>
+        SelectedItem?.CanRequestManagerReview == true && !IsBusy;
 
     private void OnItemsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
@@ -165,12 +172,14 @@ public sealed class CheckoutRecoveryItemViewModel
         CashierId = record.CashierId;
         OrderId = record.OrderId;
         CreatedAtLocal = record.CreatedAtUtc.ToLocalTime();
+        RecoveryStatus = record.RecoveryStatus;
         PaymentApprovedAtLocal = record.PaymentApprovedAtUtc?.ToLocalTime();
         ApprovedAmount = record.ApprovedAmount;
         PaymentMethod = record.PaymentMethod;
         ApprovalCode = record.ApprovalCode ?? "-";
         TransactionReference = record.TransactionReference ?? "-";
         IsSnapshotReadable = record.IsSnapshotReadable;
+        CanCompleteOrder = record.CanCompleteOrder;
         WarningMessage = record.WarningMessage;
         Lines = record.Lines.Select(line => new CheckoutRecoveryLineViewModel(line)).ToList();
         CartSubtotal = record.CartSubtotal;
@@ -184,12 +193,16 @@ public sealed class CheckoutRecoveryItemViewModel
     public Guid CashierId { get; }
     public Guid? OrderId { get; }
     public DateTimeOffset CreatedAtLocal { get; }
+    public PendingCheckoutStatus RecoveryStatus { get; }
     public DateTimeOffset? PaymentApprovedAtLocal { get; }
     public decimal ApprovedAmount { get; }
     public string PaymentMethod { get; }
     public string ApprovalCode { get; }
     public string TransactionReference { get; }
     public bool IsSnapshotReadable { get; }
+    public bool CanCompleteOrder { get; }
+    public bool CanRequestManagerReview =>
+        RecoveryStatus != PendingCheckoutStatus.ManagerReviewRequired;
     public string? WarningMessage { get; }
     public IReadOnlyList<CheckoutRecoveryLineViewModel> Lines { get; }
     public decimal CartSubtotal { get; }
@@ -197,6 +210,9 @@ public sealed class CheckoutRecoveryItemViewModel
     public decimal CartTotal { get; }
 
     public string CheckoutLabel => $"Checkout {PendingCheckoutId.ToString("N")[..8].ToUpperInvariant()}";
+    public string StatusLabel => RecoveryStatus == PendingCheckoutStatus.ManagerReviewRequired
+        ? "REVIEW"
+        : "APPROVED";
     public string TerminalLabel => $"Terminal {TerminalId.ToString("N")[..6].ToUpperInvariant()}";
     public string CreatedAtText => CreatedAtLocal.ToString("yyyy-MM-dd HH:mm");
     public string PaymentApprovedAtText => PaymentApprovedAtLocal?.ToString("yyyy-MM-dd HH:mm") ?? "-";

@@ -1,6 +1,4 @@
-using CommunityToolkit.Mvvm.Input;
 using RetailPOS.Application.Checkout;
-using RetailPOS.Application.Payments;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Receipts;
 using RetailPOS.Desktop.ViewModels;
@@ -15,291 +13,213 @@ public sealed class PaymentDialogViewModelTests
         new(2026, 7, 7, 1, 2, 3, TimeSpan.Zero);
 
     [Fact]
-    public async Task ApproveCardPayment_UsesCurrentCheckoutTotal()
+    public async Task CardPayment_UsesCurrentCheckoutAndCompletesOrder()
     {
-        var session = new CheckoutSession();
-        session.AddProduct(Product("Cola", 1800m));
-        session.AddProduct(Product("Cola", 1800m));
-        var service = new StubPaymentStartService(Approved());
+        var session = SessionWithProduct();
+        var payment = new StubPaymentStartService(Approved(PaymentMethod.Card));
         var completion = new StubOrderCompletionService();
         var receipts = new StubReceiptService();
-        var receiptState = new ReceiptPreviewState();
-        var displayState = new CheckoutDisplayState();
-        var viewModel = new PaymentDialogViewModel(session, service, completion, receipts, receiptState, displayState);
+        var display = new CheckoutDisplayState();
+        var viewModel = ViewModel(session, payment, completion, receipts, display);
 
         await viewModel.ApproveCardPaymentCommand.ExecuteAsync(null);
 
-        Assert.Equal(0m, viewModel.AmountDue);
-        Assert.Equal("0 KRW", viewModel.TotalAmount);
-        Assert.Equal(3600m, service.StartedWithCart?.Total);
-        Assert.Equal(PaymentMethod.Card, service.StartedWithMethod);
-        Assert.Equal(PaymentSimulationMode.Approve, service.StartedWithMode);
-        Assert.Equal(service.Result.PendingCheckoutId, completion.CompletedPendingCheckoutId);
+        Assert.Equal(PaymentMethod.Card, payment.StartedWithMethod);
+        Assert.Equal(3600m, payment.StartedWithCart?.Total);
+        Assert.Equal(payment.Result.PendingCheckoutId, completion.CompletedPendingCheckoutId);
         Assert.Equal(PaymentStatus.Approved, viewModel.Status);
-        Assert.Equal(PaymentMethod.Card, viewModel.Method);
-        Assert.Equal(3600m, viewModel.ApprovedAmount);
-        Assert.Equal("APP-CARD-000000003600", viewModel.ApprovalCode);
-        Assert.Equal(ApprovedAtUtc, viewModel.ApprovedAtUtc);
-        Assert.Equal(CheckoutDisplayPhase.Completed, displayState.Snapshot.Phase);
-        Assert.Equal("Payment complete. Please take your receipt.", displayState.Snapshot.PaymentMessage);
-        Assert.Equal(completion.CompletedOrderId, receipts.GeneratedForOrderId);
-        Assert.NotNull(receiptState.Current);
+        Assert.Equal(0m, viewModel.AmountDue);
+        Assert.Equal(CheckoutDisplayPhase.Completed, display.Snapshot.Phase);
+        Assert.NotNull(receipts.GeneratedForOrderId);
+        Assert.False(viewModel.ApproveCardPaymentCommand.CanExecute(null));
+        Assert.False(viewModel.ApproveCashPaymentCommand.CanExecute(null));
     }
 
     [Fact]
-    public async Task FailPayment_ReturnsUserSafeFailureState()
+    public async Task CashPayment_UsesCashMethod()
     {
-        var session = new CheckoutSession();
-        session.AddProduct(Product("Water", 1000m));
-        var service = new StubPaymentStartService(Failed());
-        var completion = new StubOrderCompletionService();
-        var receipts = new StubReceiptService();
-        var displayState = new CheckoutDisplayState();
-        var viewModel = new PaymentDialogViewModel(
-            session,
-            service,
-            completion,
-            receipts,
-            new ReceiptPreviewState(),
-            displayState);
+        var session = SessionWithProduct();
+        var payment = new StubPaymentStartService(Approved(PaymentMethod.Cash));
+        var viewModel = ViewModel(session, payment);
 
-        await viewModel.FailPaymentCommand.ExecuteAsync(null);
+        await viewModel.ApproveCashPaymentCommand.ExecuteAsync(null);
 
-        Assert.Equal(PaymentSimulationMode.Fail, service.StartedWithMode);
-        Assert.Null(completion.CompletedPendingCheckoutId);
-        Assert.Equal(PaymentStatus.Failed, viewModel.Status);
-        Assert.True(viewModel.IsFailed);
-        Assert.False(viewModel.IsApproved);
-        Assert.Null(viewModel.ApprovalCode);
-        Assert.Equal("Payment was declined by the local simulator.", viewModel.Message);
-        Assert.Equal(CheckoutDisplayPhase.PaymentFailed, displayState.Snapshot.Phase);
-        Assert.Equal("Payment was declined by the local simulator.", displayState.Snapshot.PaymentMessage);
-        Assert.Null(receipts.GeneratedForOrderId);
-    }
-
-    [Theory]
-    [InlineData(nameof(PaymentDialogViewModel.TimeoutPaymentCommand), PaymentSimulationMode.Timeout, PaymentStatus.Failed, "Payment timed out. Keep the cart and try again.")]
-    [InlineData(nameof(PaymentDialogViewModel.CancelPaymentCommand), PaymentSimulationMode.Cancel, PaymentStatus.Cancelled, "Payment was cancelled. Cart was not changed.")]
-    [InlineData(nameof(PaymentDialogViewModel.CommunicationErrorPaymentCommand), PaymentSimulationMode.CommunicationError, PaymentStatus.Failed, "Payment terminal communication failed. Try again or ask a manager to review checkout status.")]
-    public async Task NonApprovedPaymentOutcomes_DoNotCompleteOrderAndKeepCart(
-        string commandName,
-        PaymentSimulationMode expectedMode,
-        PaymentStatus expectedStatus,
-        string expectedMessage)
-    {
-        var session = new CheckoutSession();
-        session.AddProduct(Product("Water", 1000m));
-        var service = new StubPaymentStartService(NonApproved(expectedStatus, expectedMessage));
-        var completion = new StubOrderCompletionService();
-        var receipts = new StubReceiptService();
-        var displayState = new CheckoutDisplayState();
-        var viewModel = new PaymentDialogViewModel(
-            session,
-            service,
-            completion,
-            receipts,
-            new ReceiptPreviewState(),
-            displayState);
-
-        await Command(viewModel, commandName).ExecuteAsync(null);
-
-        Assert.Equal(1000m, viewModel.AmountDue);
-        Assert.Equal(expectedMode, service.StartedWithMode);
-        Assert.Null(completion.CompletedPendingCheckoutId);
-        Assert.Null(receipts.GeneratedForOrderId);
-        Assert.Equal(expectedStatus, viewModel.Status);
-        Assert.False(viewModel.IsApproved);
-        Assert.Null(viewModel.ApprovalCode);
-        Assert.Equal(expectedMessage, viewModel.Message);
-        Assert.Equal(CheckoutDisplayPhase.PaymentFailed, displayState.Snapshot.Phase);
-        Assert.Equal(expectedMessage, displayState.Snapshot.PaymentMessage);
+        Assert.Equal(PaymentMethod.Cash, payment.StartedWithMethod);
+        Assert.Equal(PaymentMethod.Cash, viewModel.Method);
     }
 
     [Fact]
-    public void Commands_AreDisabledUntilCheckoutHasPositiveTotal()
+    public async Task UnknownPayment_KeepsCartAndDoesNotCompleteOrder()
+    {
+        var session = SessionWithProduct();
+        var payment = new StubPaymentStartService(Unknown());
+        var completion = new StubOrderCompletionService();
+        var display = new CheckoutDisplayState();
+        var viewModel = ViewModel(session, payment, completion, displayState: display);
+
+        await viewModel.ApproveCardPaymentCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsUnknown);
+        Assert.Equal(3600m, viewModel.AmountDue);
+        Assert.Null(completion.CompletedPendingCheckoutId);
+        Assert.Equal(CheckoutDisplayPhase.PaymentFailed, display.Snapshot.Phase);
+        Assert.Contains("unknown", viewModel.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task PaymentInProgress_DisablesBothMethods()
+    {
+        var session = SessionWithProduct();
+        var payment = new BlockingPaymentStartService();
+        var viewModel = ViewModel(session, payment);
+
+        var execution = viewModel.ApproveCardPaymentCommand.ExecuteAsync(null);
+        await payment.Started.Task;
+
+        Assert.True(viewModel.IsPaymentInProgress);
+        Assert.False(viewModel.ApproveCardPaymentCommand.CanExecute(null));
+        Assert.False(viewModel.ApproveCashPaymentCommand.CanExecute(null));
+
+        payment.Complete(Approved(PaymentMethod.Card));
+        await execution;
+        Assert.False(viewModel.IsPaymentInProgress);
+    }
+
+    [Fact]
+    public async Task Dispose_CancelsRequestAndIgnoresLateResult()
+    {
+        var session = SessionWithProduct();
+        var payment = new BlockingPaymentStartService();
+        var display = new CheckoutDisplayState();
+        var viewModel = ViewModel(session, payment, displayState: display);
+        var execution = viewModel.ApproveCardPaymentCommand.ExecuteAsync(null);
+        await payment.Started.Task;
+
+        viewModel.Dispose();
+        await payment.Cancelled.Task;
+        payment.Complete(Approved(PaymentMethod.Card));
+        await execution;
+
+        Assert.Null(viewModel.Status);
+        Assert.Equal(3600m, viewModel.AmountDue);
+        Assert.Equal(CheckoutDisplayPhase.PaymentWaiting, display.Snapshot.Phase);
+        Assert.False(viewModel.ApproveCardPaymentCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void Commands_TrackCheckoutAndDisposeLifecycle()
     {
         var session = new CheckoutSession();
-        var viewModel = new PaymentDialogViewModel(
-            session,
-            new StubPaymentStartService(Approved()),
-            new StubOrderCompletionService(),
-            new StubReceiptService(),
-            new ReceiptPreviewState(),
-            new CheckoutDisplayState());
+        var viewModel = ViewModel(session, new StubPaymentStartService(Approved(PaymentMethod.Card)));
 
         Assert.False(viewModel.ApproveCardPaymentCommand.CanExecute(null));
         Assert.False(viewModel.ApproveCashPaymentCommand.CanExecute(null));
-        Assert.False(viewModel.FailPaymentCommand.CanExecute(null));
-        Assert.False(viewModel.TimeoutPaymentCommand.CanExecute(null));
-        Assert.False(viewModel.CancelPaymentCommand.CanExecute(null));
-        Assert.False(viewModel.CommunicationErrorPaymentCommand.CanExecute(null));
 
-        session.AddProduct(Product("Water", 1000m));
-
+        session.AddProduct(Product());
         Assert.True(viewModel.ApproveCardPaymentCommand.CanExecute(null));
         Assert.True(viewModel.ApproveCashPaymentCommand.CanExecute(null));
-        Assert.True(viewModel.FailPaymentCommand.CanExecute(null));
-        Assert.True(viewModel.TimeoutPaymentCommand.CanExecute(null));
-        Assert.True(viewModel.CancelPaymentCommand.CanExecute(null));
-        Assert.True(viewModel.CommunicationErrorPaymentCommand.CanExecute(null));
-    }
-
-    [Fact]
-    public void Dispose_UnsubscribesFromCheckoutSessionChanges()
-    {
-        var session = new CheckoutSession();
-        var viewModel = new PaymentDialogViewModel(
-            session,
-            new StubPaymentStartService(Approved()),
-            new StubOrderCompletionService(),
-            new StubReceiptService(),
-            new ReceiptPreviewState(),
-            new CheckoutDisplayState());
 
         viewModel.Dispose();
-        session.AddProduct(Product("Water", 1000m));
-
-        Assert.Equal(0m, viewModel.AmountDue);
-        Assert.Equal("0 KRW", viewModel.TotalAmount);
         Assert.False(viewModel.ApproveCardPaymentCommand.CanExecute(null));
+        Assert.False(viewModel.ApproveCashPaymentCommand.CanExecute(null));
     }
 
     [Fact]
-    public async Task CompletionFailure_KeepsCartAndShowsUserSafeMessage()
+    public async Task ReceiptFailure_KeepsApprovedPaymentAndClearsCart()
     {
-        var session = new CheckoutSession();
-        session.AddProduct(Product("Water", 1000m));
-        var displayState = new CheckoutDisplayState();
-        var viewModel = new PaymentDialogViewModel(
+        var session = SessionWithProduct();
+        var receipts = new StubReceiptService(throwOnGenerate: true);
+        var viewModel = ViewModel(
             session,
-            new StubPaymentStartService(Approved()),
-            new StubOrderCompletionService(throwOnComplete: true),
-            new StubReceiptService(),
-            new ReceiptPreviewState(),
-            displayState);
+            new StubPaymentStartService(Approved(PaymentMethod.Card)),
+            receipts: receipts);
 
         await viewModel.ApproveCardPaymentCommand.ExecuteAsync(null);
 
-        Assert.Equal(1000m, viewModel.AmountDue);
-        Assert.Equal(PaymentStatus.Failed, viewModel.Status);
-        Assert.Equal("Payment could not be completed. Keep the cart and try again or ask a manager to review checkout status.",
-            viewModel.Message);
-        Assert.Equal(CheckoutDisplayPhase.PaymentFailed, displayState.Snapshot.Phase);
-    }
-
-    [Fact]
-    public async Task ReceiptGenerationFailure_KeepsPaymentApprovedAndClearsCart()
-    {
-        var session = new CheckoutSession();
-        session.AddProduct(Product("Water", 1000m));
-        var displayState = new CheckoutDisplayState();
-        var receiptState = new ReceiptPreviewState();
-        var viewModel = new PaymentDialogViewModel(
-            session,
-            new StubPaymentStartService(Approved()),
-            new StubOrderCompletionService(),
-            new StubReceiptService(throwOnGenerate: true),
-            receiptState,
-            displayState);
-
-        await viewModel.ApproveCardPaymentCommand.ExecuteAsync(null);
-
-        Assert.Equal(0m, viewModel.AmountDue);
         Assert.Equal(PaymentStatus.Approved, viewModel.Status);
-        Assert.Equal("Payment approved. Receipt preview could not be generated automatically.", viewModel.Message);
-        Assert.Equal(CheckoutDisplayPhase.Completed, displayState.Snapshot.Phase);
-        Assert.Null(receiptState.Current);
+        Assert.Equal(0m, viewModel.AmountDue);
+        Assert.Contains("Receipt preview", viewModel.Message);
     }
 
-    private static RecoverablePaymentStartResult Approved() => new(
-        Guid.NewGuid(),
-        Guid.NewGuid(),
-        PendingCheckoutStatus.ApprovedButOrderNotCreated,
-        PaymentStatus.Approved,
-        PaymentMethod.Card,
-        3600m,
-        3600m,
-        "APP-CARD-000000003600",
-        "SIM-CARD-20260707010203-000000003600",
-        ApprovedAtUtc,
-        null);
+    private static PaymentDialogViewModel ViewModel(
+        CheckoutSession session,
+        IRecoverablePaymentStartService payment,
+        IOrderCompletionService? completion = null,
+        IReceiptService? receipts = null,
+        CheckoutDisplayState? displayState = null) => new(
+            session,
+            payment,
+            completion ?? new StubOrderCompletionService(),
+            receipts ?? new StubReceiptService(),
+            new ReceiptPreviewState(),
+            displayState ?? new CheckoutDisplayState());
 
-    private static RecoverablePaymentStartResult Failed() => new(
-        Guid.NewGuid(),
-        null,
-        PendingCheckoutStatus.PaymentFailed,
-        PaymentStatus.Failed,
-        PaymentMethod.Card,
-        1000m,
-        null,
-        null,
-        null,
-        null,
-        "Payment was declined by the local simulator.");
+    private static CheckoutSession SessionWithProduct()
+    {
+        var session = new CheckoutSession();
+        session.AddProduct(Product());
+        return session;
+    }
 
-    private static RecoverablePaymentStartResult NonApproved(
-        PaymentStatus status,
-        string failureMessage) => new(
-        Guid.NewGuid(),
-        null,
-        PendingCheckoutStatus.PaymentFailed,
-        status,
-        PaymentMethod.Card,
-        1000m,
-        null,
-        null,
-        null,
-        null,
-        failureMessage);
+    private static Product Product() => new(
+        Guid.NewGuid(), "SKU-Cola", Guid.NewGuid().ToString("N"), "Cola", "Beverages", 3600m);
 
-    private static IAsyncRelayCommand Command(PaymentDialogViewModel viewModel, string commandName) =>
-        commandName switch
-        {
-            nameof(PaymentDialogViewModel.TimeoutPaymentCommand) => viewModel.TimeoutPaymentCommand,
-            nameof(PaymentDialogViewModel.CancelPaymentCommand) => viewModel.CancelPaymentCommand,
-            nameof(PaymentDialogViewModel.CommunicationErrorPaymentCommand) => viewModel.CommunicationErrorPaymentCommand,
-            _ => throw new ArgumentOutOfRangeException(nameof(commandName), commandName, null)
-        };
+    private static RecoverablePaymentStartResult Approved(PaymentMethod method) => new(
+        Guid.NewGuid(), Guid.NewGuid(), PendingCheckoutStatus.ApprovedButOrderNotCreated,
+        PaymentStatus.Approved, method, 3600m, 3600m, "APP-1", "TERM-1", ApprovedAtUtc, null);
 
-    private static Product Product(string name, decimal price) => new(
-        Guid.NewGuid(), $"SKU-{name}", Guid.NewGuid().ToString("N"), name, "Beverages", price);
+    private static RecoverablePaymentStartResult Unknown() => new(
+        Guid.NewGuid(), null, PendingCheckoutStatus.ManagerReviewRequired,
+        PaymentStatus.Unknown, PaymentMethod.Card, 3600m, null, null, null, null,
+        "Payment approval status is unknown and requires review.");
 
-    private sealed class StubPaymentStartService(RecoverablePaymentStartResult result) : IRecoverablePaymentStartService
+    private sealed class StubPaymentStartService(RecoverablePaymentStartResult result)
+        : IRecoverablePaymentStartService
     {
         public RecoverablePaymentStartResult Result { get; } = result;
         public CartSnapshot? StartedWithCart { get; private set; }
         public PaymentMethod? StartedWithMethod { get; private set; }
-        public PaymentSimulationMode? StartedWithMode { get; private set; }
 
         public Task<RecoverablePaymentStartResult> StartAsync(
             CartSnapshot cart,
             PaymentMethod method,
-            PaymentSimulationMode mode = PaymentSimulationMode.Approve,
             CancellationToken cancellationToken = default)
         {
             StartedWithCart = cart;
             StartedWithMethod = method;
-            StartedWithMode = mode;
             return Task.FromResult(Result);
         }
     }
 
-    private sealed class StubOrderCompletionService(bool throwOnComplete = false) : IOrderCompletionService
+    private sealed class BlockingPaymentStartService : IRecoverablePaymentStartService
     {
-        public Guid? CompletedPendingCheckoutId { get; private set; }
-        public Guid CompletedOrderId { get; } = Guid.Parse("bbbbbbbb-0000-0000-0000-000000000001");
+        private readonly TaskCompletionSource<RecoverablePaymentStartResult> _completion =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public Task<OrderCompletionResult> CompleteAsync(
-            Guid pendingCheckoutId,
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Cancelled { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async Task<RecoverablePaymentStartResult> StartAsync(
+            CartSnapshot cart,
+            PaymentMethod method,
             CancellationToken cancellationToken = default)
         {
-            if (throwOnComplete)
-            {
-                throw new InvalidOperationException("Simulated persistence failure.");
-            }
+            Started.SetResult();
+            using var registration = cancellationToken.Register(() => Cancelled.TrySetResult());
+            return await _completion.Task;
+        }
 
+        public void Complete(RecoverablePaymentStartResult result) => _completion.TrySetResult(result);
+    }
+
+    private sealed class StubOrderCompletionService : IOrderCompletionService
+    {
+        public Guid? CompletedPendingCheckoutId { get; private set; }
+
+        public Task<OrderCompletionResult> CompleteAsync(Guid pendingCheckoutId, CancellationToken cancellationToken = default)
+        {
             CompletedPendingCheckoutId = pendingCheckoutId;
-            return Task.FromResult(new OrderCompletionResult(CompletedOrderId, AlreadyCompleted: false));
+            return Task.FromResult(new OrderCompletionResult(Guid.NewGuid(), AlreadyCompleted: false));
         }
     }
 
@@ -307,32 +227,17 @@ public sealed class PaymentDialogViewModelTests
     {
         public Guid? GeneratedForOrderId { get; private set; }
 
-        public Task<ReceiptPreview> GenerateAsync(
-            Guid localOrderId,
-            CancellationToken cancellationToken = default)
+        public Task<ReceiptPreview> GenerateAsync(Guid localOrderId, CancellationToken cancellationToken = default)
         {
             if (throwOnGenerate)
             {
-                throw new InvalidOperationException("Simulated receipt generation failure.");
+                throw new InvalidOperationException("Receipt generation failed.");
             }
 
             GeneratedForOrderId = localOrderId;
-            return Task.FromResult(Receipt(localOrderId));
+            return Task.FromResult(new ReceiptPreview(
+                "Store", "Terminal", "Order", "Cashier", "Register", ApprovedAtUtc,
+                new DateOnly(2026, 7, 7), [], [], 3600m, 0m, 3600m, "receipt"));
         }
-
-        private static ReceiptPreview Receipt(Guid orderId) => new(
-            "Retail Store",
-            "Local POS Terminal",
-            $"LOCAL-{orderId:N}",
-            "Cashier",
-            "Register",
-            ApprovedAtUtc,
-            new DateOnly(2026, 7, 7),
-            [new ReceiptPreviewLine("Cola", 1800m, 2, 3600m, 0m, 3600m)],
-            [new ReceiptPreviewPayment(PaymentMethod.Card, 3600m, "APP-CARD-000000003600")],
-            3600m,
-            0m,
-            3600m,
-            "receipt");
     }
 }

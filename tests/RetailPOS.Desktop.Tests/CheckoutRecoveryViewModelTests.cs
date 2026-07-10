@@ -1,4 +1,5 @@
 using RetailPOS.Application.Checkout;
+using RetailPOS.Application.Persistence;
 using RetailPOS.Desktop.ViewModels;
 
 namespace RetailPOS.Desktop.Tests;
@@ -68,12 +69,30 @@ public sealed class CheckoutRecoveryViewModelTests
         Assert.Single(viewModel.Items);
     }
 
+    [Fact]
+    public async Task ManagerReviewItem_CannotCompleteOrderOrRequestReviewAgain()
+    {
+        var service = new RecordingCheckoutRecoveryService(Record() with
+        {
+            RecoveryStatus = PendingCheckoutStatus.ManagerReviewRequired,
+            CanCompleteOrder = false
+        });
+        var viewModel = new CheckoutRecoveryViewModel(service);
+
+        await viewModel.LoadAsync();
+
+        Assert.False(viewModel.CompleteOrderCommand.CanExecute(null));
+        Assert.False(viewModel.RequestManagerReviewCommand.CanExecute(null));
+        Assert.Equal("REVIEW", viewModel.SelectedItem?.StatusLabel);
+    }
+
     private static CheckoutRecoveryRecord Record() => new(
         PendingCheckoutId,
         Guid.NewGuid(),
         Guid.NewGuid(),
         Guid.NewGuid(),
         new DateTimeOffset(2026, 7, 8, 1, 0, 0, TimeSpan.Zero),
+        PendingCheckoutStatus.ApprovedButOrderNotCreated,
         3600m,
         "Approved",
         "APP-001",
@@ -84,6 +103,7 @@ public sealed class CheckoutRecoveryViewModelTests
         3600m,
         0m,
         3600m,
+        true,
         true,
         null);
 

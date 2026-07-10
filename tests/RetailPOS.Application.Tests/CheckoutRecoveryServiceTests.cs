@@ -11,7 +11,7 @@ public sealed class CheckoutRecoveryServiceTests
     private static readonly DateTimeOffset Now = new(2026, 7, 8, 1, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public async Task GetRecoverableAsync_ReturnsOnlyApprovedUnresolvedRecords()
+    public async Task GetRecoverableAsync_ReturnsApprovedAndManagerReviewRecords()
     {
         var repository = new RecordingPendingCheckoutRepository(
             ApprovedCheckout(PendingCheckoutId),
@@ -31,11 +31,17 @@ public sealed class CheckoutRecoveryServiceTests
 
         var records = await service.GetRecoverableAsync();
 
-        var record = Assert.Single(records);
+        Assert.Equal(2, records.Count);
+        var record = records.Single(item => item.PendingCheckoutId == PendingCheckoutId);
         Assert.Equal(PendingCheckoutId, record.PendingCheckoutId);
         Assert.True(record.IsSnapshotReadable);
+        Assert.True(record.CanCompleteOrder);
         Assert.Equal(3600m, record.CartTotal);
         Assert.Equal("Cola", Assert.Single(record.Lines).ProductName);
+
+        var review = records.Single(item =>
+            item.RecoveryStatus == PendingCheckoutStatus.ManagerReviewRequired);
+        Assert.False(review.CanCompleteOrder);
     }
 
     [Fact]
@@ -69,6 +75,7 @@ public sealed class CheckoutRecoveryServiceTests
         var record = Assert.Single(await service.GetRecoverableAsync());
 
         Assert.False(record.IsSnapshotReadable);
+        Assert.False(record.CanCompleteOrder);
         Assert.Contains("manager review", record.WarningMessage, StringComparison.OrdinalIgnoreCase);
         Assert.Empty(record.Lines);
         Assert.Equal(0m, record.CartTotal);
@@ -89,6 +96,7 @@ public sealed class CheckoutRecoveryServiceTests
         var record = Assert.Single(await service.GetRecoverableAsync());
 
         Assert.False(record.IsSnapshotReadable);
+        Assert.False(record.CanCompleteOrder);
         Assert.Contains("manager review", record.WarningMessage, StringComparison.OrdinalIgnoreCase);
         Assert.Empty(record.Lines);
     }
@@ -109,7 +117,8 @@ public sealed class CheckoutRecoveryServiceTests
 
         var record = Assert.Single(await service.GetRecoverableAsync());
 
-        Assert.False(record.IsSnapshotReadable);
+        Assert.True(record.IsSnapshotReadable);
+        Assert.False(record.CanCompleteOrder);
         Assert.Contains("manager review", record.WarningMessage, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(3600m, record.ApprovedAmount);
         Assert.Equal("Cola", Assert.Single(record.Lines).ProductName);

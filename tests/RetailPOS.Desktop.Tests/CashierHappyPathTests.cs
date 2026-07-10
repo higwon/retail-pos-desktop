@@ -12,6 +12,7 @@ using RetailPOS.Application.Receipts;
 using RetailPOS.Desktop.ViewModels;
 using RetailPOS.Domain.Payments;
 using RetailPOS.Infrastructure.DependencyInjection;
+using RetailPOS.Infrastructure.Devices;
 using RetailPOS.Infrastructure.Persistence;
 
 namespace RetailPOS.Desktop.Tests;
@@ -88,7 +89,8 @@ public sealed class CashierHappyPathTests
         var syncQueueRepository = services.GetRequiredService<ISyncQueueRepository>();
         var paymentStart = new RecoverablePaymentStartService(
             pendingRepository,
-            new LocalPaymentSimulator(() => Now),
+            new SimulatedPaymentTerminal(timeProvider),
+            new LocalCashPaymentProcessor(timeProvider),
             sessionContext,
             clock,
             idGenerator);

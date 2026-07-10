@@ -1,8 +1,8 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using RetailPOS.Application.Payments;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Domain.Payments;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace RetailPOS.Application.Checkout;
 
@@ -11,13 +11,13 @@ public interface IRecoverablePaymentStartService
     Task<RecoverablePaymentStartResult> StartAsync(
         CartSnapshot cart,
         PaymentMethod method,
-        PaymentSimulationMode mode = PaymentSimulationMode.Approve,
         CancellationToken cancellationToken = default);
 }
 
 public sealed class RecoverablePaymentStartService(
     IPendingCheckoutRepository pendingCheckoutRepository,
-    IPaymentSimulator paymentSimulator,
+    IPaymentTerminal paymentTerminal,
+    ICashPaymentProcessor cashPaymentProcessor,
     ICheckoutContextProvider checkoutContextProvider,
     ICheckoutClock clock,
     ICheckoutIdGenerator idGenerator) : IRecoverablePaymentStartService
@@ -27,22 +27,54 @@ public sealed class RecoverablePaymentStartService(
         Converters = { new JsonStringEnumConverter() }
     };
 
+    private readonly SemaphoreSlim _startGate = new(1, 1);
+
     public async Task<RecoverablePaymentStartResult> StartAsync(
         CartSnapshot cart,
         PaymentMethod method,
-        PaymentSimulationMode mode = PaymentSimulationMode.Approve,
         CancellationToken cancellationToken = default)
     {
+        if (!await _startGate.WaitAsync(0))
+        {
+            throw new InvalidOperationException("A payment attempt is already in progress.");
+        }
+
+        try
+        {
+            return await StartCoreAsync(cart, method, cancellationToken);
+        }
+        finally
+        {
+            _startGate.Release();
+        }
+    }
+
+    private async Task<RecoverablePaymentStartResult> StartCoreAsync(
+        CartSnapshot cart,
+        PaymentMethod method,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(cart);
-        if (cart.IsEmpty || cart.Total <= 0)
+        if (cart.IsEmpty || cart.Total <= 0m)
         {
             throw new InvalidOperationException("Payment requires a positive checkout total.");
         }
 
+        if (method is not PaymentMethod.Card and not PaymentMethod.Cash)
+        {
+            throw new ArgumentOutOfRangeException(nameof(method), method, "Unsupported payment method.");
+        }
+
         var context = checkoutContextProvider.GetCurrent();
+        await EnsureNoActivePaymentAsync(context, CancellationToken.None);
+
         var checkoutId = idGenerator.NewId();
         var createdAtUtc = EnsureUtc(clock.UtcNow, nameof(clock.UtcNow));
-        var paymentRequest = new PaymentRequestSnapshot(method, cart.Total, createdAtUtc);
+        var paymentRequest = new PaymentRequestSnapshot(
+            checkoutId,
+            method,
+            cart.Total,
+            createdAtUtc);
         var awaitingPayment = new PendingCheckoutRecord(
             checkoutId,
             context.StoreId,
@@ -61,61 +93,121 @@ public sealed class RecoverablePaymentStartService(
             null,
             createdAtUtc);
 
-        await pendingCheckoutRepository.SaveAsync(awaitingPayment, cancellationToken);
+        // Once created, payment-attempt state must remain durable even if the caller cancels.
+        await pendingCheckoutRepository.SaveAsync(awaitingPayment, CancellationToken.None);
 
-        var simulation = await paymentSimulator.SimulateAsync(
-            new PaymentSimulationRequest(method, cart.Total, mode),
-            cancellationToken);
+        PaymentAuthorizationResult authorization;
+        if (cancellationToken.IsCancellationRequested)
+        {
+            authorization = Cancelled(
+                cart.Total,
+                "Payment was cancelled before it was sent to the payment device.");
+        }
+        else
+        {
+            authorization = await AuthorizeAsync(
+                checkoutId,
+                cart.Total,
+                method,
+                cancellationToken);
+        }
 
-        var updated = simulation.IsApproved
-            ? ApprovedRecord(awaitingPayment, simulation)
-            : NonApprovedRecord(awaitingPayment, simulation);
+        authorization = Normalize(authorization, cart.Total);
+        var updated = authorization.Status switch
+        {
+            PaymentStatus.Approved => ApprovedRecord(awaitingPayment, method, authorization),
+            PaymentStatus.Failed or PaymentStatus.Cancelled =>
+                NonApprovedRecord(awaitingPayment, method, authorization),
+            PaymentStatus.Unknown => UnknownRecord(awaitingPayment, method, authorization),
+            _ => UnknownRecord(
+                awaitingPayment,
+                method,
+                Unknown(cart.Total, "Payment outcome could not be confirmed and requires review."))
+        };
 
-        await pendingCheckoutRepository.SaveAsync(updated, cancellationToken);
+        await pendingCheckoutRepository.SaveAsync(updated, CancellationToken.None);
+        return ToResult(updated, method, authorization);
+    }
 
-        return new RecoverablePaymentStartResult(
-            updated.Id,
-            updated.OrderId,
-            updated.RecoveryStatus,
-            updated.PaymentStatus,
-            simulation.Method,
-            simulation.RequestedAmount,
-            updated.ApprovedAmount,
-            updated.ApprovalCode,
-            updated.TransactionReference,
-            updated.PaymentApprovedAtUtc,
-            simulation.FailureMessage);
+    private async Task<PaymentAuthorizationResult> AuthorizeAsync(
+        Guid paymentAttemptId,
+        decimal amount,
+        PaymentMethod method,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return method switch
+            {
+                PaymentMethod.Card => await paymentTerminal.AuthorizeAsync(
+                    new PaymentAuthorizationRequest(paymentAttemptId, amount),
+                    cancellationToken),
+                PaymentMethod.Cash => await cashPaymentProcessor.AcceptAsync(
+                    new CashPaymentRequest(paymentAttemptId, amount),
+                    cancellationToken),
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(method),
+                    method,
+                    "Unsupported payment method.")
+            };
+        }
+        catch (OperationCanceledException) when (method == PaymentMethod.Card)
+        {
+            return Unknown(
+                amount,
+                "Card payment was interrupted after it was sent. Approval status is unknown and requires review.");
+        }
+        catch (OperationCanceledException)
+        {
+            return Cancelled(amount, "Cash payment was cancelled before acceptance.");
+        }
+        catch (Exception) when (method == PaymentMethod.Card)
+        {
+            return Unknown(
+                amount,
+                "Card terminal response could not be confirmed. Approval status is unknown and requires review.");
+        }
+        catch (Exception)
+        {
+            return Failed(amount, "Cash payment could not be recorded. Cart was not changed.");
+        }
+    }
+
+    private async Task EnsureNoActivePaymentAsync(
+        CheckoutContext context,
+        CancellationToken cancellationToken)
+    {
+        var unresolved = await pendingCheckoutRepository.GetUnresolvedAsync(cancellationToken);
+        var hasActivePayment = unresolved.Any(record =>
+            record.StoreId == context.StoreId &&
+            record.TerminalId == context.TerminalId &&
+            record.RecoveryStatus is
+                PendingCheckoutStatus.AwaitingPayment or
+                PendingCheckoutStatus.ApprovedButOrderNotCreated or
+                PendingCheckoutStatus.ManagerReviewRequired);
+
+        if (hasActivePayment)
+        {
+            throw new InvalidOperationException(
+                "This terminal has an unresolved payment that must be completed or reviewed before retry.");
+        }
     }
 
     private PendingCheckoutRecord ApprovedRecord(
         PendingCheckoutRecord awaitingPayment,
-        PaymentSimulationResult simulation)
+        PaymentMethod method,
+        PaymentAuthorizationResult authorization)
     {
-        if (simulation.ApprovedAmount is null || simulation.ApprovedAtUtc is null)
-        {
-            throw new InvalidOperationException("Approved payment simulation must include approval details.");
-        }
-
-        var approvedAtUtc = EnsureUtc(simulation.ApprovedAtUtc.Value, nameof(simulation.ApprovedAtUtc));
+        var approvedAtUtc = EnsureUtc(authorization.ApprovedAtUtc!.Value, nameof(authorization.ApprovedAtUtc));
         var orderId = idGenerator.NewId();
-        var paymentSnapshot = new PaymentResultSnapshot(
-            simulation.Method,
-            simulation.RequestedAmount,
-            PaymentStatus.Approved,
-            simulation.ApprovedAmount,
-            simulation.ApprovalCode,
-            simulation.TransactionReference,
-            approvedAtUtc,
-            null);
-
         return awaitingPayment with
         {
             RecoveryStatus = PendingCheckoutStatus.ApprovedButOrderNotCreated,
-            PaymentSnapshotJson = Serialize(paymentSnapshot),
+            PaymentSnapshotJson = Serialize(PaymentResultSnapshot.From(method, authorization)),
             PaymentStatus = PaymentStatus.Approved,
-            ApprovalCode = simulation.ApprovalCode,
-            ApprovedAmount = simulation.ApprovedAmount,
-            TransactionReference = simulation.TransactionReference,
+            ApprovalCode = authorization.ApprovalCode,
+            ApprovedAmount = authorization.ApprovedAmount,
+            TransactionReference = authorization.TransactionReference,
             PaymentApprovedAtUtc = approvedAtUtc,
             OrderId = orderId,
             LastUpdatedAtUtc = approvedAtUtc
@@ -124,32 +216,95 @@ public sealed class RecoverablePaymentStartService(
 
     private PendingCheckoutRecord NonApprovedRecord(
         PendingCheckoutRecord awaitingPayment,
-        PaymentSimulationResult simulation)
+        PaymentMethod method,
+        PaymentAuthorizationResult authorization)
     {
-        var failedAtUtc = EnsureUtc(clock.UtcNow, nameof(clock.UtcNow));
-        var paymentSnapshot = new PaymentResultSnapshot(
-            simulation.Method,
-            simulation.RequestedAmount,
-            simulation.Status,
-            null,
-            null,
-            null,
-            null,
-            simulation.FailureMessage);
-
+        var updatedAtUtc = EnsureUtc(clock.UtcNow, nameof(clock.UtcNow));
         return awaitingPayment with
         {
             RecoveryStatus = PendingCheckoutStatus.PaymentFailed,
-            PaymentSnapshotJson = Serialize(paymentSnapshot),
-            PaymentStatus = simulation.Status,
+            PaymentSnapshotJson = Serialize(PaymentResultSnapshot.From(method, authorization)),
+            PaymentStatus = authorization.Status,
             ApprovalCode = null,
             ApprovedAmount = null,
             TransactionReference = null,
             PaymentApprovedAtUtc = null,
             OrderId = null,
-            LastUpdatedAtUtc = failedAtUtc
+            LastUpdatedAtUtc = updatedAtUtc
         };
     }
+
+    private PendingCheckoutRecord UnknownRecord(
+        PendingCheckoutRecord awaitingPayment,
+        PaymentMethod method,
+        PaymentAuthorizationResult authorization)
+    {
+        var updatedAtUtc = EnsureUtc(clock.UtcNow, nameof(clock.UtcNow));
+        return awaitingPayment with
+        {
+            RecoveryStatus = PendingCheckoutStatus.ManagerReviewRequired,
+            PaymentSnapshotJson = Serialize(PaymentResultSnapshot.From(method, authorization)),
+            PaymentStatus = PaymentStatus.Unknown,
+            ApprovalCode = null,
+            ApprovedAmount = null,
+            TransactionReference = null,
+            PaymentApprovedAtUtc = null,
+            OrderId = null,
+            LastUpdatedAtUtc = updatedAtUtc
+        };
+    }
+
+    private static PaymentAuthorizationResult Normalize(
+        PaymentAuthorizationResult result,
+        decimal requestedAmount)
+    {
+        if (result.RequestedAmount != requestedAmount)
+        {
+            return Unknown(requestedAmount, "Payment amount did not match the request and requires review.");
+        }
+
+        if (result.Status == PaymentStatus.Approved &&
+            (result.ApprovedAmount != requestedAmount ||
+             result.ApprovedAtUtc is null ||
+             string.IsNullOrWhiteSpace(result.ApprovalCode)))
+        {
+            return Unknown(requestedAmount, "Payment approval details were incomplete and require review.");
+        }
+
+        return result.Status is
+            PaymentStatus.Approved or
+            PaymentStatus.Failed or
+            PaymentStatus.Cancelled or
+            PaymentStatus.Unknown
+            ? result
+            : Unknown(requestedAmount, "Payment outcome could not be confirmed and requires review.");
+    }
+
+    private static RecoverablePaymentStartResult ToResult(
+        PendingCheckoutRecord record,
+        PaymentMethod method,
+        PaymentAuthorizationResult authorization) =>
+        new(
+            record.Id,
+            record.OrderId,
+            record.RecoveryStatus,
+            record.PaymentStatus,
+            method,
+            authorization.RequestedAmount,
+            record.ApprovedAmount,
+            record.ApprovalCode,
+            record.TransactionReference,
+            record.PaymentApprovedAtUtc,
+            authorization.FailureMessage);
+
+    private static PaymentAuthorizationResult Failed(decimal amount, string message) =>
+        new(PaymentStatus.Failed, amount, null, null, null, null, message);
+
+    private static PaymentAuthorizationResult Cancelled(decimal amount, string message) =>
+        new(PaymentStatus.Cancelled, amount, null, null, null, null, message);
+
+    private static PaymentAuthorizationResult Unknown(decimal amount, string message) =>
+        new(PaymentStatus.Unknown, amount, null, null, null, null, message);
 
     private static string Serialize<T>(T value) => JsonSerializer.Serialize(value, JsonOptions);
 
@@ -193,6 +348,7 @@ public sealed class RecoverablePaymentStartService(
         decimal LineTotal);
 
     private sealed record PaymentRequestSnapshot(
+        Guid PaymentAttemptId,
         PaymentMethod Method,
         decimal RequestedAmount,
         DateTimeOffset RequestedAtUtc);
@@ -205,7 +361,21 @@ public sealed class RecoverablePaymentStartService(
         string? ApprovalCode,
         string? TransactionReference,
         DateTimeOffset? ApprovedAtUtc,
-        string? FailureMessage);
+        string? FailureMessage)
+    {
+        public static PaymentResultSnapshot From(
+            PaymentMethod method,
+            PaymentAuthorizationResult result) =>
+            new(
+                method,
+                result.RequestedAmount,
+                result.Status,
+                result.ApprovedAmount,
+                result.ApprovalCode,
+                result.TransactionReference,
+                result.ApprovedAtUtc,
+                result.FailureMessage);
+    }
 }
 
 public sealed record RecoverablePaymentStartResult(
@@ -222,4 +392,5 @@ public sealed record RecoverablePaymentStartResult(
     string? FailureMessage)
 {
     public bool IsApproved => PaymentStatus == PaymentStatus.Approved;
+    public bool IsUnknown => PaymentStatus == PaymentStatus.Unknown;
 }

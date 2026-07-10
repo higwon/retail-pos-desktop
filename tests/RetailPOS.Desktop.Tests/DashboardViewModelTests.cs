@@ -193,6 +193,7 @@ public sealed class DashboardViewModelTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             NowUtc,
+            PendingCheckoutStatus.ApprovedButOrderNotCreated,
             1000m,
             "Card",
             "APP-001",
@@ -203,6 +204,7 @@ public sealed class DashboardViewModelTests
             1000m,
             0m,
             1000m,
+            true,
             true,
             null);
     }
