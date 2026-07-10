@@ -22,7 +22,8 @@ public sealed class DashboardViewModelTests
         var queue = new RecordingSyncQueueRepository(
             QueueItem(SyncQueueStatus.Pending, retryCount: 0),
             QueueItem(SyncQueueStatus.Pending, retryCount: 2),
-            QueueItem(SyncQueueStatus.Exhausted, retryCount: 5));
+            QueueItem(SyncQueueStatus.Exhausted, retryCount: 5),
+            QueueItem(SyncQueueStatus.Resolved, retryCount: 5));
         var recovery = new RecordingCheckoutRecoveryService(recoverableCount: 2);
         var viewModel = ViewModel(orders, queue, recovery, ApiConnectivityStatus.Online);
 

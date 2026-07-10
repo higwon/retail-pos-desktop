@@ -156,9 +156,10 @@ public sealed partial class DashboardViewModel : ObservableObject
 
     private void ApplySync(SyncStatusSnapshot sync)
     {
+        var exhaustedCount = SyncReviewRequiredCount(sync);
         PendingSyncText = $"{sync.PendingCount:N0} pending";
         RetrySyncText = $"{sync.RetryCount:N0} retrying";
-        SyncReviewText = $"{sync.ReviewCount:N0} need review";
+        SyncReviewText = $"{exhaustedCount:N0} need review";
     }
 
     private void ApplyRecovery(int recoverableCount)
@@ -180,7 +181,8 @@ public sealed partial class DashboardViewModel : ObservableObject
 
     private void ApplyAttention(SyncStatusSnapshot sync, int recoverableCount)
     {
-        var workCount = sync.PendingCount + sync.RetryCount + sync.ReviewCount + recoverableCount;
+        var exhaustedCount = SyncReviewRequiredCount(sync);
+        var workCount = sync.PendingCount + sync.RetryCount + exhaustedCount + recoverableCount;
         DashboardStatusText = _connectivityStateStore.Current.Status switch
         {
             ApiConnectivityStatus.Offline => "API OFFLINE",
@@ -213,11 +215,11 @@ public sealed partial class DashboardViewModel : ObservableObject
             return;
         }
 
-        if (sync.ReviewCount > 0)
+        if (exhaustedCount > 0)
         {
-            AttentionTitle = sync.ReviewCount == 1
+            AttentionTitle = exhaustedCount == 1
                 ? "1 sync item needs review"
-                : $"{sync.ReviewCount:N0} sync items need review";
+                : $"{exhaustedCount:N0} sync items need review";
             AttentionDetail = "Open Status to review local sync records.";
             AttentionBackground = "#FFFEE2E2";
             return;
@@ -240,6 +242,9 @@ public sealed partial class DashboardViewModel : ObservableObject
         AttentionDetail = "Orders, sync queue, and recovery records are clear.";
         AttentionBackground = "#FFECFDF3";
     }
+
+    private static int SyncReviewRequiredCount(SyncStatusSnapshot sync) =>
+        sync.Items.Count(item => item.Status == SyncQueueStatus.Exhausted);
 
     private DateTimeOffset UtcNow()
     {
