@@ -62,7 +62,8 @@ integration demo and addresses visible cashier UX gaps:
 - Product selection for simulated barcode scans.
 - Cashier-facing device connectivity/readiness status.
 - Receipt/payment feedback consistency and layout fixes.
-- Product category filtering, clickable product tiles, header/navigation cleanup, and
+- Product category filtering, clickable product tiles, and cart interaction cleanup.
+- Safe sign-out/session teardown, header/navigation cleanup, payment/receipt spacing, and
   dashboard row sizing.
 
 ## Later Planned Areas
