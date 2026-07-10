@@ -83,6 +83,15 @@ Cashier: E0001 / 1234
 Manager: M0001 / 1234
 ```
 
+Cashier happy path demo checklist:
+
+1. Sign in with the cashier demo account.
+2. Add one product by barcode and another through product search.
+3. Apply a fixed discount and confirm the cart total changes.
+4. Start checkout and approve a card payment.
+5. Confirm the receipt preview shows the completed order and discount.
+6. Open sync status and confirm the order is queued while the API is offline.
+
 ## PR Description
 
 Include:
