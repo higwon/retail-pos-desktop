@@ -34,7 +34,12 @@ public static class DesktopServiceRegistration
         services.AddSingleton<IReceiptContextProvider, DemoReceiptContextProvider>();
         services.AddSingleton<IReceiptPrinter>(provider =>
             new LocalReceiptPrinter(provider.GetRequiredService<TimeProvider>()));
-        services.AddSingleton<IPaymentSimulator, LocalPaymentSimulator>();
+        services.AddSingleton<SimulatedPaymentTerminal>();
+        services.AddSingleton<IPaymentTerminal>(provider =>
+            provider.GetRequiredService<SimulatedPaymentTerminal>());
+        services.AddSingleton<IPaymentTerminalSimulatorControl>(provider =>
+            provider.GetRequiredService<SimulatedPaymentTerminal>());
+        services.AddSingleton<ICashPaymentProcessor, LocalCashPaymentProcessor>();
         services.AddScoped<IRecoverablePaymentStartService, RecoverablePaymentStartService>();
         services.AddScoped<IOrderCompletionService, OrderCompletionService>();
         services.AddScoped<ICheckoutRecoveryService, CheckoutRecoveryService>();

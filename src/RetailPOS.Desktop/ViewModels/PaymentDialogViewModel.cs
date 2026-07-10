@@ -15,6 +15,7 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
     private readonly IReceiptService _receiptService;
     private readonly ReceiptPreviewState _receiptPreviewState;
     private readonly CheckoutDisplayState _displayState;
+    private bool _paymentCompleted;
     private bool _disposed;
 
     public PaymentDialogViewModel(
@@ -32,33 +33,17 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
         _receiptPreviewState = receiptPreviewState;
         _displayState = displayState;
         ApproveCardPaymentCommand = new AsyncRelayCommand(
-            () => SimulateAsync(PaymentMethod.Card, PaymentSimulationMode.Approve),
-            CanSimulatePayment);
+            cancellationToken => StartPaymentAsync(PaymentMethod.Card, cancellationToken),
+            CanStartPayment);
         ApproveCashPaymentCommand = new AsyncRelayCommand(
-            () => SimulateAsync(PaymentMethod.Cash, PaymentSimulationMode.Approve),
-            CanSimulatePayment);
-        FailPaymentCommand = new AsyncRelayCommand(
-            () => SimulateAsync(PaymentMethod.Card, PaymentSimulationMode.Fail),
-            CanSimulatePayment);
-        TimeoutPaymentCommand = new AsyncRelayCommand(
-            () => SimulateAsync(PaymentMethod.Card, PaymentSimulationMode.Timeout),
-            CanSimulatePayment);
-        CancelPaymentCommand = new AsyncRelayCommand(
-            () => SimulateAsync(PaymentMethod.Card, PaymentSimulationMode.Cancel),
-            CanSimulatePayment);
-        CommunicationErrorPaymentCommand = new AsyncRelayCommand(
-            () => SimulateAsync(PaymentMethod.Card, PaymentSimulationMode.CommunicationError),
-            CanSimulatePayment);
+            cancellationToken => StartPaymentAsync(PaymentMethod.Cash, cancellationToken),
+            CanStartPayment);
         _checkoutSession.Changed += OnCheckoutChanged;
         RefreshAmount();
     }
 
     public IAsyncRelayCommand ApproveCardPaymentCommand { get; }
     public IAsyncRelayCommand ApproveCashPaymentCommand { get; }
-    public IAsyncRelayCommand FailPaymentCommand { get; }
-    public IAsyncRelayCommand TimeoutPaymentCommand { get; }
-    public IAsyncRelayCommand CancelPaymentCommand { get; }
-    public IAsyncRelayCommand CommunicationErrorPaymentCommand { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TotalAmount))]
@@ -69,6 +54,7 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
     [NotifyPropertyChangedFor(nameof(HasResult))]
     [NotifyPropertyChangedFor(nameof(IsApproved))]
     [NotifyPropertyChangedFor(nameof(IsFailed))]
+    [NotifyPropertyChangedFor(nameof(IsUnknown))]
     private PaymentStatus? _status;
 
     [ObservableProperty]
@@ -89,14 +75,21 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
     [ObservableProperty]
     private string _message = "Choose a method to continue.";
 
+    [ObservableProperty]
+    private bool _isPaymentInProgress;
+
     public string TotalAmount => $"{AmountDue:N0} KRW";
     public bool CanPay => AmountDue > 0;
     public bool HasResult => Status is not null;
     public bool IsApproved => Status == PaymentStatus.Approved;
-    public bool IsFailed => Status == PaymentStatus.Failed;
+    public bool IsFailed => Status is PaymentStatus.Failed or PaymentStatus.Cancelled;
+    public bool IsUnknown => Status == PaymentStatus.Unknown;
 
-    private async Task SimulateAsync(PaymentMethod method, PaymentSimulationMode mode)
+    private async Task StartPaymentAsync(PaymentMethod method, CancellationToken cancellationToken)
     {
+        IsPaymentInProgress = true;
+        NotifyCommandStateChanged();
+
         try
         {
             string? successMessage = null;
@@ -104,21 +97,47 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
             var result = await _paymentStartService.StartAsync(
                 _checkoutSession.Snapshot,
                 method,
-                mode);
+                cancellationToken);
+
+            if (!CanApplyResult(cancellationToken))
+            {
+                return;
+            }
 
             if (result.IsApproved)
             {
-                var completion = await _orderCompletionService.CompleteAsync(result.PendingCheckoutId);
+                var completion = await _orderCompletionService.CompleteAsync(
+                    result.PendingCheckoutId,
+                    cancellationToken);
+
+                if (!CanApplyResult(cancellationToken))
+                {
+                    return;
+                }
+
                 try
                 {
-                    var receipt = await _receiptService.GenerateAsync(completion.LocalOrderId);
+                    var receipt = await _receiptService.GenerateAsync(
+                        completion.LocalOrderId,
+                        cancellationToken);
+
+                    if (!CanApplyResult(cancellationToken))
+                    {
+                        return;
+                    }
+
                     _receiptPreviewState.Set(receipt);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return;
                 }
                 catch (Exception)
                 {
                     successMessage = "Payment approved. Receipt preview could not be generated automatically.";
                 }
 
+                _paymentCompleted = true;
                 _checkoutSession.Clear();
                 _displayState.ShowCompleted();
             }
@@ -127,25 +146,45 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
                 _displayState.ShowPaymentFailed(result.FailureMessage ?? "Payment failed.");
             }
 
-            Method = result.Method;
-            Status = result.PaymentStatus;
-            ApprovedAmount = result.ApprovedAmount;
-            ApprovalCode = result.ApprovalCode;
-            TransactionReference = result.TransactionReference;
-            ApprovedAtUtc = result.ApprovedAtUtc;
-            Message = result.IsApproved
-                ? successMessage ?? $"{result.Method} payment approved."
-                : result.FailureMessage ?? "Payment failed.";
+            ApplyResult(result, successMessage);
         }
-        catch (ArgumentOutOfRangeException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Closing the dialog cancels the command. The persisted checkout state owns any uncertain outcome.
+        }
+        catch (ArgumentOutOfRangeException) when (!_disposed)
         {
             SetFailure(method, "Payment requires a positive whole-KRW total.");
         }
-        catch (Exception)
+        catch (Exception) when (!_disposed)
         {
             SetFailure(method,
                 "Payment could not be completed. Keep the cart and try again or ask a manager to review checkout status.");
         }
+        finally
+        {
+            if (!_disposed)
+            {
+                IsPaymentInProgress = false;
+                NotifyCommandStateChanged();
+            }
+        }
+    }
+
+    private bool CanApplyResult(CancellationToken cancellationToken) =>
+        !_disposed && !cancellationToken.IsCancellationRequested;
+
+    private void ApplyResult(RecoverablePaymentStartResult result, string? successMessage)
+    {
+        Method = result.Method;
+        Status = result.PaymentStatus;
+        ApprovedAmount = result.ApprovedAmount;
+        ApprovalCode = result.ApprovalCode;
+        TransactionReference = result.TransactionReference;
+        ApprovedAtUtc = result.ApprovedAtUtc;
+        Message = result.IsApproved
+            ? successMessage ?? $"{result.Method} payment approved."
+            : result.FailureMessage ?? "Payment failed.";
     }
 
     private void SetFailure(PaymentMethod method, string message)
@@ -160,7 +199,8 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
         _displayState.ShowPaymentFailed(message);
     }
 
-    private bool CanSimulatePayment() => CanPay;
+    private bool CanStartPayment() =>
+        CanPay && !IsPaymentInProgress && !_paymentCompleted && !_disposed;
 
     private void OnCheckoutChanged(object? sender, EventArgs e) => RefreshAmount();
 
@@ -171,18 +211,22 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
             return;
         }
 
-        _checkoutSession.Changed -= OnCheckoutChanged;
         _disposed = true;
+        _checkoutSession.Changed -= OnCheckoutChanged;
+        ApproveCardPaymentCommand.Cancel();
+        ApproveCashPaymentCommand.Cancel();
+        NotifyCommandStateChanged();
     }
 
     private void RefreshAmount()
     {
         AmountDue = _checkoutSession.Snapshot.Total;
+        NotifyCommandStateChanged();
+    }
+
+    private void NotifyCommandStateChanged()
+    {
         ApproveCardPaymentCommand.NotifyCanExecuteChanged();
         ApproveCashPaymentCommand.NotifyCanExecuteChanged();
-        FailPaymentCommand.NotifyCanExecuteChanged();
-        TimeoutPaymentCommand.NotifyCanExecuteChanged();
-        CancelPaymentCommand.NotifyCanExecuteChanged();
-        CommunicationErrorPaymentCommand.NotifyCanExecuteChanged();
     }
 }

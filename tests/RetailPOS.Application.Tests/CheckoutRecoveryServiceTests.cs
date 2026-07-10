@@ -11,7 +11,7 @@ public sealed class CheckoutRecoveryServiceTests
     private static readonly DateTimeOffset Now = new(2026, 7, 8, 1, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public async Task GetRecoverableAsync_ReturnsOnlyApprovedUnresolvedRecords()
+    public async Task GetRecoverableAsync_ReturnsApprovedAndManagerReviewRecords()
     {
         var repository = new RecordingPendingCheckoutRepository(
             ApprovedCheckout(PendingCheckoutId),
@@ -31,11 +31,17 @@ public sealed class CheckoutRecoveryServiceTests
 
         var records = await service.GetRecoverableAsync();
 
-        var record = Assert.Single(records);
+        Assert.Equal(2, records.Count);
+        var record = records.Single(item => item.PendingCheckoutId == PendingCheckoutId);
         Assert.Equal(PendingCheckoutId, record.PendingCheckoutId);
         Assert.True(record.IsSnapshotReadable);
+        Assert.True(record.CanCompleteOrder);
         Assert.Equal(3600m, record.CartTotal);
         Assert.Equal("Cola", Assert.Single(record.Lines).ProductName);
+
+        var review = records.Single(item =>
+            item.RecoveryStatus == PendingCheckoutStatus.ManagerReviewRequired);
+        Assert.False(review.CanCompleteOrder);
     }
 
     [Fact]
@@ -69,6 +75,7 @@ public sealed class CheckoutRecoveryServiceTests
         var record = Assert.Single(await service.GetRecoverableAsync());
 
         Assert.False(record.IsSnapshotReadable);
+        Assert.False(record.CanCompleteOrder);
         Assert.Contains("manager review", record.WarningMessage, StringComparison.OrdinalIgnoreCase);
         Assert.Empty(record.Lines);
         Assert.Equal(0m, record.CartTotal);
@@ -89,6 +96,7 @@ public sealed class CheckoutRecoveryServiceTests
         var record = Assert.Single(await service.GetRecoverableAsync());
 
         Assert.False(record.IsSnapshotReadable);
+        Assert.False(record.CanCompleteOrder);
         Assert.Contains("manager review", record.WarningMessage, StringComparison.OrdinalIgnoreCase);
         Assert.Empty(record.Lines);
     }
@@ -109,7 +117,8 @@ public sealed class CheckoutRecoveryServiceTests
 
         var record = Assert.Single(await service.GetRecoverableAsync());
 
-        Assert.False(record.IsSnapshotReadable);
+        Assert.True(record.IsSnapshotReadable);
+        Assert.False(record.CanCompleteOrder);
         Assert.Contains("manager review", record.WarningMessage, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(3600m, record.ApprovedAmount);
         Assert.Equal("Cola", Assert.Single(record.Lines).ProductName);
@@ -146,6 +155,45 @@ public sealed class CheckoutRecoveryServiceTests
 
         Assert.Equal(PendingCheckoutStatus.ManagerReviewRequired, repository.Records.Single().RecoveryStatus);
         Assert.Equal(Now, repository.Records.Single().LastUpdatedAtUtc);
+    }
+
+    [Fact]
+    public async Task ResolveManagerReviewAsync_PreservesRecordAsResolved()
+    {
+        var repository = new RecordingPendingCheckoutRepository(ApprovedCheckout(PendingCheckoutId) with
+        {
+            RecoveryStatus = PendingCheckoutStatus.ManagerReviewRequired,
+            PaymentStatus = PaymentStatus.Unknown
+        });
+        var service = new CheckoutRecoveryService(
+            repository,
+            new RecordingOrderCompletionService(),
+            new StubCheckoutClock(Now));
+
+        await service.ResolveManagerReviewAsync(PendingCheckoutId);
+
+        Assert.Equal(PendingCheckoutStatus.ReviewResolved, repository.Records.Single().RecoveryStatus);
+        Assert.Empty(await repository.GetUnresolvedAsync());
+    }
+
+    [Fact]
+    public async Task ResolveManagerReviewAsync_RejectsApprovedPayment()
+    {
+        var repository = new RecordingPendingCheckoutRepository(ApprovedCheckout(PendingCheckoutId) with
+        {
+            RecoveryStatus = PendingCheckoutStatus.ManagerReviewRequired
+        });
+        var service = new CheckoutRecoveryService(
+            repository,
+            new RecordingOrderCompletionService(),
+            new StubCheckoutClock(Now));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ResolveManagerReviewAsync(PendingCheckoutId));
+
+        Assert.Equal(
+            PendingCheckoutStatus.ManagerReviewRequired,
+            repository.Records.Single().RecoveryStatus);
     }
 
     private static PendingCheckoutRecord ApprovedCheckout(Guid id) => new(
@@ -188,7 +236,9 @@ public sealed class CheckoutRecoveryServiceTests
         public Task<IReadOnlyList<PendingCheckoutRecord>> GetUnresolvedAsync(
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<PendingCheckoutRecord>>(
-                Records.Where(record => record.RecoveryStatus != PendingCheckoutStatus.Completed).ToList());
+                Records.Where(record =>
+                    record.RecoveryStatus is not PendingCheckoutStatus.Completed and
+                        not PendingCheckoutStatus.ReviewResolved).ToList());
 
         public Task MarkCompletedAsync(
             Guid id,

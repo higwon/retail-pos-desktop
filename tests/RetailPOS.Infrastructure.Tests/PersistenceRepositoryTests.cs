@@ -156,6 +156,24 @@ public sealed class PersistenceRepositoryTests
     }
 
     [Fact]
+    public async Task PendingCheckoutRepository_ExcludesResolvedReviewFromUnresolvedRecords()
+    {
+        await using var harness = await PersistenceHarness.CreateAsync();
+        var repository = harness.Services.GetRequiredService<IPendingCheckoutRepository>();
+        var now = new DateTimeOffset(2026, 7, 5, 2, 0, 0, TimeSpan.Zero);
+        var checkout = new PendingCheckoutRecord(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), now,
+            PendingCheckoutStatus.ReviewResolved,
+            "{\"items\":[]}", "{\"method\":\"Card\"}", PaymentStatus.Unknown,
+            null, null, null, null, null, null, now.AddMinutes(2));
+
+        await repository.SaveAsync(checkout);
+
+        Assert.NotNull(await repository.GetByIdAsync(checkout.Id));
+        Assert.Empty(await repository.GetUnresolvedAsync());
+    }
+
+    [Fact]
     public async Task SyncQueueRepository_ReturnsDueItemsInDeterministicOrderAndUpdatesStatus()
     {
         await using var harness = await PersistenceHarness.CreateAsync();

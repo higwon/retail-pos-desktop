@@ -31,7 +31,7 @@
             <Border Style="{StaticResource PanelBorderStyle}" Padding="20">
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Top"
-                               Text="Approved records"
+                               Text="Recovery and review records"
                                FontSize="19"
                                FontWeight="SemiBold"
                                Margin="0,0,0,16"/>
@@ -86,7 +86,7 @@
                                 Background="{StaticResource WarningMutedBrush}"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Top">
-                            <TextBlock Text="APPROVED"
+                            <TextBlock Text="{Binding SelectedItem.StatusLabel}"
                                        Foreground="{StaticResource WarningBrush}"
                                        FontWeight="SemiBold"/>
                         </Border>
@@ -159,7 +159,7 @@
             <Border Grid.Column="4" Style="{StaticResource PanelBorderStyle}" Padding="28">
                 <StackPanel>
                     <TextBlock Text="Recovery actions" FontSize="19" FontWeight="SemiBold"/>
-                    <TextBlock Text="Complete only after reviewing the approved payment."
+                    <TextBlock Text="Complete approved payments or route uncertain outcomes to review."
                                Style="{StaticResource SecondaryTextBlockStyle}"
                                Margin="0,6,0,24"/>
 
@@ -168,6 +168,10 @@
                             Margin="0,0,0,10"/>
                     <Button Content="Request manager review"
                             Command="{Binding RequestManagerReviewCommand}"
+                            Style="{StaticResource DangerMutedButtonStyle}"
+                            Margin="0,0,0,10"/>
+                    <Button Content="Resolve and release"
+                            Command="{Binding ResolveManagerReviewCommand}"
                             Style="{StaticResource DangerMutedButtonStyle}"
                             Margin="0,0,0,20"/>
                     <Button Content="Refresh"

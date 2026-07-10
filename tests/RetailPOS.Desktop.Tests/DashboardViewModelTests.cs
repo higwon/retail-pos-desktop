@@ -187,12 +187,18 @@ public sealed class DashboardViewModelTests
             CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
+        public Task ResolveManagerReviewAsync(
+            Guid pendingCheckoutId,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
         private static CheckoutRecoveryRecord Record() => new(
             Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
             NowUtc,
+            PendingCheckoutStatus.ApprovedButOrderNotCreated,
             1000m,
             "Card",
             "APP-001",
@@ -204,6 +210,8 @@ public sealed class DashboardViewModelTests
             0m,
             1000m,
             true,
+            true,
+            false,
             null);
     }
 
