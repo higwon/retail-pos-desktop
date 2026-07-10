@@ -8,19 +8,46 @@ namespace RetailPOS.Desktop.ViewModels;
 public sealed class DeviceSimulatorViewModel(
     ReceiptPrinterSimulatorViewModel receiptPrinter,
     BarcodeScannerSimulatorViewModel barcodeScanner,
-    CardTerminalSimulatorViewModel cardTerminal) : IDisposable
+    CardTerminalSimulatorViewModel cardTerminal,
+    CustomerDisplayHostViewModel customerDisplay) : IDisposable
 {
     public string EnvironmentName => "Development";
     public ReceiptPrinterSimulatorViewModel ReceiptPrinter { get; } = receiptPrinter;
     public BarcodeScannerSimulatorViewModel BarcodeScanner { get; } = barcodeScanner;
     public CardTerminalSimulatorViewModel CardTerminal { get; } = cardTerminal;
+    public CustomerDisplayHostViewModel CustomerDisplay { get; } = customerDisplay;
 
     public void Dispose()
     {
         ReceiptPrinter.Dispose();
         BarcodeScanner.Dispose();
         CardTerminal.Dispose();
+        CustomerDisplay.Dispose();
     }
+}
+
+public sealed partial class CustomerDisplayHostViewModel : ObservableObject, IDisposable
+{
+    private readonly RetailPOS.Desktop.DeviceSimulation.CustomerDisplayHost _host;
+    private bool _disposed;
+    public CustomerDisplayHostViewModel(RetailPOS.Desktop.DeviceSimulation.CustomerDisplayHost host)
+    {
+        _host = host; OpenCommand = new RelayCommand(Open, CanOpen); CloseCommand = new RelayCommand(host.Close, () => IsOpen);
+        host.StateChanged += OnChanged; host.RefreshTargets(); Refresh();
+    }
+    public IRelayCommand OpenCommand { get; }
+    public IRelayCommand CloseCommand { get; }
+    [ObservableProperty] private IReadOnlyList<RetailPOS.Desktop.DeviceSimulation.DisplayTarget> _targets = [];
+    [ObservableProperty] private RetailPOS.Desktop.DeviceSimulation.DisplayTarget? _selectedTarget;
+    [ObservableProperty] private bool _isOpen;
+    [ObservableProperty] private string _statusMessage = "";
+    partial void OnSelectedTargetChanged(RetailPOS.Desktop.DeviceSimulation.DisplayTarget? value) => OpenCommand.NotifyCanExecuteChanged();
+    private bool CanOpen() => SelectedTarget is not null &&
+        (!IsOpen || SelectedTarget.Id != _host.SelectedTargetId);
+    private void Open() { if (SelectedTarget is not null) _host.Open(SelectedTarget.Id); }
+    private void OnChanged(object? s, EventArgs e) => Refresh();
+    private void Refresh() { Targets = _host.Targets.Where(x => !x.IsPrimary).ToArray(); SelectedTarget = Targets.FirstOrDefault(x => x.Id == _host.SelectedTargetId) ?? SelectedTarget ?? Targets.FirstOrDefault(); IsOpen = _host.IsOpen; StatusMessage = _host.StatusMessage; OpenCommand.NotifyCanExecuteChanged(); CloseCommand.NotifyCanExecuteChanged(); }
+    public void Dispose() { if (_disposed) return; _disposed = true; _host.StateChanged -= OnChanged; }
 }
 
 public sealed partial class CardTerminalSimulatorViewModel : ObservableObject, IDisposable
