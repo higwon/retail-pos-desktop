@@ -40,10 +40,9 @@ EPIC-07 completed the cashier-facing workflow:
 - Hardened payment outcomes and a receipt-printer boundary.
 - Deterministic cashier happy-path validation through SQLite order and sync-queue persistence.
 
-## Next Planned Area
+## Completed Device Simulation
 
-EPIC-08 demonstrates device integration concepts after the POS-609 architecture
-readiness work and POS-610 payment-terminal boundary hardening:
+EPIC-08 demonstrates device integration concepts:
 
 - Barcode scanner simulator.
 - Receipt printer simulator.
@@ -52,6 +51,19 @@ readiness work and POS-610 payment-terminal boundary hardening:
 
 Simulator controls remain separate from cashier business commands. Real hardware
 adapters remain Phase 2.
+
+## Next Planned Area
+
+Before EPIC-09, the EPIC-08 follow-up turns the simulator into a stronger interactive
+integration demo and addresses visible cashier UX gaps:
+
+- Operator-driven printer and card request/response workflows.
+- Receipt payload and payment request inspection in the simulator.
+- Product selection for simulated barcode scans.
+- Cashier-facing device connectivity/readiness status.
+- Receipt/payment feedback consistency and layout fixes.
+- Product category filtering, clickable product tiles, header/navigation cleanup, and
+  dashboard row sizing.
 
 ## Later Planned Areas
 
