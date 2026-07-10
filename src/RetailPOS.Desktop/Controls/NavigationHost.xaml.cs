@@ -1,6 +1,7 @@
 using System.Windows.Controls;
 using Microsoft.Extensions.Logging;
 using RetailPOS.Application.Checkout;
+using RetailPOS.Desktop.DeviceSimulation;
 using RetailPOS.Desktop.Views;
 
 namespace RetailPOS.Desktop.Controls;
@@ -14,12 +15,14 @@ public partial class NavigationHost : UserControl
     private readonly CheckoutRecoveryView _checkoutRecoveryView;
     private readonly DashboardView _dashboardView;
     private readonly StatusView _statusView;
+    private readonly DeviceSimulatorWindowHost _deviceSimulatorWindowHost;
     private bool _startupRecoveryChecked;
     private bool _isLoginSubscribed;
 
     public NavigationHost(LoginView loginView, PosMainView posMainView,
         CheckoutRecoveryView checkoutRecoveryView, DashboardView dashboardView, StatusView statusView,
         ICheckoutRecoveryService checkoutRecoveryService,
+        DeviceSimulatorWindowHost deviceSimulatorWindowHost,
         ILogger<NavigationHost> logger)
     {
         InitializeComponent();
@@ -30,6 +33,10 @@ public partial class NavigationHost : UserControl
         _checkoutRecoveryView = checkoutRecoveryView;
         _dashboardView = dashboardView;
         _statusView = statusView;
+        _deviceSimulatorWindowHost = deviceSimulatorWindowHost;
+        DeviceSimulatorButton.Visibility = deviceSimulatorWindowHost.IsEnabled
+            ? System.Windows.Visibility.Visible
+            : System.Windows.Visibility.Collapsed;
         ContentRoot.Children.Add(_loginView);
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -107,4 +114,6 @@ public partial class NavigationHost : UserControl
     private void OnShowRecovery(object sender, System.Windows.RoutedEventArgs e) => Show(_checkoutRecoveryView);
     private void OnShowDashboard(object sender, System.Windows.RoutedEventArgs e) => Show(_dashboardView);
     private void OnShowStatus(object sender, System.Windows.RoutedEventArgs e) => Show(_statusView);
+    private void OnOpenDeviceSimulator(object sender, System.Windows.RoutedEventArgs e) =>
+        _deviceSimulatorWindowHost.ShowOrActivate();
 }

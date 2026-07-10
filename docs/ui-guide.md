@@ -45,6 +45,20 @@ Use the Figma file as the primary visual reference for WPF implementation.
 - Use messenger messages for cross-screen refresh when direct ownership would create coupling.
 - Do not dispose reusable ViewModels from `Unloaded`.
 
+## Device Simulator
+
+The Desktop-only Device Simulator is a modeless window available when
+`DeviceSimulation:Enabled` is true. It uses one tab per simulated device and remains
+separate from cashier-facing views and ViewModels.
+
+POS-702 introduces the shared window and Receipt Printer tab with connection state,
+operational state, next outcome, response delay, connect/disconnect, apply, and reset
+controls. POS-701, POS-703, and POS-704 add Barcode Scanner, Card Terminal, and Customer
+Display tabs to the same window.
+
+Simulator tabs use dedicated control ViewModels. Code-behind is limited to window
+lifecycle wiring, and simulator controls are never injected into cashier ViewModels.
+
 ## Customer Display
 
 Checkout and payment data continue to bind through the existing customer-display

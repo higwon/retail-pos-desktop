@@ -6,6 +6,7 @@ using RetailPOS.Application.Payments;
 using RetailPOS.Application.Receipts;
 using RetailPOS.Desktop.Controls;
 using RetailPOS.Desktop.Diagnostics;
+using RetailPOS.Desktop.DeviceSimulation;
 using RetailPOS.Desktop.ViewModels;
 using RetailPOS.Desktop.Views;
 using RetailPOS.Infrastructure.Devices;
@@ -32,8 +33,11 @@ public static class DesktopServiceRegistration
         services.AddSingleton<ICheckoutClock, SystemCheckoutClock>();
         services.AddSingleton<ICheckoutIdGenerator, GuidCheckoutIdGenerator>();
         services.AddSingleton<IReceiptContextProvider, DemoReceiptContextProvider>();
+        services.AddSingleton<SimulatedReceiptPrinter>();
         services.AddSingleton<IReceiptPrinter>(provider =>
-            new LocalReceiptPrinter(provider.GetRequiredService<TimeProvider>()));
+            provider.GetRequiredService<SimulatedReceiptPrinter>());
+        services.AddSingleton<IReceiptPrinterSimulatorControl>(provider =>
+            provider.GetRequiredService<SimulatedReceiptPrinter>());
         services.AddSingleton<SimulatedPaymentTerminal>();
         services.AddSingleton<IPaymentTerminal>(provider =>
             provider.GetRequiredService<SimulatedPaymentTerminal>());
@@ -51,6 +55,7 @@ public static class DesktopServiceRegistration
         services.AddTransient<CustomerDisplayWindow>();
         services.AddTransient<PaymentDialog>();
         services.AddTransient<ReceiptDialog>();
+        services.AddTransient<DeviceSimulatorWindow>();
         services.AddTransient<CheckoutRecoveryView>();
         services.AddTransient<DashboardView>();
         services.AddTransient<StatusView>();
@@ -61,6 +66,8 @@ public static class DesktopServiceRegistration
         services.AddTransient<CustomerDisplayViewModel>();
         services.AddTransient<PaymentDialogViewModel>();
         services.AddTransient<ReceiptViewModel>();
+        services.AddTransient<DeviceSimulatorViewModel>();
+        services.AddTransient<ReceiptPrinterSimulatorViewModel>();
         services.AddTransient<CheckoutRecoveryViewModel>();
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<StatusViewModel>();
@@ -70,6 +77,9 @@ public static class DesktopServiceRegistration
             () => provider.GetRequiredService<PaymentDialog>());
         services.AddTransient<Func<ReceiptDialog>>(provider =>
             () => provider.GetRequiredService<ReceiptDialog>());
+        services.AddTransient<Func<DeviceSimulatorWindow>>(provider =>
+            () => provider.GetRequiredService<DeviceSimulatorWindow>());
+        services.AddScoped<DeviceSimulatorWindowHost>();
 
         return services;
     }

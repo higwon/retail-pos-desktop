@@ -100,6 +100,25 @@ public sealed class ReceiptViewModelTests
         Assert.Equal("LOCAL-001", reopened.OrderNumber);
     }
 
+    [Fact]
+    public async Task Dispose_CancelsDelayedPrintAndIgnoresLateState()
+    {
+        var state = new ReceiptPreviewState();
+        state.Set(Receipt());
+        var printer = new BlockingReceiptPrinter();
+        var viewModel = new ReceiptViewModel(printer, state);
+        var printing = viewModel.PrintCommand.ExecuteAsync(null);
+        await printer.Started.Task;
+
+        viewModel.Dispose();
+        await printing;
+
+        Assert.True(printer.WasCancelled);
+        Assert.Null(viewModel.StatusMessage);
+        Assert.Null(viewModel.ErrorMessage);
+        Assert.False(viewModel.PrintCommand.CanExecute(null));
+    }
+
     private static ReceiptPreview Receipt() => new(
         "Retail Store",
         "Local POS Terminal",
@@ -132,11 +151,36 @@ public sealed class ReceiptViewModelTests
 
             PrintedReceipt = receipt;
             return Task.FromResult(new ReceiptPrintResult(
-                Succeeds,
+                Succeeds ? ReceiptPrintOutcome.Printed : ReceiptPrintOutcome.Failed,
                 Succeeds ? IssuedAtUtc : null,
                 Succeeds
                     ? "Receipt printed successfully."
                     : "Receipt could not be printed. Try again."));
+        }
+    }
+
+    private sealed class BlockingReceiptPrinter : IReceiptPrinter
+    {
+        public TaskCompletionSource Started { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public bool WasCancelled { get; private set; }
+
+        public async Task<ReceiptPrintResult> PrintAsync(
+            ReceiptPreview receipt,
+            CancellationToken cancellationToken = default)
+        {
+            Started.SetResult();
+            try
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                WasCancelled = true;
+                throw;
+            }
+
+            throw new InvalidOperationException("Unreachable");
         }
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RetailPOS.Desktop.DependencyInjection;
+using RetailPOS.Desktop.DeviceSimulation;
 using RetailPOS.Desktop.Diagnostics;
 using RetailPOS.Desktop.Sync;
 using RetailPOS.Infrastructure.DependencyInjection;
@@ -42,6 +43,8 @@ public partial class App : System.Windows.Application
                 builder.Configuration.GetSection(BackgroundOrderSyncOptions.SectionName));
             builder.Services.Configure<ApiConnectivityMonitorOptions>(
                 builder.Configuration.GetSection(ApiConnectivityMonitorOptions.SectionName));
+            builder.Services.Configure<DeviceSimulationOptions>(
+                builder.Configuration.GetSection(DeviceSimulationOptions.SectionName));
             builder.Services.AddSingleton<IApiConnectivityStateStore, ApiConnectivityStateStore>();
             builder.Services.AddHttpClient<IApiConnectivityClient, HttpApiConnectivityClient>(client =>
             {

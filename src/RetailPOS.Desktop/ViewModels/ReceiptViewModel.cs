@@ -5,17 +5,18 @@ using RetailPOS.Application.Receipts;
 
 namespace RetailPOS.Desktop.ViewModels;
 
-public sealed partial class ReceiptViewModel : ObservableObject
+public sealed partial class ReceiptViewModel : ObservableObject, IDisposable
 {
     private readonly IReceiptPrinter _receiptPrinter;
     private readonly ReceiptPreviewState _receiptPreviewState;
     private ReceiptPreview? _receipt;
+    private bool _disposed;
 
     public ReceiptViewModel(IReceiptPrinter receiptPrinter, ReceiptPreviewState receiptPreviewState)
     {
         _receiptPrinter = receiptPrinter;
         _receiptPreviewState = receiptPreviewState;
-        PrintCommand = new AsyncRelayCommand(PrintAsync, () => HasReceipt && !IsBusy);
+        PrintCommand = new AsyncRelayCommand(PrintAsync, CanPrint);
         LoadCurrentReceipt();
     }
 
@@ -73,7 +74,7 @@ public sealed partial class ReceiptViewModel : ObservableObject
         NotifyReceiptChanged();
     }
 
-    private async Task PrintAsync()
+    private async Task PrintAsync(CancellationToken cancellationToken)
     {
         if (_receipt is null)
         {
@@ -86,7 +87,12 @@ public sealed partial class ReceiptViewModel : ObservableObject
 
         try
         {
-            var result = await _receiptPrinter.PrintAsync(_receipt);
+            var result = await _receiptPrinter.PrintAsync(_receipt, cancellationToken);
+            if (_disposed || cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
             if (result.Succeeded)
             {
                 StatusMessage = result.Message;
@@ -96,14 +102,20 @@ public sealed partial class ReceiptViewModel : ObservableObject
                 ErrorMessage = result.Message;
             }
         }
-        catch (Exception)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception) when (!_disposed)
         {
             ErrorMessage = "Receipt could not be printed. The order is already completed; try again.";
         }
         finally
         {
-            IsBusy = false;
-            PrintCommand.NotifyCanExecuteChanged();
+            if (!_disposed)
+            {
+                IsBusy = false;
+                PrintCommand.NotifyCanExecuteChanged();
+            }
         }
     }
 
@@ -126,6 +138,20 @@ public sealed partial class ReceiptViewModel : ObservableObject
         OnPropertyChanged(nameof(DiscountAmount));
         OnPropertyChanged(nameof(TotalAmount));
         OnPropertyChanged(nameof(PlainText));
+        PrintCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanPrint() => HasReceipt && !IsBusy && !_disposed;
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        PrintCommand.Cancel();
         PrintCommand.NotifyCanExecuteChanged();
     }
 }
