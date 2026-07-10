@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.Input;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Payments;
 using RetailPOS.Application.Persistence;
@@ -76,6 +77,44 @@ public sealed class PaymentDialogViewModelTests
         Assert.Null(receipts.GeneratedForOrderId);
     }
 
+    [Theory]
+    [InlineData(nameof(PaymentDialogViewModel.TimeoutPaymentCommand), PaymentSimulationMode.Timeout, PaymentStatus.Failed, "Payment timed out. Keep the cart and try again.")]
+    [InlineData(nameof(PaymentDialogViewModel.CancelPaymentCommand), PaymentSimulationMode.Cancel, PaymentStatus.Cancelled, "Payment was cancelled. Cart was not changed.")]
+    [InlineData(nameof(PaymentDialogViewModel.CommunicationErrorPaymentCommand), PaymentSimulationMode.CommunicationError, PaymentStatus.Failed, "Payment terminal communication failed. Try again or ask a manager to review checkout status.")]
+    public async Task NonApprovedPaymentOutcomes_DoNotCompleteOrderAndKeepCart(
+        string commandName,
+        PaymentSimulationMode expectedMode,
+        PaymentStatus expectedStatus,
+        string expectedMessage)
+    {
+        var session = new CheckoutSession();
+        session.AddProduct(Product("Water", 1000m));
+        var service = new StubPaymentStartService(NonApproved(expectedStatus, expectedMessage));
+        var completion = new StubOrderCompletionService();
+        var receipts = new StubReceiptService();
+        var displayState = new CheckoutDisplayState();
+        var viewModel = new PaymentDialogViewModel(
+            session,
+            service,
+            completion,
+            receipts,
+            new ReceiptPreviewState(),
+            displayState);
+
+        await Command(viewModel, commandName).ExecuteAsync(null);
+
+        Assert.Equal(1000m, viewModel.AmountDue);
+        Assert.Equal(expectedMode, service.StartedWithMode);
+        Assert.Null(completion.CompletedPendingCheckoutId);
+        Assert.Null(receipts.GeneratedForOrderId);
+        Assert.Equal(expectedStatus, viewModel.Status);
+        Assert.False(viewModel.IsApproved);
+        Assert.Null(viewModel.ApprovalCode);
+        Assert.Equal(expectedMessage, viewModel.Message);
+        Assert.Equal(CheckoutDisplayPhase.PaymentFailed, displayState.Snapshot.Phase);
+        Assert.Equal(expectedMessage, displayState.Snapshot.PaymentMessage);
+    }
+
     [Fact]
     public void Commands_AreDisabledUntilCheckoutHasPositiveTotal()
     {
@@ -91,12 +130,18 @@ public sealed class PaymentDialogViewModelTests
         Assert.False(viewModel.ApproveCardPaymentCommand.CanExecute(null));
         Assert.False(viewModel.ApproveCashPaymentCommand.CanExecute(null));
         Assert.False(viewModel.FailPaymentCommand.CanExecute(null));
+        Assert.False(viewModel.TimeoutPaymentCommand.CanExecute(null));
+        Assert.False(viewModel.CancelPaymentCommand.CanExecute(null));
+        Assert.False(viewModel.CommunicationErrorPaymentCommand.CanExecute(null));
 
         session.AddProduct(Product("Water", 1000m));
 
         Assert.True(viewModel.ApproveCardPaymentCommand.CanExecute(null));
         Assert.True(viewModel.ApproveCashPaymentCommand.CanExecute(null));
         Assert.True(viewModel.FailPaymentCommand.CanExecute(null));
+        Assert.True(viewModel.TimeoutPaymentCommand.CanExecute(null));
+        Assert.True(viewModel.CancelPaymentCommand.CanExecute(null));
+        Assert.True(viewModel.CommunicationErrorPaymentCommand.CanExecute(null));
     }
 
     [Fact]
@@ -191,6 +236,30 @@ public sealed class PaymentDialogViewModelTests
         null,
         null,
         "Payment was declined by the local simulator.");
+
+    private static RecoverablePaymentStartResult NonApproved(
+        PaymentStatus status,
+        string failureMessage) => new(
+        Guid.NewGuid(),
+        null,
+        PendingCheckoutStatus.PaymentFailed,
+        status,
+        PaymentMethod.Card,
+        1000m,
+        null,
+        null,
+        null,
+        null,
+        failureMessage);
+
+    private static IAsyncRelayCommand Command(PaymentDialogViewModel viewModel, string commandName) =>
+        commandName switch
+        {
+            nameof(PaymentDialogViewModel.TimeoutPaymentCommand) => viewModel.TimeoutPaymentCommand,
+            nameof(PaymentDialogViewModel.CancelPaymentCommand) => viewModel.CancelPaymentCommand,
+            nameof(PaymentDialogViewModel.CommunicationErrorPaymentCommand) => viewModel.CommunicationErrorPaymentCommand,
+            _ => throw new ArgumentOutOfRangeException(nameof(commandName), commandName, null)
+        };
 
     private static Product Product(string name, decimal price) => new(
         Guid.NewGuid(), $"SKU-{name}", Guid.NewGuid().ToString("N"), name, "Beverages", price);

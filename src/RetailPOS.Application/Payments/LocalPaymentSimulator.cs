@@ -23,17 +23,10 @@ public sealed class LocalPaymentSimulator : IPaymentSimulator
         cancellationToken.ThrowIfCancellationRequested();
         ValidateAmount(request.Amount);
 
-        if (request.Mode == PaymentSimulationMode.Fail)
+        var nonApproved = NonApprovedResult(request);
+        if (nonApproved is not null)
         {
-            return Task.FromResult(new PaymentSimulationResult(
-                PaymentStatus.Failed,
-                request.Method,
-                request.Amount,
-                null,
-                null,
-                null,
-                null,
-                "Payment was declined by the local simulator."));
+            return Task.FromResult(nonApproved);
         }
 
         var approvedAtUtc = EnsureUtc(_utcNow());
@@ -51,6 +44,33 @@ public sealed class LocalPaymentSimulator : IPaymentSimulator
             transactionReference,
             approvedAtUtc,
             null));
+    }
+
+    private static PaymentSimulationResult? NonApprovedResult(PaymentSimulationRequest request)
+    {
+        var message = request.Mode switch
+        {
+            PaymentSimulationMode.Fail => "Payment was declined by the local simulator.",
+            PaymentSimulationMode.Timeout => "Payment timed out. Keep the cart and try again.",
+            PaymentSimulationMode.Cancel => "Payment was cancelled. Cart was not changed.",
+            PaymentSimulationMode.CommunicationError => "Payment terminal communication failed. Try again or ask a manager to review checkout status.",
+            _ => null
+        };
+
+        if (message is null)
+        {
+            return null;
+        }
+
+        return new PaymentSimulationResult(
+            request.Mode == PaymentSimulationMode.Cancel ? PaymentStatus.Cancelled : PaymentStatus.Failed,
+            request.Method,
+            request.Amount,
+            null,
+            null,
+            null,
+            null,
+            message);
     }
 
     private static void ValidateAmount(decimal amount)

@@ -45,6 +45,32 @@ public sealed class LocalPaymentSimulatorTests
     }
 
     [Theory]
+    [InlineData(PaymentSimulationMode.Timeout, PaymentStatus.Failed, "Payment timed out. Keep the cart and try again.")]
+    [InlineData(PaymentSimulationMode.Cancel, PaymentStatus.Cancelled, "Payment was cancelled. Cart was not changed.")]
+    [InlineData(PaymentSimulationMode.CommunicationError, PaymentStatus.Failed, "Payment terminal communication failed. Try again or ask a manager to review checkout status.")]
+    public async Task SimulateAsync_ReturnsDistinctNonApprovedOutcomes(
+        PaymentSimulationMode mode,
+        PaymentStatus expectedStatus,
+        string expectedMessage)
+    {
+        var simulator = new LocalPaymentSimulator(() => ApprovedAtUtc);
+
+        var result = await simulator.SimulateAsync(new PaymentSimulationRequest(
+            PaymentMethod.Card,
+            5_000m,
+            mode));
+
+        Assert.False(result.IsApproved);
+        Assert.Equal(expectedStatus, result.Status);
+        Assert.Equal(PaymentMethod.Card, result.Method);
+        Assert.Null(result.ApprovedAmount);
+        Assert.Null(result.ApprovalCode);
+        Assert.Null(result.TransactionReference);
+        Assert.Null(result.ApprovedAtUtc);
+        Assert.Equal(expectedMessage, result.FailureMessage);
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(-1)]
     [InlineData(1000.5)]

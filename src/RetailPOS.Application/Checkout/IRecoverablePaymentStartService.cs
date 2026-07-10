@@ -69,7 +69,7 @@ public sealed class RecoverablePaymentStartService(
 
         var updated = simulation.IsApproved
             ? ApprovedRecord(awaitingPayment, simulation)
-            : FailedRecord(awaitingPayment, simulation);
+            : NonApprovedRecord(awaitingPayment, simulation);
 
         await pendingCheckoutRepository.SaveAsync(updated, cancellationToken);
 
@@ -122,7 +122,7 @@ public sealed class RecoverablePaymentStartService(
         };
     }
 
-    private PendingCheckoutRecord FailedRecord(
+    private PendingCheckoutRecord NonApprovedRecord(
         PendingCheckoutRecord awaitingPayment,
         PaymentSimulationResult simulation)
     {
@@ -130,7 +130,7 @@ public sealed class RecoverablePaymentStartService(
         var paymentSnapshot = new PaymentResultSnapshot(
             simulation.Method,
             simulation.RequestedAmount,
-            PaymentStatus.Failed,
+            simulation.Status,
             null,
             null,
             null,
@@ -141,7 +141,7 @@ public sealed class RecoverablePaymentStartService(
         {
             RecoveryStatus = PendingCheckoutStatus.PaymentFailed,
             PaymentSnapshotJson = Serialize(paymentSnapshot),
-            PaymentStatus = PaymentStatus.Failed,
+            PaymentStatus = simulation.Status,
             ApprovalCode = null,
             ApprovedAmount = null,
             TransactionReference = null,

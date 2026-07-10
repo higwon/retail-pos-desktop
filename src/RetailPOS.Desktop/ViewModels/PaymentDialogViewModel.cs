@@ -40,6 +40,15 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
         FailPaymentCommand = new AsyncRelayCommand(
             () => SimulateAsync(PaymentMethod.Card, PaymentSimulationMode.Fail),
             CanSimulatePayment);
+        TimeoutPaymentCommand = new AsyncRelayCommand(
+            () => SimulateAsync(PaymentMethod.Card, PaymentSimulationMode.Timeout),
+            CanSimulatePayment);
+        CancelPaymentCommand = new AsyncRelayCommand(
+            () => SimulateAsync(PaymentMethod.Card, PaymentSimulationMode.Cancel),
+            CanSimulatePayment);
+        CommunicationErrorPaymentCommand = new AsyncRelayCommand(
+            () => SimulateAsync(PaymentMethod.Card, PaymentSimulationMode.CommunicationError),
+            CanSimulatePayment);
         _checkoutSession.Changed += OnCheckoutChanged;
         RefreshAmount();
     }
@@ -47,6 +56,9 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
     public IAsyncRelayCommand ApproveCardPaymentCommand { get; }
     public IAsyncRelayCommand ApproveCashPaymentCommand { get; }
     public IAsyncRelayCommand FailPaymentCommand { get; }
+    public IAsyncRelayCommand TimeoutPaymentCommand { get; }
+    public IAsyncRelayCommand CancelPaymentCommand { get; }
+    public IAsyncRelayCommand CommunicationErrorPaymentCommand { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TotalAmount))]
@@ -169,5 +181,8 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
         ApproveCardPaymentCommand.NotifyCanExecuteChanged();
         ApproveCashPaymentCommand.NotifyCanExecuteChanged();
         FailPaymentCommand.NotifyCanExecuteChanged();
+        TimeoutPaymentCommand.NotifyCanExecuteChanged();
+        CancelPaymentCommand.NotifyCanExecuteChanged();
+        CommunicationErrorPaymentCommand.NotifyCanExecuteChanged();
     }
 }

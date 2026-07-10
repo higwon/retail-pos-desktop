@@ -81,6 +81,37 @@ public sealed class RecoverablePaymentStartServiceTests
         Assert.Contains("Payment was declined by the local simulator.", failed.PaymentSnapshotJson);
     }
 
+    [Theory]
+    [InlineData(PaymentSimulationMode.Timeout, PaymentStatus.Failed, "Payment timed out. Keep the cart and try again.")]
+    [InlineData(PaymentSimulationMode.Cancel, PaymentStatus.Cancelled, "Payment was cancelled. Cart was not changed.")]
+    [InlineData(PaymentSimulationMode.CommunicationError, PaymentStatus.Failed, "Payment terminal communication failed. Try again or ask a manager to review checkout status.")]
+    public async Task StartAsync_NonApprovedPaymentUpdatesSameRecordWithoutOrder(
+        PaymentSimulationMode mode,
+        PaymentStatus expectedStatus,
+        string expectedMessage)
+    {
+        var repository = new RecordingPendingCheckoutRepository();
+        var service = Service(repository, new RecordingPaymentSimulator(
+            repository,
+            NonApprovedResult(expectedStatus, expectedMessage)));
+
+        var result = await service.StartAsync(Cart(), PaymentMethod.Card, mode);
+        var failed = repository.Saved[1];
+
+        Assert.False(result.IsApproved);
+        Assert.Null(result.OrderId);
+        Assert.Equal(PendingCheckoutId, failed.Id);
+        Assert.Equal(PendingCheckoutStatus.PaymentFailed, failed.RecoveryStatus);
+        Assert.Equal(expectedStatus, failed.PaymentStatus);
+        Assert.Null(failed.OrderId);
+        Assert.Null(failed.ApprovedAmount);
+        Assert.Null(failed.ApprovalCode);
+        Assert.Null(failed.TransactionReference);
+        Assert.Null(failed.PaymentApprovedAtUtc);
+        Assert.Contains(expectedStatus.ToString(), failed.PaymentSnapshotJson);
+        Assert.Contains(expectedMessage, failed.PaymentSnapshotJson);
+    }
+
     [Fact]
     public async Task StartAsync_RejectsEmptyCart()
     {
@@ -131,6 +162,18 @@ public sealed class RecoverablePaymentStartServiceTests
         null,
         null,
         "Payment was declined by the local simulator.");
+
+    private static PaymentSimulationResult NonApprovedResult(
+        PaymentStatus status,
+        string failureMessage) => new(
+        status,
+        PaymentMethod.Card,
+        3600m,
+        null,
+        null,
+        null,
+        null,
+        failureMessage);
 
     private sealed class RecordingPaymentSimulator(
         RecordingPendingCheckoutRepository repository,

@@ -1,7 +1,7 @@
 <Window x:Class="RetailPOS.Desktop.Views.PaymentDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Payment" Width="520" Height="600" ResizeMode="NoResize"
+        Title="Payment" Width="520" Height="720" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner" Background="{StaticResource AppBackgroundBrush}">
     <Grid Margin="32">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -23,6 +23,18 @@
                         Margin="0,0,0,12"/>
                 <Button Content="Simulate failure"
                         Command="{Binding FailPaymentCommand}"
+                        Style="{StaticResource DangerMutedButtonStyle}"
+                        Margin="0,0,0,12"/>
+                <Button Content="Simulate timeout"
+                        Command="{Binding TimeoutPaymentCommand}"
+                        Style="{StaticResource DangerMutedButtonStyle}"
+                        Margin="0,0,0,12"/>
+                <Button Content="Simulate cancellation"
+                        Command="{Binding CancelPaymentCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Margin="0,0,0,12"/>
+                <Button Content="Simulate communication error"
+                        Command="{Binding CommunicationErrorPaymentCommand}"
                         Style="{StaticResource DangerMutedButtonStyle}"/>
                 <TextBlock Text="{Binding Message}"
                            Style="{StaticResource SecondaryTextBlockStyle}"
