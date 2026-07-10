@@ -554,7 +554,7 @@ Acceptance criteria:
 Goal: Lock device boundaries and harden delayed payment execution before EPIC-08
 simulators add latency, cancellation, connection state, and indeterminate outcomes.
 
-Status: In progress.
+Status: Complete.
 
 ### POS-609 Device Simulation Architecture
 
@@ -593,7 +593,7 @@ Acceptance criteria:
 
 Goal: Demonstrate Windows POS peripheral integration concepts.
 
-Status: Next, after POS-609 and POS-610 readiness work.
+Status: Active.
 
 Delivery guidance:
 
@@ -638,6 +638,8 @@ Scope:
   timeout, cancelled, busy, and unexpected failure.
 - Add simulator controls for next outcome, response delay, and connection state
   outside the Application business contract.
+- Add a Desktop-only, modeless Device Simulator window organized by device tabs.
+- Implement the Receipt Printer tab first; later device tasks extend the same window.
 - Model device-specific ready/printing/busy/fault behavior.
 - Preserve user-safe UI messages and allow retry after recoverable failures.
 

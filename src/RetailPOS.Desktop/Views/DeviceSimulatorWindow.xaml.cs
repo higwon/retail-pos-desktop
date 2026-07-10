@@ -3,9 +3,9 @@ using RetailPOS.Desktop.ViewModels;
 
 namespace RetailPOS.Desktop.Views;
 
-public partial class ReceiptDialog : Window
+public partial class DeviceSimulatorWindow : Window
 {
-    public ReceiptDialog(ReceiptViewModel viewModel)
+    public DeviceSimulatorWindow(DeviceSimulatorViewModel viewModel)
     {
         InitializeComponent();
         DataContext = viewModel;

@@ -7,7 +7,22 @@ public interface IReceiptPrinter
         CancellationToken cancellationToken = default);
 }
 
+public enum ReceiptPrintOutcome
+{
+    Printed,
+    PaperOut,
+    CoverOpen,
+    Disconnected,
+    Timeout,
+    Cancelled,
+    Busy,
+    Failed
+}
+
 public sealed record ReceiptPrintResult(
-    bool Succeeded,
+    ReceiptPrintOutcome Outcome,
     DateTimeOffset? PrintedAtUtc,
-    string Message);
+    string Message)
+{
+    public bool Succeeded => Outcome == ReceiptPrintOutcome.Printed;
+}
