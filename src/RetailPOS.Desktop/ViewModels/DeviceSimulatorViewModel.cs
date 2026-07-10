@@ -32,7 +32,7 @@ public sealed partial class CustomerDisplayHostViewModel : ObservableObject, IDi
     private bool _disposed;
     public CustomerDisplayHostViewModel(RetailPOS.Desktop.DeviceSimulation.CustomerDisplayHost host)
     {
-        _host = host; OpenCommand = new RelayCommand(Open, () => SelectedTarget is not null && !IsOpen); CloseCommand = new RelayCommand(host.Close, () => IsOpen);
+        _host = host; OpenCommand = new RelayCommand(Open, CanOpen); CloseCommand = new RelayCommand(host.Close, () => IsOpen);
         host.StateChanged += OnChanged; host.RefreshTargets(); Refresh();
     }
     public IRelayCommand OpenCommand { get; }
@@ -42,6 +42,8 @@ public sealed partial class CustomerDisplayHostViewModel : ObservableObject, IDi
     [ObservableProperty] private bool _isOpen;
     [ObservableProperty] private string _statusMessage = "";
     partial void OnSelectedTargetChanged(RetailPOS.Desktop.DeviceSimulation.DisplayTarget? value) => OpenCommand.NotifyCanExecuteChanged();
+    private bool CanOpen() => SelectedTarget is not null &&
+        (!IsOpen || SelectedTarget.Id != _host.SelectedTargetId);
     private void Open() { if (SelectedTarget is not null) _host.Open(SelectedTarget.Id); }
     private void OnChanged(object? s, EventArgs e) => Refresh();
     private void Refresh() { Targets = _host.Targets.Where(x => !x.IsPrimary).ToArray(); SelectedTarget = Targets.FirstOrDefault(x => x.Id == _host.SelectedTargetId) ?? SelectedTarget ?? Targets.FirstOrDefault(); IsOpen = _host.IsOpen; StatusMessage = _host.StatusMessage; OpenCommand.NotifyCanExecuteChanged(); CloseCommand.NotifyCanExecuteChanged(); }

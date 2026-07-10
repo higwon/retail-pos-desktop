@@ -1,4 +1,5 @@
 using RetailPOS.Desktop.DeviceSimulation;
+using RetailPOS.Desktop.ViewModels;
 using System.Drawing;
 
 namespace RetailPOS.Desktop.Tests;
@@ -27,6 +28,21 @@ public sealed class CustomerDisplayHostTests
     {
         var provider = new StubProvider { IncludeThird = true }; var factory = new WindowFactory(); using var host = new CustomerDisplayHost(provider, factory.Create);
         host.Open("secondary"); host.Open("third");
+        Assert.Equal(1, factory.Count); Assert.Equal("third", factory.Window.Target?.Id); Assert.Equal("third", host.SelectedTargetId);
+    }
+
+    [Fact]
+    public void ViewModelAllowsMovingOpenWindowToDifferentSelectedTarget()
+    {
+        var provider = new StubProvider { IncludeThird = true }; var factory = new WindowFactory(); using var host = new CustomerDisplayHost(provider, factory.Create); using var viewModel = new CustomerDisplayHostViewModel(host);
+        viewModel.SelectedTarget = viewModel.Targets.Single(target => target.Id == "secondary");
+        viewModel.OpenCommand.Execute(null);
+        Assert.False(viewModel.OpenCommand.CanExecute(null));
+
+        viewModel.SelectedTarget = viewModel.Targets.Single(target => target.Id == "third");
+        Assert.True(viewModel.OpenCommand.CanExecute(null));
+        viewModel.OpenCommand.Execute(null);
+
         Assert.Equal(1, factory.Count); Assert.Equal("third", factory.Window.Target?.Id); Assert.Equal("third", host.SelectedTargetId);
     }
 
