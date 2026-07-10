@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using CommunityToolkit.Mvvm.Messaging;
 using RetailPOS.Application.Authentication;
+using RetailPOS.Application.Devices;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Payments;
 using RetailPOS.Application.Receipts;
@@ -38,6 +39,11 @@ public static class DesktopServiceRegistration
             provider.GetRequiredService<SimulatedReceiptPrinter>());
         services.AddSingleton<IReceiptPrinterSimulatorControl>(provider =>
             provider.GetRequiredService<SimulatedReceiptPrinter>());
+        services.AddSingleton<SimulatedBarcodeScanner>();
+        services.AddSingleton<IBarcodeScanner>(provider =>
+            provider.GetRequiredService<SimulatedBarcodeScanner>());
+        services.AddSingleton<IBarcodeScannerSimulatorControl>(provider =>
+            provider.GetRequiredService<SimulatedBarcodeScanner>());
         services.AddSingleton<SimulatedPaymentTerminal>();
         services.AddSingleton<IPaymentTerminal>(provider =>
             provider.GetRequiredService<SimulatedPaymentTerminal>());
@@ -61,13 +67,14 @@ public static class DesktopServiceRegistration
         services.AddTransient<StatusView>();
         services.AddTransient<LoginViewModel>();
         services.AddTransient<PosMainViewModel>();
-        services.AddTransient<ProductGridViewModel>();
+        services.AddScoped<ProductGridViewModel>();
         services.AddTransient<CartPanelViewModel>();
         services.AddTransient<CustomerDisplayViewModel>();
         services.AddTransient<PaymentDialogViewModel>();
         services.AddTransient<ReceiptViewModel>();
         services.AddTransient<DeviceSimulatorViewModel>();
         services.AddTransient<ReceiptPrinterSimulatorViewModel>();
+        services.AddTransient<BarcodeScannerSimulatorViewModel>();
         services.AddTransient<CheckoutRecoveryViewModel>();
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<StatusViewModel>();
@@ -80,6 +87,9 @@ public static class DesktopServiceRegistration
         services.AddTransient<Func<DeviceSimulatorWindow>>(provider =>
             () => provider.GetRequiredService<DeviceSimulatorWindow>());
         services.AddScoped<DeviceSimulatorWindowHost>();
+        services.AddScoped<BarcodeScannerCoordinator>();
+        services.AddScoped<IUiDispatcher>(_ => new WpfUiDispatcher(
+            System.Windows.Application.Current.Dispatcher));
 
         return services;
     }

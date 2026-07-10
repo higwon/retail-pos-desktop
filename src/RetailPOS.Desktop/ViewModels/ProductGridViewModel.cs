@@ -121,27 +121,48 @@ public sealed partial class ProductGridViewModel : ObservableObject
             return;
         }
 
+        var found = await ProcessBarcodeAsync(barcode, cancellationToken);
+        if (found)
+        {
+            BarcodeText = string.Empty;
+        }
+    }
+
+    public async Task<bool> ProcessBarcodeAsync(
+        string barcode,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        barcode = barcode.Trim();
+        if (string.IsNullOrEmpty(barcode))
+        {
+            return false;
+        }
+
         BarcodeMessage = null;
 
         try
         {
             var product = await _productRepository.GetByBarcodeAsync(barcode, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             if (product is null)
             {
                 BarcodeMessage = "Product barcode was not found. Cart was not changed.";
-                return;
+                return false;
             }
 
             SelectedProduct = product;
-            BarcodeText = string.Empty;
             _checkoutSession.AddProduct(product);
+            return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            return false;
         }
         catch
         {
             BarcodeMessage = "Barcode lookup could not be completed. Try again.";
+            return false;
         }
     }
 }

@@ -49,6 +49,73 @@
         </Border>
 
         <TabControl Grid.Row="1" Margin="28,22,28,28">
+            <TabItem Header="Barcode Scanner">
+                <Grid Margin="0,18,0,0" DataContext="{Binding BarcodeScanner}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Style="{StaticResource PanelBorderStyle}" Padding="24">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Connection" Style="{StaticResource SecondaryTextBlockStyle}"/>
+                                <TextBlock Text="{Binding ConnectionState}"
+                                           FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Margin="0,6,0,0"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="Connect"
+                                        Command="{Binding ConnectCommand}"
+                                        Style="{StaticResource PrimaryBlueButtonStyle}"
+                                        MinWidth="96"
+                                        Margin="0,0,8,0"/>
+                                <Button Content="Disconnect"
+                                        Command="{Binding DisconnectCommand}"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        MinWidth="96"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="1" Margin="0,18,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="18"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Barcode" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                            <TextBox Text="{Binding Barcode, UpdateSourceTrigger=PropertyChanged}"/>
+                            <CheckBox Content="Raise callback on a background thread"
+                                      IsChecked="{Binding EmitOnBackgroundThread}"
+                                      Margin="0,14,0,0"/>
+                        </StackPanel>
+                        <Button Grid.Column="2"
+                                Content="Emit Scan"
+                                Command="{Binding EmitScanCommand}"
+                                Style="{StaticResource PrimaryBlueButtonStyle}"
+                                MinWidth="110"
+                                VerticalAlignment="Bottom"/>
+                    </Grid>
+
+                    <StackPanel Grid.Row="2" Margin="0,20,0,0">
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   Foreground="{StaticResource SuccessBrush}"
+                                   TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Foreground="{StaticResource DangerBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
             <TabItem Header="Receipt Printer">
                 <Grid Margin="0,18,0,0" DataContext="{Binding ReceiptPrinter}">
                     <Grid.RowDefinitions>
