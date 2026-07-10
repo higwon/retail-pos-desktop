@@ -153,6 +153,12 @@ public sealed class SimulatedReceiptPrinter(TimeProvider timeProvider)
         ObjectDisposedException.ThrowIf(_disposed, this);
         lock (_sync)
         {
+            if (_operationalState == ReceiptPrinterOperationalState.Printing)
+            {
+                throw new InvalidOperationException(
+                    "Receipt printer simulation cannot be reset while printing.");
+            }
+
             _settings = ReceiptPrinterSimulationSettings.Default;
             _operationalState = _connectionState == ReceiptPrinterConnectionState.Connected
                 ? ReceiptPrinterOperationalState.Ready
@@ -170,13 +176,6 @@ public sealed class SimulatedReceiptPrinter(TimeProvider timeProvider)
         ArgumentNullException.ThrowIfNull(receipt);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (ConnectionState == ReceiptPrinterConnectionState.Disconnected)
-        {
-            return Result(
-                ReceiptPrintOutcome.Disconnected,
-                "Receipt printer is disconnected. Connect it and try again.");
-        }
-
         if (!await _printGate.WaitAsync(0, cancellationToken))
         {
             return Result(
@@ -187,21 +186,26 @@ public sealed class SimulatedReceiptPrinter(TimeProvider timeProvider)
         CancellationTokenSource? linkedCancellation = null;
         try
         {
-            var settings = TakeSettingsAndStartPrint();
-            linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            lock (_sync)
+            var start = TryStartPrint(cancellationToken);
+            if (start is null)
             {
-                _activePrintCancellation = linkedCancellation;
+                return Result(
+                    ReceiptPrintOutcome.Disconnected,
+                    "Receipt printer is disconnected. Connect it and try again.");
             }
 
+            linkedCancellation = start.Cancellation;
             RaiseStateChanged();
-            if (settings.ResponseDelay > TimeSpan.Zero)
+            if (start.Settings.ResponseDelay > TimeSpan.Zero)
             {
-                await Task.Delay(settings.ResponseDelay, timeProvider, linkedCancellation.Token);
+                await Task.Delay(
+                    start.Settings.ResponseDelay,
+                    timeProvider,
+                    linkedCancellation.Token);
             }
 
             linkedCancellation.Token.ThrowIfCancellationRequested();
-            return Complete(settings.NextOutcome);
+            return Complete(start.Settings.NextOutcome);
         }
         catch (OperationCanceledException)
         {
@@ -233,54 +237,36 @@ public sealed class SimulatedReceiptPrinter(TimeProvider timeProvider)
         }
     }
 
-    private ReceiptPrinterSimulationSettings TakeSettingsAndStartPrint()
+    private PrintStartContext? TryStartPrint(CancellationToken cancellationToken)
     {
         lock (_sync)
         {
+            if (_connectionState == ReceiptPrinterConnectionState.Disconnected)
+            {
+                return null;
+            }
+
+            var linkedCancellation =
+                CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             var settings = _settings;
             _settings = ReceiptPrinterSimulationSettings.Default;
             _operationalState = ReceiptPrinterOperationalState.Printing;
-            return settings;
+            _activePrintCancellation = linkedCancellation;
+            return new PrintStartContext(settings, linkedCancellation);
         }
     }
 
     private ReceiptPrintResult Complete(ReceiptPrintOutcome outcome)
     {
-        var result = outcome switch
-        {
-            ReceiptPrintOutcome.Printed => new ReceiptPrintResult(
-                outcome,
-                timeProvider.GetUtcNow(),
-                "Receipt printed successfully."),
-            ReceiptPrintOutcome.PaperOut => Result(
-                outcome,
-                "Receipt printer is out of paper. Refill paper and retry."),
-            ReceiptPrintOutcome.CoverOpen => Result(
-                outcome,
-                "Receipt printer cover is open. Close it and retry."),
-            ReceiptPrintOutcome.Disconnected => Result(
-                outcome,
-                "Receipt printer is disconnected. Connect it and try again."),
-            ReceiptPrintOutcome.Timeout => Result(
-                outcome,
-                "Receipt printer did not respond in time. Check it and retry."),
-            ReceiptPrintOutcome.Cancelled => Result(
-                outcome,
-                "Receipt printing was cancelled. The receipt can be retried."),
-            ReceiptPrintOutcome.Busy => Result(
-                outcome,
-                "Receipt printer is busy. Wait for the current print to finish."),
-            ReceiptPrintOutcome.Failed => Result(
-                outcome,
-                "Receipt could not be printed. Check the printer and retry."),
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(outcome),
-                outcome,
-                "Unsupported receipt printer outcome.")
-        };
-
         lock (_sync)
         {
+            if (_connectionState == ReceiptPrinterConnectionState.Disconnected)
+            {
+                return Result(
+                    ReceiptPrintOutcome.Disconnected,
+                    "Receipt printer disconnected before printing completed.");
+            }
+
             if (outcome == ReceiptPrintOutcome.Disconnected)
             {
                 _connectionState = ReceiptPrinterConnectionState.Disconnected;
@@ -295,9 +281,40 @@ public sealed class SimulatedReceiptPrinter(TimeProvider timeProvider)
                     ? ReceiptPrinterOperationalState.Ready
                     : ReceiptPrinterOperationalState.Faulted;
             }
-        }
 
-        return result;
+            return outcome switch
+            {
+                ReceiptPrintOutcome.Printed => new ReceiptPrintResult(
+                    outcome,
+                    timeProvider.GetUtcNow(),
+                    "Receipt printed successfully."),
+                ReceiptPrintOutcome.PaperOut => Result(
+                    outcome,
+                    "Receipt printer is out of paper. Refill paper and retry."),
+                ReceiptPrintOutcome.CoverOpen => Result(
+                    outcome,
+                    "Receipt printer cover is open. Close it and retry."),
+                ReceiptPrintOutcome.Disconnected => Result(
+                    outcome,
+                    "Receipt printer is disconnected. Connect it and try again."),
+                ReceiptPrintOutcome.Timeout => Result(
+                    outcome,
+                    "Receipt printer did not respond in time. Check it and retry."),
+                ReceiptPrintOutcome.Cancelled => Result(
+                    outcome,
+                    "Receipt printing was cancelled. The receipt can be retried."),
+                ReceiptPrintOutcome.Busy => Result(
+                    outcome,
+                    "Receipt printer is busy. Wait for the current print to finish."),
+                ReceiptPrintOutcome.Failed => Result(
+                    outcome,
+                    "Receipt could not be printed. Check the printer and retry."),
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(outcome),
+                    outcome,
+                    "Unsupported receipt printer outcome.")
+            };
+        }
     }
 
     private void SetOperationalState(ReceiptPrinterOperationalState state)
@@ -310,6 +327,10 @@ public sealed class SimulatedReceiptPrinter(TimeProvider timeProvider)
 
     private static ReceiptPrintResult Result(ReceiptPrintOutcome outcome, string message) =>
         new(outcome, null, message);
+
+    private sealed record PrintStartContext(
+        ReceiptPrinterSimulationSettings Settings,
+        CancellationTokenSource Cancellation);
 
     private void RaiseStateChanged() => StateChanged?.Invoke(this, EventArgs.Empty);
 

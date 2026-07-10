@@ -77,6 +77,48 @@ public sealed class SimulatedReceiptPrinterTests
     }
 
     [Fact]
+    public async Task Disconnect_WhenPrintingStateIsPublishedCannotReturnPrintedOrReady()
+    {
+        var printer = new SimulatedReceiptPrinter(TimeProvider.System);
+        printer.ConfigureNext(new ReceiptPrinterSimulationSettings(
+            ReceiptPrintOutcome.Printed,
+            TimeSpan.FromMinutes(1)));
+        printer.StateChanged += DisconnectWhenPrinting;
+
+        var result = await printer.PrintAsync(Receipt());
+
+        Assert.Equal(ReceiptPrintOutcome.Disconnected, result.Outcome);
+        Assert.Equal(ReceiptPrinterConnectionState.Disconnected, printer.ConnectionState);
+        Assert.Equal(ReceiptPrinterOperationalState.Disconnected, printer.OperationalState);
+
+        void DisconnectWhenPrinting(object? sender, EventArgs args)
+        {
+            if (printer.OperationalState == ReceiptPrinterOperationalState.Printing)
+            {
+                printer.Disconnect();
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Reset_WhilePrintingIsRejectedAndDoesNotChangeOperationalState()
+    {
+        var printer = new SimulatedReceiptPrinter(TimeProvider.System);
+        printer.ConfigureNext(new ReceiptPrinterSimulationSettings(
+            ReceiptPrintOutcome.Printed,
+            TimeSpan.FromMinutes(1)));
+        using var cancellation = new CancellationTokenSource();
+        var printing = printer.PrintAsync(Receipt(), cancellation.Token);
+
+        var exception = Assert.Throws<InvalidOperationException>(printer.Reset);
+
+        Assert.Contains("while printing", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(ReceiptPrinterOperationalState.Printing, printer.OperationalState);
+        cancellation.Cancel();
+        Assert.Equal(ReceiptPrintOutcome.Cancelled, (await printing).Outcome);
+    }
+
+    [Fact]
     public async Task ResetAfterFaultAllowsRetry()
     {
         var printer = new SimulatedReceiptPrinter(TimeProvider.System);
