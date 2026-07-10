@@ -70,6 +70,20 @@ public sealed class LocalPaymentSimulatorTests
         Assert.Equal(expectedMessage, result.FailureMessage);
     }
 
+    [Fact]
+    public async Task SimulateAsync_RejectsUnsupportedMode()
+    {
+        var simulator = new LocalPaymentSimulator(() => ApprovedAtUtc);
+
+        var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            simulator.SimulateAsync(new PaymentSimulationRequest(
+                PaymentMethod.Card,
+                5_000m,
+                (PaymentSimulationMode)999)));
+
+        Assert.Equal("Mode", exception.ParamName);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
