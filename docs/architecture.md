@@ -91,3 +91,37 @@ Device integrations are behind interfaces and begin as simulators:
 - Customer-facing display.
 
 Real hardware can be added later without changing core business logic.
+
+Business-facing device ports expose normal operations only. Application use cases may
+request a barcode scan result, receipt print, or payment authorization, but they must
+not select simulator-only scenarios such as timeout, paper-out, or communication
+failure. Simulator controls belong to Infrastructure or to a Desktop-only developer
+surface and are registered separately from the business port.
+
+Simulator implementations live in Infrastructure unless the behavior directly owns
+Windows or WPF resources. Monitor discovery, WPF window placement, fullscreen display,
+and DPI handling stay in Desktop.
+
+Terminal-owned device services use one instance for the terminal UI scope. Long-running
+device operations accept cancellation tokens. Device callbacks may arrive on a
+background thread; Desktop adapters or coordinators must marshal UI-bound updates to
+the WPF dispatcher before changing observable UI state.
+
+Use these common connection terms where they apply:
+
+- `Disconnected`
+- `Connecting`
+- `Connected`
+- `Faulted`
+
+Operational states such as `Busy`, `WaitingForCard`, or `Printing` remain
+device-specific. Do not introduce a generic `IDevice<T>` framework until repeated
+implementation demonstrates a useful shared contract.
+
+Barcode scanning uses an event-producing device boundary for simulator and future
+adapter integration. Existing TextBox and keyboard-wedge entry remains available as
+manual input and fallback.
+
+Customer display data continues to come from checkout and display state. Desktop owns
+the display host, available-monitor discovery, single-window lifetime, target
+selection, placement, disconnect fallback, and cleanup.

@@ -387,15 +387,16 @@ required by the API upload contract before the Desktop sync worker consumes it.
 
 Goal: Close the cashier-facing POS workflow before adding richer device simulators.
 
-Status: Planned next.
+Status: Complete.
 
-Reason:
+Completed scope:
 
-- `PosMainViewModel` is still a shell and does not own the main register workflow.
-- The cart checkout button is disabled, so the cashier payment path currently relies on a top-bar shortcut.
-- Barcode entry is not yet a fast path from scan/input to cart.
-- Dashboard values are hardcoded and not bound to operational data.
-- Payment and receipt simulation boundaries need to be shaped before device simulation grows around them.
+- Demo login establishes the current cashier and terminal session.
+- The POS header and dashboard bind to operational state.
+- Cart checkout is the primary payment entry point.
+- Barcode entry supports a fast path while preserving product search.
+- Payment outcomes are hardened and receipt printing has an application-level boundary.
+- The cashier happy path is validated through SQLite order and sync-queue persistence.
 
 ### POS-601 Login MVP and Session Context
 
@@ -548,19 +549,158 @@ Acceptance criteria:
 
 ---
 
+## Device Simulation Readiness
+
+Goal: Lock device boundaries and harden delayed payment execution before EPIC-08
+simulators add latency, cancellation, connection state, and indeterminate outcomes.
+
+Status: In progress.
+
+### POS-609 Device Simulation Architecture
+
+Align roadmap and epic status, document business-port and simulator-control ownership,
+define lifecycle/cancellation/UI-thread rules, and make the Barcode Scanner and
+Customer Display boundaries explicit.
+
+Acceptance criteria:
+
+- EPIC-07 is complete and EPIC-08 is the next planned area.
+- POS-701 through POS-704 have concrete scope and acceptance criteria.
+- Current implementation is clearly separated from accepted target policy.
+- Simulator controls do not leak into Application business contracts.
+- Device lifetime, cancellation, UI-thread, and payment Unknown policies are explicit.
+
+### POS-610 Payment Terminal Boundary Hardening
+
+Replace simulation-shaped Application contracts with a production-shaped card terminal
+port, separate cash processing, prevent overlapping payment attempts, propagate
+cancellation, and preserve indeterminate outcomes for review.
+
+Acceptance criteria:
+
+- Application payment requests contain no simulator scenario selection.
+- Card and cash paths are separate and mutually exclusive.
+- UI and Application gates prevent overlapping pending checkouts.
+- Delayed operations support cancellation and dialog-close behavior.
+- Timeout, communication loss, and unconfirmed post-dispatch cancellation become
+  Unknown rather than Failed.
+- Unknown payment attempts do not create orders or clear carts and remain discoverable
+  for review.
+
+---
+
 ## EPIC-08 Device Simulation
 
 Goal: Demonstrate Windows POS peripheral integration concepts.
 
-Status: Planned after EPIC-07 closes the core cashier workflow.
+Status: Next, after POS-609 and POS-610 readiness work.
+
+Delivery guidance:
+
+- Recommended implementation order is POS-702, POS-701, POS-703, then POS-704.
+- Business ports expose normal device operations only.
+- Simulator scenario controls stay outside cashier business commands.
+- Real hardware SDK integration remains Phase 2.
 
 ### POS-701 Barcode Scanner Simulator
 
+Simulate an event-producing barcode scanner while preserving manual and
+keyboard-wedge entry.
+
+Scope:
+
+- Add an application-level scanner event boundary.
+- Keep scanner scenario and connection controls outside the business port.
+- Deliver scanned barcodes through a Desktop coordinator to the existing local lookup
+  and cart-add flow.
+- Marshal scanner callbacks to the WPF dispatcher before observable UI updates.
+- Keep TextBox/Enter barcode entry as manual input and keyboard-wedge fallback.
+- Define terminal-scope subscription, unsubscription, and disposal behavior.
+
+Acceptance criteria:
+
+- A connected simulator can emit a barcode without mutating a ViewModel TextBox.
+- A known scanned barcode adds the active product through the existing checkout flow.
+- An unknown barcode shows a user-safe message and does not change the cart.
+- Background-thread scanner callbacks do not update WPF-bound collections directly.
+- Disconnect, reconnect, repeated scan, cancellation, and disposal behavior are tested.
+- Manual barcode entry continues to work without the scanner simulator.
+
 ### POS-702 Receipt Printer Simulator
+
+Expand the existing receipt-printer adapter into a controllable simulator without
+changing receipt generation.
+
+Scope:
+
+- Keep `IReceiptPrinter` as the business-facing print port.
+- Add explicit print outcomes for printed, paper-out, cover-open, disconnected,
+  timeout, cancelled, busy, and unexpected failure.
+- Add simulator controls for next outcome, response delay, and connection state
+  outside the Application business contract.
+- Model device-specific ready/printing/busy/fault behavior.
+- Preserve user-safe UI messages and allow retry after recoverable failures.
+
+Acceptance criteria:
+
+- Receipt generation and preview work when no printer is available.
+- Successful print records a UTC completion timestamp.
+- Paper-out, cover-open, disconnected, timeout, cancellation, and busy outcomes are
+  distinguishable without parsing message strings.
+- Only one print operation runs at a time.
+- Delayed print supports cancellation and does not leave stale success/error UI state.
+- Retry after a recoverable printer outcome is covered by tests.
 
 ### POS-703 Card Reader Simulator
 
+Implement a delayed, stateful card-terminal simulator on top of the POS-610 payment
+business boundary.
+
+Scope:
+
+- Depend on the production-shaped `IPaymentTerminal` contract from POS-610.
+- Add simulator controls for next outcome, response delay, and connection state.
+- Model card-terminal states such as idle, waiting for card, processing, approved,
+  declined, cancelled, unknown, and faulted.
+- Keep scenario controls out of cashier payment commands.
+- Preserve pending-checkout identity across authorization and review.
+- Treat timeout, communication loss, and unconfirmed post-dispatch cancellation as
+  Unknown.
+
+Acceptance criteria:
+
+- The cashier requests normal card authorization without selecting a scenario.
+- Approve, decline, confirmed cancellation, timeout, communication loss, unknown,
+  disconnected, busy, and delayed responses are deterministic in tests.
+- Only approved authorization completes an order.
+- Unknown authorization does not create an order, clear the cart, or allow silent
+  immediate retry.
+- Payment commands remain mutually exclusive throughout delayed terminal work.
+- Closing the payment dialog follows the POS-610 cancellation and Unknown policy.
+
 ### POS-704 Secondary Monitor Customer Display
+
+Host the existing customer-display data on one Desktop-owned Windows display window.
+
+Scope:
+
+- Keep checkout/cart/payment display data in the existing ViewModel and display state.
+- Add a Desktop display host that discovers available monitor targets.
+- Own at most one customer-display window per terminal UI scope.
+- Place the display fullscreen on the selected monitor.
+- Handle monitor disconnect, target changes, DPI changes, and no-secondary-monitor
+  fallback safely.
+- Close and release the display window with its terminal UI scope.
+
+Acceptance criteria:
+
+- Available display targets can be enumerated without opening duplicate windows.
+- Opening an already-open customer display reuses or activates the owned window.
+- The selected monitor receives a correctly placed fullscreen display.
+- Disconnecting the selected monitor produces a safe fallback and keeps the POS usable.
+- Cart, discount, payment-waiting, failure, and completion states continue to update.
+- Closing the terminal UI scope closes and disposes the customer display.
+- Monitor selection and placement logic have focused tests where practical.
 
 ---
 

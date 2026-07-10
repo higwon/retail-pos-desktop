@@ -47,4 +47,17 @@ Use the Figma file as the primary visual reference for WPF implementation.
 
 ## Customer Display
 
-The MVP may use a separate WPF window on the same monitor. Real secondary-monitor placement and display selection are Phase 2.
+Checkout and payment data continue to bind through the existing customer-display
+ViewModel and display state.
+
+EPIC-08 adds a Desktop-owned display host that:
+
+- discovers available Windows monitor targets;
+- owns at most one customer-display window per terminal UI scope;
+- places the window on the selected target in fullscreen mode;
+- handles DPI and target changes without duplicating windows;
+- falls back safely when the selected monitor is disconnected;
+- closes and releases the display window with the terminal UI scope.
+
+Production display policy, advanced operator configuration, and non-WPF hardware
+adapters remain Phase 2.

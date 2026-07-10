@@ -102,6 +102,9 @@ Startup can detect approved-but-not-created checkout state and route to recovery
 
 Status: Accepted
 
+Implementation status: Target policy. The current portfolio build uses deterministic
+demo accounts and does not persist an employee authentication cache.
+
 ### Context
 
 Stores may lose network access, but cashiers need to keep operating.
@@ -125,6 +128,9 @@ Offline login is possible but bounded. Missing or expired cache must deny offlin
 ## DEC-006 Server Stock Is Authoritative
 
 Status: Accepted
+
+Implementation status: Partially implemented. Product sync persists server stock
+quantities; pending local deductions and estimated local stock are not yet calculated.
 
 ### Context
 
@@ -238,3 +244,62 @@ The skeleton includes a little more infrastructure up front, but it stays tied t
 ### Consequences
 
 The API starts with operational visibility instead of only a placeholder health endpoint.
+
+## DEC-011 Separate Device Business Ports from Simulator Controls
+
+Status: Accepted
+
+### Context
+
+EPIC-08 introduces barcode scanner, receipt printer, card terminal, and customer
+display simulators. Existing boundaries are uneven: receipt printing already has a
+business-facing port, while payment requests currently carry simulator scenario
+selection and barcode/customer-display ownership is UI-specific.
+
+### Decision
+
+Application device ports expose normal business operations only. Simulator scenario,
+delay, connection, and failure controls are separate contracts implemented outside
+Application business services.
+
+Device simulators live in Infrastructure unless they directly own Windows or WPF
+resources, in which case the host behavior stays in Desktop. Terminal-owned devices
+have one instance per terminal UI scope. Long-running operations accept cancellation,
+and Desktop owns WPF dispatcher transitions for callbacks raised off the UI thread.
+
+Shared connection vocabulary is limited to `Disconnected`, `Connecting`,
+`Connected`, and `Faulted`. Operational states remain device-specific until real
+duplication justifies another abstraction.
+
+Barcode simulation uses an event-producing scanner boundary while preserving
+keyboard-wedge/manual input as a fallback. Customer-display data remains separate from
+the Desktop host that discovers monitors and owns the display window.
+
+Payment outcomes are fail-closed:
+
+- An approved response is `Approved`.
+- A declined response is `Failed`.
+- Cancellation is `Cancelled` only when it occurs before dispatch or is confirmed by
+  the terminal.
+- Timeout, communication loss, or unconfirmed cancellation after dispatch is
+  `Unknown`.
+- `Unknown` must not create an order, clear the cart, or allow silent immediate
+  retry. It must remain discoverable for review or reconciliation.
+
+### Reason
+
+Business workflows should remain valid when a simulator is replaced by a hardware
+adapter. Separating control surfaces prevents scenario configuration from leaking into
+checkout use cases and keeps delayed or indeterminate device behavior recoverable.
+
+### Trade-offs
+
+Simulator implementations require a separate control contract, and device-specific
+state types may initially repeat a small amount of structure.
+
+### Consequences
+
+EPIC-08 implementations must keep scenario selection out of cashier business commands,
+propagate cancellation, define device lifetime explicitly, and preserve Unknown
+payment outcomes for review. A generic device framework is deferred until concrete
+implementations demonstrate a stable shared shape.
