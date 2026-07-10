@@ -222,6 +222,21 @@
                     <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource SuccessBrush}" Margin="0,18,0,0"/><TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}"/>
                 </StackPanel>
             </TabItem>
+            <TabItem Header="Customer Display">
+                <StackPanel Margin="0,18,0,0" DataContext="{Binding CustomerDisplay}">
+                    <Border Style="{StaticResource PanelBorderStyle}" Padding="24">
+                        <StackPanel>
+                            <TextBlock Text="Secondary monitor" FontWeight="SemiBold"/>
+                            <ComboBox ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}" DisplayMemberPath="Name" Margin="0,8,0,16"/>
+                            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource SecondaryTextBlockStyle}" TextWrapping="Wrap"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+                                <Button Content="Close" Command="{Binding CloseCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,10,0"/>
+                                <Button Content="Open" Command="{Binding OpenCommand}" Style="{StaticResource PrimaryBlueButtonStyle}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>

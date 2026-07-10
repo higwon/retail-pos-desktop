@@ -7,7 +7,7 @@ namespace RetailPOS.Desktop.Views;
 public partial class PosMainView : UserControl
 {
     private readonly ReceiptPreviewState _receiptPreviewState;
-    private readonly Func<CustomerDisplayWindow> _customerDisplayFactory;
+    private readonly CustomerDisplayHost _customerDisplayHost;
     private readonly Func<PaymentDialog> _paymentDialogFactory;
     private readonly Func<ReceiptDialog> _receiptDialogFactory;
     private readonly PosMainViewModel _viewModel;
@@ -22,7 +22,7 @@ public partial class PosMainView : UserControl
         CartPanelView cartPanel,
         BarcodeScannerCoordinator barcodeScannerCoordinator,
         ReceiptPreviewState receiptPreviewState,
-        Func<CustomerDisplayWindow> customerDisplayFactory,
+        CustomerDisplayHost customerDisplayHost,
         Func<PaymentDialog> paymentDialogFactory,
         Func<ReceiptDialog> receiptDialogFactory)
     {
@@ -30,7 +30,7 @@ public partial class PosMainView : UserControl
         _viewModel = viewModel;
         DataContext = viewModel;
         _receiptPreviewState = receiptPreviewState;
-        _customerDisplayFactory = customerDisplayFactory;
+        _customerDisplayHost = customerDisplayHost;
         _paymentDialogFactory = paymentDialogFactory;
         _receiptDialogFactory = receiptDialogFactory;
         _cartPanel = cartPanel;
@@ -57,7 +57,14 @@ public partial class PosMainView : UserControl
 
     private void OnOpenCustomerDisplay(object sender, System.Windows.RoutedEventArgs e)
     {
-        _customerDisplayFactory().Show();
+        OpenCustomerDisplay();
+    }
+
+    private void OpenCustomerDisplay()
+    {
+        _customerDisplayHost.RefreshTargets();
+        var target = _customerDisplayHost.Targets.FirstOrDefault(item => !item.IsPrimary);
+        if (target is not null) _customerDisplayHost.Open(target.Id);
     }
 
     private void OnCheckoutRequested(object? sender, EventArgs e) => OpenPaymentFlow();

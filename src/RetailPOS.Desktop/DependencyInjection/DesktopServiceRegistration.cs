@@ -76,11 +76,16 @@ public static class DesktopServiceRegistration
         services.AddTransient<ReceiptPrinterSimulatorViewModel>();
         services.AddTransient<BarcodeScannerSimulatorViewModel>();
         services.AddTransient<CardTerminalSimulatorViewModel>();
+        services.AddTransient<CustomerDisplayHostViewModel>();
         services.AddTransient<CheckoutRecoveryViewModel>();
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<StatusViewModel>();
         services.AddTransient<Func<CustomerDisplayWindow>>(provider =>
             () => provider.GetRequiredService<CustomerDisplayWindow>());
+        services.AddSingleton<IDisplayTargetProvider, WindowsDisplayTargetProvider>();
+        services.AddTransient<Func<ICustomerDisplayWindow>>(provider =>
+            () => provider.GetRequiredService<CustomerDisplayWindow>());
+        services.AddScoped<CustomerDisplayHost>();
         services.AddTransient<Func<PaymentDialog>>(provider =>
             () => provider.GetRequiredService<PaymentDialog>());
         services.AddTransient<Func<ReceiptDialog>>(provider =>
