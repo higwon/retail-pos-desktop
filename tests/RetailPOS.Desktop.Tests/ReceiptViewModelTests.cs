@@ -14,7 +14,7 @@ public sealed class ReceiptViewModelTests
         var state = new ReceiptPreviewState();
         state.Set(Receipt());
 
-        var viewModel = new ReceiptViewModel(new StubReceiptService(), state);
+        var viewModel = new ReceiptViewModel(new StubReceiptPrinter(), state);
 
         Assert.True(viewModel.HasReceipt);
         Assert.Equal("LOCAL-001", viewModel.OrderNumber);
@@ -24,17 +24,32 @@ public sealed class ReceiptViewModelTests
     }
 
     [Fact]
-    public async Task PrintCommand_UsesLocalPrintSimulation()
+    public async Task PrintCommand_ShowsPrinterSuccessMessage()
     {
         var state = new ReceiptPreviewState();
         state.Set(Receipt());
-        var service = new StubReceiptService();
-        var viewModel = new ReceiptViewModel(service, state);
+        var printer = new StubReceiptPrinter();
+        var viewModel = new ReceiptViewModel(printer, state);
 
         await viewModel.PrintCommand.ExecuteAsync(null);
 
-        Assert.NotNull(service.PrintedReceipt);
-        Assert.Equal("Receipt print simulated.", viewModel.StatusMessage);
+        Assert.NotNull(printer.PrintedReceipt);
+        Assert.Equal("Receipt printed successfully.", viewModel.StatusMessage);
+        Assert.Null(viewModel.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task PrintCommand_ShowsUserSafePrinterFailureMessage()
+    {
+        var state = new ReceiptPreviewState();
+        state.Set(Receipt());
+        var printer = new StubReceiptPrinter(succeeds: false);
+        var viewModel = new ReceiptViewModel(printer, state);
+
+        await viewModel.PrintCommand.ExecuteAsync(null);
+
+        Assert.NotNull(printer.PrintedReceipt);
+        Assert.Equal("Receipt could not be printed. Try again.", viewModel.ErrorMessage);
     }
 
     [Fact]
@@ -43,8 +58,8 @@ public sealed class ReceiptViewModelTests
         var state = new ReceiptPreviewState();
         state.Set(Receipt());
 
-        _ = new ReceiptViewModel(new StubReceiptService(), state);
-        var reopened = new ReceiptViewModel(new StubReceiptService(), state);
+        _ = new ReceiptViewModel(new StubReceiptPrinter(), state);
+        var reopened = new ReceiptViewModel(new StubReceiptPrinter(), state);
 
         Assert.True(reopened.HasReceipt);
         Assert.Equal("LOCAL-001", reopened.OrderNumber);
@@ -65,14 +80,9 @@ public sealed class ReceiptViewModelTests
         3400m,
         "receipt");
 
-    private sealed class StubReceiptService : IReceiptService
+    private sealed class StubReceiptPrinter(bool succeeds = true) : IReceiptPrinter
     {
         public ReceiptPreview? PrintedReceipt { get; private set; }
-
-        public Task<ReceiptPreview> GenerateAsync(
-            Guid localOrderId,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult(Receipt());
 
         public Task<ReceiptPrintResult> PrintAsync(
             ReceiptPreview receipt,
@@ -80,9 +90,11 @@ public sealed class ReceiptViewModelTests
         {
             PrintedReceipt = receipt;
             return Task.FromResult(new ReceiptPrintResult(
-                true,
-                IssuedAtUtc,
-                "Receipt print simulated."));
+                succeeds,
+                succeeds ? IssuedAtUtc : null,
+                succeeds
+                    ? "Receipt printed successfully."
+                    : "Receipt could not be printed. Try again."));
         }
     }
 }

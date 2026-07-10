@@ -7,13 +7,13 @@ namespace RetailPOS.Desktop.ViewModels;
 
 public sealed partial class ReceiptViewModel : ObservableObject
 {
-    private readonly IReceiptService _receiptService;
+    private readonly IReceiptPrinter _receiptPrinter;
     private readonly ReceiptPreviewState _receiptPreviewState;
     private ReceiptPreview? _receipt;
 
-    public ReceiptViewModel(IReceiptService receiptService, ReceiptPreviewState receiptPreviewState)
+    public ReceiptViewModel(IReceiptPrinter receiptPrinter, ReceiptPreviewState receiptPreviewState)
     {
-        _receiptService = receiptService;
+        _receiptPrinter = receiptPrinter;
         _receiptPreviewState = receiptPreviewState;
         PrintCommand = new AsyncRelayCommand(PrintAsync, () => HasReceipt && !IsBusy);
         LoadCurrentReceipt();
@@ -85,12 +85,19 @@ public sealed partial class ReceiptViewModel : ObservableObject
 
         try
         {
-            var result = await _receiptService.PrintAsync(_receipt);
-            StatusMessage = result.Message;
+            var result = await _receiptPrinter.PrintAsync(_receipt);
+            if (result.Succeeded)
+            {
+                StatusMessage = result.Message;
+            }
+            else
+            {
+                ErrorMessage = result.Message;
+            }
         }
         catch (Exception)
         {
-            ErrorMessage = "Receipt print simulation failed. The order is already completed.";
+            ErrorMessage = "Receipt could not be printed. The order is already completed; try again.";
         }
         finally
         {

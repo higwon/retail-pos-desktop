@@ -37,19 +37,6 @@ public sealed class ReceiptServiceTests
         await Assert.ThrowsAsync<KeyNotFoundException>(() => service.GenerateAsync(OrderId));
     }
 
-    [Fact]
-    public async Task PrintAsync_ReturnsSimulationResultWithoutDeviceDependency()
-    {
-        var service = Service(CompletedOrder());
-        var receipt = await service.GenerateAsync(OrderId);
-
-        var result = await service.PrintAsync(receipt);
-
-        Assert.True(result.Succeeded);
-        Assert.Equal(IssuedAtUtc, result.PrintedAtUtc);
-        Assert.Equal("Receipt print simulated.", result.Message);
-    }
-
     private static ReceiptService Service(Order? order) => new(
         new StubOrderRepository(order),
         new StubReceiptContextProvider(),
