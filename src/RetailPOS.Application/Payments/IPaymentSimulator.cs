@@ -17,7 +17,10 @@ public sealed record PaymentSimulationRequest(
 public enum PaymentSimulationMode
 {
     Approve,
-    Fail
+    Fail,
+    Timeout,
+    Cancel,
+    CommunicationError
 }
 
 public sealed record PaymentSimulationResult(

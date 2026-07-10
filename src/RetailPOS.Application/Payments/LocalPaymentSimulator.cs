@@ -23,26 +23,41 @@ public sealed class LocalPaymentSimulator : IPaymentSimulator
         cancellationToken.ThrowIfCancellationRequested();
         ValidateAmount(request.Amount);
 
-        if (request.Mode == PaymentSimulationMode.Fail)
+        return Task.FromResult(request.Mode switch
         {
-            return Task.FromResult(new PaymentSimulationResult(
+            PaymentSimulationMode.Approve => ApprovedResult(request),
+            PaymentSimulationMode.Fail => NonApprovedResult(
+                request,
                 PaymentStatus.Failed,
-                request.Method,
-                request.Amount,
-                null,
-                null,
-                null,
-                null,
-                "Payment was declined by the local simulator."));
-        }
+                "Payment was declined by the local simulator."),
+            PaymentSimulationMode.Timeout => NonApprovedResult(
+                request,
+                PaymentStatus.Failed,
+                "Payment timed out. Keep the cart and try again."),
+            PaymentSimulationMode.Cancel => NonApprovedResult(
+                request,
+                PaymentStatus.Cancelled,
+                "Payment was cancelled. Cart was not changed."),
+            PaymentSimulationMode.CommunicationError => NonApprovedResult(
+                request,
+                PaymentStatus.Failed,
+                "Payment terminal communication failed. Try again or ask a manager to review checkout status."),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(request.Mode),
+                request.Mode,
+                "Unsupported payment simulation mode.")
+        });
+    }
 
+    private PaymentSimulationResult ApprovedResult(PaymentSimulationRequest request)
+    {
         var approvedAtUtc = EnsureUtc(_utcNow());
         var methodCode = request.Method == PaymentMethod.Card ? "CARD" : "CASH";
         var amountCode = decimal.ToInt64(request.Amount).ToString("000000000000");
         var approvalCode = $"APP-{methodCode}-{amountCode}";
         var transactionReference = $"SIM-{methodCode}-{approvedAtUtc:yyyyMMddHHmmss}-{amountCode}";
 
-        return Task.FromResult(new PaymentSimulationResult(
+        return new PaymentSimulationResult(
             PaymentStatus.Approved,
             request.Method,
             request.Amount,
@@ -50,8 +65,22 @@ public sealed class LocalPaymentSimulator : IPaymentSimulator
             approvalCode,
             transactionReference,
             approvedAtUtc,
-            null));
+            null);
     }
+
+    private static PaymentSimulationResult NonApprovedResult(
+        PaymentSimulationRequest request,
+        PaymentStatus status,
+        string message) =>
+        new(
+            status,
+            request.Method,
+            request.Amount,
+            null,
+            null,
+            null,
+            null,
+            message);
 
     private static void ValidateAmount(decimal amount)
     {
