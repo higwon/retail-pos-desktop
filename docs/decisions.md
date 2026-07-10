@@ -285,6 +285,9 @@ Payment outcomes are fail-closed:
   `Unknown`.
 - `Unknown` must not create an order, clear the cart, or allow silent immediate
   retry. It must remain discoverable for review or reconciliation.
+- An interrupted persisted `AwaitingPayment` becomes `Unknown` manager review on
+  recovery. Explicit manager resolution preserves the record and releases the
+  terminal for a new payment attempt.
 
 ### Reason
 

@@ -26,5 +26,6 @@ public enum PendingCheckoutStatus
     PaymentFailed,
     ApprovedButOrderNotCreated,
     ManagerReviewRequired,
-    Completed
+    Completed,
+    ReviewResolved
 }

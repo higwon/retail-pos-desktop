@@ -169,6 +169,10 @@
                     <Button Content="Request manager review"
                             Command="{Binding RequestManagerReviewCommand}"
                             Style="{StaticResource DangerMutedButtonStyle}"
+                            Margin="0,0,0,10"/>
+                    <Button Content="Resolve and release"
+                            Command="{Binding ResolveManagerReviewCommand}"
+                            Style="{StaticResource DangerMutedButtonStyle}"
                             Margin="0,0,0,20"/>
                     <Button Content="Refresh"
                             Command="{Binding LoadCommand}"

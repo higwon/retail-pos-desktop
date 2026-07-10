@@ -70,12 +70,13 @@ public sealed class CheckoutRecoveryViewModelTests
     }
 
     [Fact]
-    public async Task ManagerReviewItem_CannotCompleteOrderOrRequestReviewAgain()
+    public async Task ManagerReviewItem_CanOnlyResolveReview()
     {
         var service = new RecordingCheckoutRecoveryService(Record() with
         {
             RecoveryStatus = PendingCheckoutStatus.ManagerReviewRequired,
-            CanCompleteOrder = false
+            CanCompleteOrder = false,
+            CanResolveReview = true
         });
         var viewModel = new CheckoutRecoveryViewModel(service);
 
@@ -83,7 +84,26 @@ public sealed class CheckoutRecoveryViewModelTests
 
         Assert.False(viewModel.CompleteOrderCommand.CanExecute(null));
         Assert.False(viewModel.RequestManagerReviewCommand.CanExecute(null));
+        Assert.True(viewModel.ResolveManagerReviewCommand.CanExecute(null));
         Assert.Equal("REVIEW", viewModel.SelectedItem?.StatusLabel);
+    }
+
+    [Fact]
+    public async Task ResolveManagerReviewCommand_ReleasesSelectedItemAndReloads()
+    {
+        var service = new RecordingCheckoutRecoveryService(Record() with
+        {
+            RecoveryStatus = PendingCheckoutStatus.ManagerReviewRequired,
+            CanCompleteOrder = false,
+            CanResolveReview = true
+        });
+        var viewModel = new CheckoutRecoveryViewModel(service);
+        await viewModel.LoadAsync();
+
+        await viewModel.ResolveManagerReviewCommand.ExecuteAsync(null);
+
+        Assert.Equal(PendingCheckoutId, service.ResolvedPendingCheckoutId);
+        Assert.Empty(viewModel.Items);
     }
 
     private static CheckoutRecoveryRecord Record() => new(
@@ -105,6 +125,7 @@ public sealed class CheckoutRecoveryViewModelTests
         3600m,
         true,
         true,
+        false,
         null);
 
     private sealed class RecordingCheckoutRecoveryService(
@@ -115,6 +136,7 @@ public sealed class CheckoutRecoveryViewModelTests
 
         public Guid? CompletedPendingCheckoutId { get; private set; }
         public Guid? ManagerReviewPendingCheckoutId { get; private set; }
+        public Guid? ResolvedPendingCheckoutId { get; private set; }
 
         public Task<IReadOnlyList<CheckoutRecoveryRecord>> GetRecoverableAsync(
             CancellationToken cancellationToken = default) =>
@@ -143,6 +165,15 @@ public sealed class CheckoutRecoveryViewModelTests
             CancellationToken cancellationToken = default)
         {
             ManagerReviewPendingCheckoutId = pendingCheckoutId;
+            _records.RemoveAll(item => item.PendingCheckoutId == pendingCheckoutId);
+            return Task.CompletedTask;
+        }
+
+        public Task ResolveManagerReviewAsync(
+            Guid pendingCheckoutId,
+            CancellationToken cancellationToken = default)
+        {
+            ResolvedPendingCheckoutId = pendingCheckoutId;
             _records.RemoveAll(item => item.PendingCheckoutId == pendingCheckoutId);
             return Task.CompletedTask;
         }

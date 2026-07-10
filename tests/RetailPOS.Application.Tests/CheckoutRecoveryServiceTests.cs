@@ -157,6 +157,45 @@ public sealed class CheckoutRecoveryServiceTests
         Assert.Equal(Now, repository.Records.Single().LastUpdatedAtUtc);
     }
 
+    [Fact]
+    public async Task ResolveManagerReviewAsync_PreservesRecordAsResolved()
+    {
+        var repository = new RecordingPendingCheckoutRepository(ApprovedCheckout(PendingCheckoutId) with
+        {
+            RecoveryStatus = PendingCheckoutStatus.ManagerReviewRequired,
+            PaymentStatus = PaymentStatus.Unknown
+        });
+        var service = new CheckoutRecoveryService(
+            repository,
+            new RecordingOrderCompletionService(),
+            new StubCheckoutClock(Now));
+
+        await service.ResolveManagerReviewAsync(PendingCheckoutId);
+
+        Assert.Equal(PendingCheckoutStatus.ReviewResolved, repository.Records.Single().RecoveryStatus);
+        Assert.Empty(await repository.GetUnresolvedAsync());
+    }
+
+    [Fact]
+    public async Task ResolveManagerReviewAsync_RejectsApprovedPayment()
+    {
+        var repository = new RecordingPendingCheckoutRepository(ApprovedCheckout(PendingCheckoutId) with
+        {
+            RecoveryStatus = PendingCheckoutStatus.ManagerReviewRequired
+        });
+        var service = new CheckoutRecoveryService(
+            repository,
+            new RecordingOrderCompletionService(),
+            new StubCheckoutClock(Now));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ResolveManagerReviewAsync(PendingCheckoutId));
+
+        Assert.Equal(
+            PendingCheckoutStatus.ManagerReviewRequired,
+            repository.Records.Single().RecoveryStatus);
+    }
+
     private static PendingCheckoutRecord ApprovedCheckout(Guid id) => new(
         id,
         Guid.Parse("10000000-0000-0000-0000-000000000001"),
@@ -197,7 +236,9 @@ public sealed class CheckoutRecoveryServiceTests
         public Task<IReadOnlyList<PendingCheckoutRecord>> GetUnresolvedAsync(
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<PendingCheckoutRecord>>(
-                Records.Where(record => record.RecoveryStatus != PendingCheckoutStatus.Completed).ToList());
+                Records.Where(record =>
+                    record.RecoveryStatus is not PendingCheckoutStatus.Completed and
+                        not PendingCheckoutStatus.ReviewResolved).ToList());
 
         public Task MarkCompletedAsync(
             Guid id,

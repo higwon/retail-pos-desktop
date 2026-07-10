@@ -37,8 +37,11 @@ public sealed class SqlitePendingCheckoutRepository(LocalPosDbContext dbContext)
         CancellationToken cancellationToken = default)
     {
         var completed = (int)PendingCheckoutStatus.Completed;
+        var reviewResolved = (int)PendingCheckoutStatus.ReviewResolved;
         var entities = await dbContext.PendingCheckouts.AsNoTracking()
-            .Where(checkout => checkout.RecoveryStatus != completed)
+            .Where(checkout =>
+                checkout.RecoveryStatus != completed &&
+                checkout.RecoveryStatus != reviewResolved)
             .OrderBy(checkout => checkout.CreatedAtUtc)
             .ThenBy(checkout => checkout.Id)
             .ToListAsync(cancellationToken);

@@ -149,6 +149,36 @@ public sealed class RecoverablePaymentStartServiceTests
         Assert.Null(terminal.Request);
     }
 
+    [Fact]
+    public async Task InterruptedAwaitingPayment_IsReviewableAndReleaseAllowsNewPayment()
+    {
+        var interrupted = Pending(PendingCheckoutStatus.AwaitingPayment) with
+        {
+            PaymentStatus = PaymentStatus.Pending
+        };
+        var repository = new StatefulPendingCheckoutRepository(interrupted);
+        var recovery = new CheckoutRecoveryService(
+            repository,
+            new UnusedOrderCompletionService(),
+            new StubCheckoutClock(CreatedAtUtc));
+
+        var records = await recovery.GetRecoverableAsync();
+
+        var review = Assert.Single(records);
+        Assert.Equal(PendingCheckoutStatus.ManagerReviewRequired, review.RecoveryStatus);
+        Assert.False(review.CanCompleteOrder);
+        var normalized = await repository.GetByIdAsync(interrupted.Id);
+        Assert.Equal(PaymentStatus.Unknown, normalized?.PaymentStatus);
+
+        await recovery.ResolveManagerReviewAsync(interrupted.Id);
+
+        var resolved = await repository.GetByIdAsync(interrupted.Id);
+        Assert.Equal(PendingCheckoutStatus.ReviewResolved, resolved?.RecoveryStatus);
+        var newPayment = await Service(repository, new StubPaymentTerminal(Approved()))
+            .StartAsync(Cart(), PaymentMethod.Card);
+        Assert.True(newPayment.IsApproved);
+    }
+
     private static RecoverablePaymentStartService Service(
         IPendingCheckoutRepository repository,
         IPaymentTerminal terminal,
@@ -265,6 +295,39 @@ public sealed class RecoverablePaymentStartServiceTests
         public Task MarkCompletedAsync(Guid id, Guid orderId, DateTimeOffset completedAtUtc, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task MarkManagerReviewRequiredAsync(Guid id, DateTimeOffset updatedAtUtc, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
+    private sealed class StatefulPendingCheckoutRepository(params PendingCheckoutRecord[] records)
+        : IPendingCheckoutRepository
+    {
+        private readonly List<PendingCheckoutRecord> _records = records.ToList();
+
+        public Task SaveAsync(PendingCheckoutRecord checkout, CancellationToken cancellationToken = default)
+        {
+            _records.RemoveAll(record => record.Id == checkout.Id);
+            _records.Add(checkout);
+            return Task.CompletedTask;
+        }
+
+        public Task<PendingCheckoutRecord?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_records.SingleOrDefault(record => record.Id == id));
+
+        public Task<IReadOnlyList<PendingCheckoutRecord>> GetUnresolvedAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<PendingCheckoutRecord>>(_records.Where(record =>
+                record.RecoveryStatus is not PendingCheckoutStatus.Completed and
+                    not PendingCheckoutStatus.ReviewResolved).ToArray());
+
+        public Task MarkCompletedAsync(Guid id, Guid orderId, DateTimeOffset completedAtUtc, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task MarkManagerReviewRequiredAsync(Guid id, DateTimeOffset updatedAtUtc, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
+    private sealed class UnusedOrderCompletionService : IOrderCompletionService
+    {
+        public Task<OrderCompletionResult> CompleteAsync(
+            Guid pendingCheckoutId,
+            CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("Order completion is not expected in this test.");
     }
 
     private sealed class StubCheckoutContextProvider : ICheckoutContextProvider

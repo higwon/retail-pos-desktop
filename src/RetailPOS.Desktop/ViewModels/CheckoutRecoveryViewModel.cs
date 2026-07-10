@@ -19,12 +19,16 @@ public sealed partial class CheckoutRecoveryViewModel : ObservableObject
         RequestManagerReviewCommand = new AsyncRelayCommand(
             RequestManagerReviewAsync,
             CanRequestManagerReview);
+        ResolveManagerReviewCommand = new AsyncRelayCommand(
+            ResolveManagerReviewAsync,
+            CanResolveManagerReview);
     }
 
     public ObservableCollection<CheckoutRecoveryItemViewModel> Items { get; } = [];
     public IAsyncRelayCommand LoadCommand { get; }
     public IAsyncRelayCommand CompleteOrderCommand { get; }
     public IAsyncRelayCommand RequestManagerReviewCommand { get; }
+    public IAsyncRelayCommand ResolveManagerReviewCommand { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelectedItem))]
@@ -133,6 +137,34 @@ public sealed partial class CheckoutRecoveryViewModel : ObservableObject
         }
     }
 
+    private async Task ResolveManagerReviewAsync()
+    {
+        if (SelectedItem is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        ErrorMessage = null;
+
+        try
+        {
+            await _checkoutRecoveryService.ResolveManagerReviewAsync(
+                SelectedItem.PendingCheckoutId);
+            StatusMessage = "Manager review was resolved and the terminal was released.";
+            await LoadAsync();
+        }
+        catch (Exception)
+        {
+            ErrorMessage = "Manager review could not be resolved. Verify the payment outcome before releasing this terminal.";
+        }
+        finally
+        {
+            IsBusy = false;
+            NotifyCommandStateChanged();
+        }
+    }
+
     partial void OnSelectedItemChanged(CheckoutRecoveryItemViewModel? value)
     {
         NotifyCommandStateChanged();
@@ -149,6 +181,9 @@ public sealed partial class CheckoutRecoveryViewModel : ObservableObject
     private bool CanRequestManagerReview() =>
         SelectedItem?.CanRequestManagerReview == true && !IsBusy;
 
+    private bool CanResolveManagerReview() =>
+        SelectedItem?.CanResolveManagerReview == true && !IsBusy;
+
     private void OnItemsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
         OnPropertyChanged(nameof(HasItems));
@@ -158,6 +193,7 @@ public sealed partial class CheckoutRecoveryViewModel : ObservableObject
     {
         CompleteOrderCommand.NotifyCanExecuteChanged();
         RequestManagerReviewCommand.NotifyCanExecuteChanged();
+        ResolveManagerReviewCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(HasSelectedItem));
     }
 }
@@ -180,6 +216,7 @@ public sealed class CheckoutRecoveryItemViewModel
         TransactionReference = record.TransactionReference ?? "-";
         IsSnapshotReadable = record.IsSnapshotReadable;
         CanCompleteOrder = record.CanCompleteOrder;
+        CanResolveManagerReview = record.CanResolveReview;
         WarningMessage = record.WarningMessage;
         Lines = record.Lines.Select(line => new CheckoutRecoveryLineViewModel(line)).ToList();
         CartSubtotal = record.CartSubtotal;
@@ -203,6 +240,7 @@ public sealed class CheckoutRecoveryItemViewModel
     public bool CanCompleteOrder { get; }
     public bool CanRequestManagerReview =>
         RecoveryStatus != PendingCheckoutStatus.ManagerReviewRequired;
+    public bool CanResolveManagerReview { get; }
     public string? WarningMessage { get; }
     public IReadOnlyList<CheckoutRecoveryLineViewModel> Lines { get; }
     public decimal CartSubtotal { get; }
