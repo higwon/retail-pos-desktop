@@ -22,12 +22,25 @@ public sealed class CustomerDisplayHostTests
         Assert.False(host.IsOpen); Assert.Null(host.SelectedTargetId); Assert.Contains("disconnected", host.StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void OpenOnDifferentTargetMovesExistingWindowAndKeepsSelectionAligned()
+    {
+        var provider = new StubProvider { IncludeThird = true }; var factory = new WindowFactory(); using var host = new CustomerDisplayHost(provider, factory.Create);
+        host.Open("secondary"); host.Open("third");
+        Assert.Equal(1, factory.Count); Assert.Equal("third", factory.Window.Target?.Id); Assert.Equal("third", host.SelectedTargetId);
+    }
+
     private sealed class StubProvider : IDisplayTargetProvider
     {
         public bool IncludeSecondary { get; set; } = true;
-        public IReadOnlyList<DisplayTarget> GetTargets() => IncludeSecondary
-            ? [new("primary", "Primary", new(0,0,100,100), true), new("secondary", "Secondary", new(100,0,100,100), false)]
-            : [new("primary", "Primary", new(0,0,100,100), true)];
+        public bool IncludeThird { get; set; }
+        public IReadOnlyList<DisplayTarget> GetTargets()
+        {
+            var targets = new List<DisplayTarget> { new("primary", "Primary", new(0,0,100,90), true) };
+            if (IncludeSecondary) targets.Add(new("secondary", "Secondary", new(100,0,100,90), false));
+            if (IncludeThird) targets.Add(new("third", "Third", new(200,0,100,90), false));
+            return targets;
+        }
     }
     private sealed class WindowFactory
     {
@@ -36,8 +49,8 @@ public sealed class CustomerDisplayHostTests
     }
     private sealed class FakeWindow : ICustomerDisplayWindow
     {
-        public bool IsVisible { get; private set; } public int Activations { get; private set; } public event EventHandler? Closed;
-        public void ShowOn(DisplayTarget target) => IsVisible = true; public void Activate() => Activations++;
+        public bool IsVisible { get; private set; } public int Activations { get; private set; } public DisplayTarget? Target { get; private set; } public event EventHandler? Closed;
+        public void ShowOn(DisplayTarget target) { IsVisible = true; Target = target; } public void MoveTo(DisplayTarget target) => Target = target; public void Activate() => Activations++;
         public void Close() { IsVisible = false; Closed?.Invoke(this, EventArgs.Empty); }
     }
 }

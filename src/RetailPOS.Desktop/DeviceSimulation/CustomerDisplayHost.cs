@@ -4,14 +4,14 @@ using System.Windows.Forms;
 
 namespace RetailPOS.Desktop.DeviceSimulation;
 
-public sealed record DisplayTarget(string Id, string Name, Rectangle Bounds, bool IsPrimary);
+public sealed record DisplayTarget(string Id, string Name, Rectangle WorkingBounds, bool IsPrimary);
 
 public interface IDisplayTargetProvider { IReadOnlyList<DisplayTarget> GetTargets(); }
 
 public sealed class WindowsDisplayTargetProvider : IDisplayTargetProvider
 {
     public IReadOnlyList<DisplayTarget> GetTargets() => Screen.AllScreens
-        .Select(screen => new DisplayTarget(screen.DeviceName, screen.DeviceName, screen.Bounds, screen.Primary))
+        .Select(screen => new DisplayTarget(screen.DeviceName, screen.DeviceName, screen.WorkingArea, screen.Primary))
         .ToArray();
 }
 
@@ -20,6 +20,7 @@ public interface ICustomerDisplayWindow
     bool IsVisible { get; }
     event EventHandler? Closed;
     void ShowOn(DisplayTarget target);
+    void MoveTo(DisplayTarget target);
     void Activate();
     void Close();
 }
@@ -56,7 +57,7 @@ public sealed class CustomerDisplayHost(
         if (target is null) { StatusMessage = "Selected display is not available."; StateChanged?.Invoke(this, EventArgs.Empty); return; }
         if (target.IsPrimary) { StatusMessage = "Choose a secondary display. The cashier display cannot be used."; StateChanged?.Invoke(this, EventArgs.Empty); return; }
         _selectedTargetId = target.Id;
-        if (_window is { IsVisible: true }) { _window.Activate(); StatusMessage = $"Customer display open on {target.Name}."; StateChanged?.Invoke(this, EventArgs.Empty); return; }
+        if (_window is { IsVisible: true }) { _window.MoveTo(target); _window.Activate(); StatusMessage = $"Customer display open on {target.Name}."; StateChanged?.Invoke(this, EventArgs.Empty); return; }
         _window = windowFactory(); _window.Closed += OnClosed; _window.ShowOn(target);
         StatusMessage = $"Customer display open on {target.Name}."; StateChanged?.Invoke(this, EventArgs.Empty);
     }
