@@ -122,6 +122,45 @@ public sealed class SimulatedPaymentTerminalTests
         Assert.Equal(PaymentTerminalOperationalState.Disconnected, terminal.OperationalState);
     }
 
+    [Fact]
+    public async Task ReconnectDuringCancelledAuthorizationKeepsBusyAndRejectsMutationUntilCompletion()
+    {
+        var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
+        var unknownPublished = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var releaseCompletion = new ManualResetEventSlim();
+        terminal.StateChanged += (_, _) =>
+        {
+            if (terminal.OperationalState != PaymentTerminalOperationalState.Unknown)
+            {
+                return;
+            }
+
+            unknownPublished.TrySetResult();
+            releaseCompletion.Wait();
+        };
+        terminal.ConfigureNext(new(PaymentTerminalSimulationScenario.Approve, TimeSpan.FromMinutes(1)));
+        var authorization = terminal.AuthorizeAsync(new PaymentAuthorizationRequest(AttemptId, 3600m));
+
+        var disconnect = Task.Run(terminal.Disconnect);
+        await unknownPublished.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        terminal.Connect();
+
+        Assert.Equal(PaymentTerminalOperationalState.Processing, terminal.OperationalState);
+        Assert.Throws<InvalidOperationException>(terminal.Reset);
+        Assert.Throws<InvalidOperationException>(() => terminal.ConfigureNext(
+            new(PaymentTerminalSimulationScenario.Decline, TimeSpan.Zero)));
+
+        releaseCompletion.Set();
+        await disconnect;
+        var result = await authorization;
+
+        Assert.Equal(PaymentStatus.Unknown, result.Status);
+        Assert.Equal(PaymentTerminalOperationalState.Idle, terminal.OperationalState);
+        terminal.Reset();
+        Assert.Null(terminal.LastOutcome);
+    }
+
     private sealed class StubTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;

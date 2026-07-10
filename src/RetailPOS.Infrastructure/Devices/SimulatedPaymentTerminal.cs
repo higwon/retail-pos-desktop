@@ -47,12 +47,21 @@ public sealed class SimulatedPaymentTerminal(TimeProvider timeProvider) : IPayme
         ObjectDisposedException.ThrowIf(_disposed, this); ArgumentNullException.ThrowIfNull(settings);
         if (!Enum.IsDefined(settings.Scenario)) throw new ArgumentOutOfRangeException(nameof(settings), "Unsupported payment terminal scenario.");
         if (settings.ResponseDelay < TimeSpan.Zero || settings.ResponseDelay > TimeSpan.FromMinutes(1)) throw new ArgumentOutOfRangeException(nameof(settings), "Response delay must be between zero and one minute.");
-        lock (_sync) _next = settings; RaiseChanged();
+        lock (_sync)
+        {
+            if (_activeCancellation is not null)
+            {
+                throw new InvalidOperationException("Terminal settings cannot change during authorization.");
+            }
+
+            _next = settings;
+        }
+        RaiseChanged();
     }
 
-    public void Connect() { ObjectDisposedException.ThrowIf(_disposed, this); lock (_sync) { _connection = PaymentTerminalConnectionState.Connected; _state = PaymentTerminalOperationalState.Idle; } RaiseChanged(); }
+    public void Connect() { ObjectDisposedException.ThrowIf(_disposed, this); lock (_sync) { _connection = PaymentTerminalConnectionState.Connected; _state = _activeCancellation is null ? PaymentTerminalOperationalState.Idle : PaymentTerminalOperationalState.Processing; } RaiseChanged(); }
     public void Disconnect() { ObjectDisposedException.ThrowIf(_disposed, this); CancellationTokenSource? active; lock (_sync) { _connection = PaymentTerminalConnectionState.Disconnected; _state = PaymentTerminalOperationalState.Disconnected; active = _activeCancellation; } active?.Cancel(); RaiseChanged(); }
-    public void Reset() { ObjectDisposedException.ThrowIf(_disposed, this); lock (_sync) { if (_state is PaymentTerminalOperationalState.WaitingForCard or PaymentTerminalOperationalState.Processing) throw new InvalidOperationException("Terminal cannot reset during authorization."); _next = PaymentTerminalSimulationSettings.Default; _lastOutcome = null; _state = _connection == PaymentTerminalConnectionState.Connected ? PaymentTerminalOperationalState.Idle : PaymentTerminalOperationalState.Disconnected; } RaiseChanged(); }
+    public void Reset() { ObjectDisposedException.ThrowIf(_disposed, this); lock (_sync) { if (_activeCancellation is not null) throw new InvalidOperationException("Terminal cannot reset during authorization."); _next = PaymentTerminalSimulationSettings.Default; _lastOutcome = null; _state = _connection == PaymentTerminalConnectionState.Connected ? PaymentTerminalOperationalState.Idle : PaymentTerminalOperationalState.Disconnected; } RaiseChanged(); }
 
     public async Task<PaymentAuthorizationResult> AuthorizeAsync(PaymentAuthorizationRequest request, CancellationToken cancellationToken = default)
     {
