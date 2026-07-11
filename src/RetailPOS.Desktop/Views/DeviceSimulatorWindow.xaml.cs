@@ -9,7 +9,17 @@ public partial class DeviceSimulatorWindow : Window
     {
         InitializeComponent();
         DataContext = viewModel;
+        Loaded += OnLoaded;
         Closed += OnClosed;
+    }
+
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        Loaded -= OnLoaded;
+        if (DataContext is DeviceSimulatorViewModel viewModel)
+        {
+            await viewModel.BarcodeScanner.LoadAsync();
+        }
     }
 
     private void OnClose(object sender, RoutedEventArgs e) => Close();
