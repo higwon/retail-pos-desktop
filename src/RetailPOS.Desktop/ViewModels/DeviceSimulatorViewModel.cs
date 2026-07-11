@@ -271,16 +271,19 @@ public sealed partial class BarcodeScannerSimulatorViewModel : ObservableObject,
 
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
-        if (_loaded) return;
-        _loaded = true;
+        if (_loaded || IsLoadingProducts) return;
         IsLoadingProducts = true;
         try
         {
-            _allProducts.AddRange(await _productRepository.GetActiveAsync(cancellationToken));
+            var products = await _productRepository.GetActiveAsync(cancellationToken);
+            _allProducts.Clear();
+            _allProducts.AddRange(products);
             Categories.Clear();
             foreach (var category in ProductCatalogCategories.From(_allProducts)) Categories.Add(category);
             SelectedCategory = ProductCatalogCategories.All;
             ApplyProductFilter();
+            ErrorMessage = null;
+            _loaded = true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -297,7 +300,6 @@ public sealed partial class BarcodeScannerSimulatorViewModel : ObservableObject,
 
     private void ApplyProductFilter()
     {
-        if (!_loaded) return;
         var keyword = SearchText.Trim();
         var filtered = _allProducts.Where(product =>
             (SelectedCategory == ProductCatalogCategories.All ||

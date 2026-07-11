@@ -80,6 +80,42 @@ public sealed class BarcodeScannerSimulatorViewModelTests
         Assert.True(scanner.EmitOnBackgroundThread);
     }
 
+    [Fact]
+    public async Task FailedLoad_CanBeRetriedSuccessfully()
+    {
+        using var scanner = new SimulatedBarcodeScanner();
+        var repository = new RetryProductRepository([Cola, Water]);
+        repository.FailNext = true;
+        using var viewModel = new BarcodeScannerSimulatorViewModel(scanner, repository);
+
+        await viewModel.LoadAsync();
+        Assert.Empty(viewModel.Products);
+        Assert.NotNull(viewModel.ErrorMessage);
+
+        await viewModel.LoadAsync();
+        Assert.Equal(2, viewModel.Products.Count);
+        Assert.Equal(["All categories", "Drinks"], viewModel.Categories);
+        Assert.Null(viewModel.ErrorMessage);
+        Assert.Equal(2, repository.Calls);
+    }
+
+    [Fact]
+    public async Task CancelledLoad_CanBeRetriedSuccessfully()
+    {
+        using var scanner = new SimulatedBarcodeScanner();
+        var repository = new RetryProductRepository([Noodles]) { CancelNext = true };
+        using var viewModel = new BarcodeScannerSimulatorViewModel(scanner, repository);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await viewModel.LoadAsync(cancellation.Token);
+        Assert.Empty(viewModel.Products);
+
+        await viewModel.LoadAsync();
+        Assert.Single(viewModel.Products);
+        Assert.Equal(2, repository.Calls);
+    }
+
     private static BarcodeScannerSimulatorViewModel ViewModel(SimulatedBarcodeScanner scanner) =>
         new(scanner, new StubProductRepository([Cola, Water, Noodles]));
 
@@ -91,6 +127,33 @@ public sealed class BarcodeScannerSimulatorViewModelTests
         public Task<IReadOnlyList<Product>> GetActiveAsync(CancellationToken cancellationToken = default) => Task.FromResult(products);
         public Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(products.SingleOrDefault(x => x.Id == id));
         public Task<Product?> GetByBarcodeAsync(string barcode, CancellationToken cancellationToken = default) => Task.FromResult(products.SingleOrDefault(x => x.Barcode == barcode));
+        public Task<IReadOnlyList<Product>> SearchAsync(string keyword, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Product>>([]);
+    }
+
+    private sealed class RetryProductRepository(IReadOnlyList<Product> products) : IProductRepository
+    {
+        public bool FailNext { get; set; }
+        public bool CancelNext { get; set; }
+        public int Calls { get; private set; }
+
+        public Task<IReadOnlyList<Product>> GetActiveAsync(CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            if (FailNext)
+            {
+                FailNext = false;
+                throw new InvalidOperationException("Transient failure");
+            }
+            if (CancelNext)
+            {
+                CancelNext = false;
+                throw new OperationCanceledException(cancellationToken);
+            }
+            return Task.FromResult(products);
+        }
+
+        public Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<Product?>(null);
+        public Task<Product?> GetByBarcodeAsync(string barcode, CancellationToken cancellationToken = default) => Task.FromResult<Product?>(null);
         public Task<IReadOnlyList<Product>> SearchAsync(string keyword, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Product>>([]);
     }
 }
