@@ -41,6 +41,19 @@ enforced until a stable baseline and meaningful exclusions are agreed.
 
 Repository settings should require the `build-and-test` check before merging to `main`.
 
+Performance reference dataset:
+
+- 5,000 generated products across 20 categories, with 4,000 active records, plus the
+  six demo products.
+- 2,000 pending sync queue records with deterministic due times and retry counts.
+- Release-mode reference measurements are emitted by
+  `LargeDeterministicDataset_KeepsCashierCriticalQueriesBounded` for active catalog load,
+  barcode lookup, product search, and a bounded 100-item due-sync selection.
+- The automated ceiling is intentionally generous at five seconds per operation. It detects
+  severe regressions rather than claiming production capacity across different CI hardware.
+- The repository currently returns the full active catalog; dense UI virtualization and
+  progressive presentation are tracked under POS-805.
+
 Run Desktop tests:
 
 ```powershell
