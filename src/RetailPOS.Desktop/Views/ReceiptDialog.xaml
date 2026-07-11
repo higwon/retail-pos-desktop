@@ -13,13 +13,22 @@
         <Grid>
             <StackPanel>
                 <TextBlock Text="Payment complete" Style="{StaticResource TitleTextBlockStyle}"/>
-                <TextBlock Text="{Binding StatusMessage}"
-                           Style="{StaticResource SecondaryTextBlockStyle}"
-                           Margin="0,6,0,0"/>
-                <TextBlock Text="{Binding ErrorMessage}"
-                           Foreground="{StaticResource DangerBrush}"
-                           TextWrapping="Wrap"
-                           Margin="0,6,140,0"/>
+                <Grid Margin="0,6,140,0">
+                    <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryTextBlockStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSuccessStatus}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Foreground="{StaticResource DangerBrush}"
+                               TextWrapping="Wrap"/>
+                </Grid>
             </StackPanel>
             <Border Style="{StaticResource StatusPillStyle}"
                     HorizontalAlignment="Right"

@@ -198,10 +198,24 @@
                             </Grid>
                         </Border>
                         <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="22">
-                            <StackPanel>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
                                 <TextBlock Text="Recent completed requests" FontWeight="SemiBold"/>
-                                <ItemsControl ItemsSource="{Binding RecentRequests}" Margin="0,12,0,0">
-                                    <ItemsControl.ItemTemplate>
+                                <ListBox Grid.Row="1" ItemsSource="{Binding RecentRequests}"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         BorderThickness="0" Background="Transparent"
+                                         Margin="0,12,0,0" Padding="0">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                            <Setter Property="Padding" Value="0"/>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
                                                 <StackPanel>
@@ -221,9 +235,9 @@
                                                 </StackPanel>
                                             </Border>
                                         </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
                         </Border>
                     </Grid>
 

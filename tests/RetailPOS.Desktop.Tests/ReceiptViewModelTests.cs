@@ -35,6 +35,7 @@ public sealed class ReceiptViewModelTests
 
         Assert.NotNull(printer.PrintedReceipt);
         Assert.Equal("Receipt printed successfully.", viewModel.StatusMessage);
+        Assert.True(viewModel.IsSuccessStatus);
         Assert.Null(viewModel.ErrorMessage);
     }
 
@@ -50,6 +51,7 @@ public sealed class ReceiptViewModelTests
 
         Assert.NotNull(printer.PrintedReceipt);
         Assert.Null(viewModel.StatusMessage);
+        Assert.False(viewModel.IsSuccessStatus);
         Assert.Equal("Receipt could not be printed. Try again.", viewModel.ErrorMessage);
     }
 
@@ -113,6 +115,7 @@ public sealed class ReceiptViewModelTests
         Assert.Equal(
             "Print request sent. Waiting for simulator response...",
             viewModel.StatusMessage);
+        Assert.False(viewModel.IsSuccessStatus);
         Assert.True(viewModel.IsBusy);
 
         viewModel.Dispose();
