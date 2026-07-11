@@ -134,6 +134,7 @@ public sealed class PersistenceRepositoryTests
         var products = harness.Services.GetRequiredService<IProductRepository>();
         var queue = harness.Services.GetRequiredService<ISyncQueueRepository>();
         var orders = harness.Services.GetRequiredService<IOrderRepository>();
+        var dashboard = harness.Services.GetRequiredService<IDashboardRepository>();
         var pendingCheckouts = harness.Services.GetRequiredService<IPendingCheckoutRepository>();
         var clock = new StubCheckoutClock(new DateTimeOffset(now));
         var recovery = new CheckoutRecoveryService(pendingCheckouts, new UnusedOrderCompletionService(), clock);
@@ -149,6 +150,8 @@ public sealed class PersistenceRepositoryTests
         var recentOrders = await MeasureAsync("recent order selection", () => orders.GetRecentAsync(5));
         var recoverable = await MeasureAsync("checkout recovery history", () => recovery.GetRecoverableAsync());
         var status = await MeasureAsync("sync status history", () => syncStatus.GetSnapshotAsync(50));
+        var dashboardSummary = await MeasureAsync("bounded dashboard summary", () =>
+            dashboard.GetSummaryAsync(businessDate, 5));
 
         Assert.Equal(4006, active.Value.Count);
         Assert.NotNull(barcode.Value);
@@ -158,6 +161,11 @@ public sealed class PersistenceRepositoryTests
         Assert.Equal(5, recentOrders.Value.Count);
         Assert.Equal(1000, recoverable.Value.Count);
         Assert.Equal(50, status.Value.Items.Count);
+        Assert.Equal(2000, dashboardSummary.Value.OrderCount);
+        Assert.Equal(4_001_000m, dashboardSummary.Value.NetSales);
+        Assert.Equal(1000, dashboardSummary.Value.RecoverableCheckoutCount);
+        Assert.Equal(5, dashboardSummary.Value.RecentOrders.Count);
+        Assert.Equal("PERF-ORDER-00001", dashboardSummary.Value.RecentOrders[0].LocalOrderNumber);
         Assert.All(new[]
         {
             active.Elapsed,
@@ -167,7 +175,8 @@ public sealed class PersistenceRepositoryTests
             businessDayOrders.Elapsed,
             recentOrders.Elapsed,
             recoverable.Elapsed,
-            status.Elapsed
+            status.Elapsed,
+            dashboardSummary.Elapsed
         }, elapsed =>
             Assert.True(elapsed < TimeSpan.FromSeconds(5), $"Query exceeded baseline ceiling: {elapsed}."));
     }
@@ -236,6 +245,42 @@ public sealed class PersistenceRepositoryTests
                 }
             ]
         };
+    }
+
+    [Fact]
+    public async Task DashboardRepository_CountsOnlyRecoverableCheckoutStates()
+    {
+        await using var harness = await PersistenceHarness.CreateAsync();
+        var db = harness.Services.GetRequiredService<LocalPosDbContext>();
+        var now = new DateTime(2026, 7, 11, 3, 0, 0, DateTimeKind.Utc);
+        var statuses = new[]
+        {
+            PendingCheckoutStatus.AwaitingPayment,
+            PendingCheckoutStatus.ApprovedButOrderNotCreated,
+            PendingCheckoutStatus.ManagerReviewRequired,
+            PendingCheckoutStatus.PaymentFailed,
+            PendingCheckoutStatus.Completed,
+            PendingCheckoutStatus.ReviewResolved
+        };
+        db.PendingCheckouts.AddRange(statuses.Select((status, index) => new PendingCheckoutEntity
+        {
+            Id = DeterministicGuid(80000 + index),
+            StoreId = DeterministicGuid(40001),
+            TerminalId = DeterministicGuid(40002),
+            CashierId = DeterministicGuid(40003),
+            CreatedAtUtc = now.AddSeconds(index),
+            RecoveryStatus = (int)status,
+            CartSnapshotJson = PerformanceCartSnapshot,
+            PaymentSnapshotJson = "{}",
+            PaymentStatus = (int)PaymentStatus.Unknown,
+            LastUpdatedAtUtc = now.AddSeconds(index)
+        }));
+        await db.SaveChangesAsync();
+
+        var summary = await harness.Services.GetRequiredService<IDashboardRepository>()
+            .GetSummaryAsync(new DateOnly(2026, 7, 11), 5);
+
+        Assert.Equal(3, summary.RecoverableCheckoutCount);
     }
 
     [Fact]

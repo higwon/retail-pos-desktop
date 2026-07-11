@@ -59,9 +59,9 @@ Performance reference dataset:
 - The same large history volumes are persisted to a real SQLite database and measured through
   the production order repository, checkout recovery service, and sync status service. The
   five-second ceiling remains a severe-regression guard rather than a capacity target.
-- Dashboard summary calculation still materializes all business-date orders and unresolved
-  recovery snapshots. Replacing that path with database-side aggregates and a bounded recent
-  query is tracked by POS-811 (#153).
+- Dashboard summary calculation uses database-side order aggregates, a bounded recent-order
+  projection, and a recovery count query. The large SQLite dataset includes this combined
+  production query so full-history materialization cannot silently return to the UI path.
 
 Run Desktop tests:
 
