@@ -58,16 +58,16 @@ public sealed class CashierHappyPathTests
         };
 
         await productGrid.ScanBarcodeCommand.ExecuteAsync(null);
-        productGrid.SearchText = "Cola";
+        productGrid.SearchText = "Sunscreen";
         await productGrid.SearchCommand.ExecuteAsync(null);
         productGrid.AddProductCommand.Execute(Assert.Single(productGrid.Products));
 
         Assert.Equal(2, checkoutSession.Snapshot.ItemCount);
-        Assert.Equal(2800m, checkoutSession.Snapshot.Subtotal);
+        Assert.Equal(30000m, checkoutSession.Snapshot.Subtotal);
 
         using var cartPanel = new CartPanelViewModel(checkoutSession)
         {
-            DiscountInput = "300"
+            DiscountInput = "3000"
         };
         var checkoutRequested = false;
         cartPanel.CheckoutRequested += (_, _) => checkoutRequested = true;
@@ -76,8 +76,8 @@ public sealed class CashierHappyPathTests
         cartPanel.CheckoutCommand.Execute(null);
 
         Assert.True(checkoutRequested);
-        Assert.Equal(300m, cartPanel.DiscountAmount);
-        Assert.Equal(2500m, cartPanel.Total);
+        Assert.Equal(3000m, cartPanel.DiscountAmount);
+        Assert.Equal(27000m, cartPanel.Total);
 
         var clock = new StubCheckoutClock(Now);
         var idGenerator = new SequenceCheckoutIdGenerator(
@@ -130,19 +130,19 @@ public sealed class CashierHappyPathTests
 
         Assert.True(payment.IsApproved);
         Assert.Equal(PaymentMethod.Card, payment.Method);
-        Assert.Equal(2500m, payment.ApprovedAmount);
+        Assert.Equal(27000m, payment.ApprovedAmount);
         Assert.True(checkoutSession.Snapshot.IsEmpty);
 
         var receipt = receiptState.Current;
         Assert.NotNull(receipt);
         var order = await orderRepository.GetByIdAsync(OrderId);
         Assert.NotNull(order);
-        Assert.Equal(300m, order!.DiscountAmount);
-        Assert.Equal(2500m, order.TotalAmount);
+        Assert.Equal(3000m, order!.DiscountAmount);
+        Assert.Equal(27000m, order.TotalAmount);
         Assert.Equal(PaymentStatus.Approved, Assert.Single(order.Payments).Status);
         Assert.Equal(2, receipt!.Lines.Count);
-        Assert.Equal(300m, receipt.DiscountAmount);
-        Assert.Equal(2500m, receipt.TotalAmount);
+        Assert.Equal(3000m, receipt.DiscountAmount);
+        Assert.Equal(27000m, receipt.TotalAmount);
         Assert.Contains(receipt.OrderNumber, receipt.PlainText);
 
         var pending = await pendingRepository.GetByIdAsync(CheckoutId);
@@ -159,8 +159,8 @@ public sealed class CashierHappyPathTests
             queueItem.PayloadJson!,
             new JsonSerializerOptions(JsonSerializerDefaults.Web));
         Assert.NotNull(payload);
-        Assert.Equal(300m, payload!.DiscountAmount);
-        Assert.Equal(2500m, payload.TotalAmount);
+        Assert.Equal(3000m, payload!.DiscountAmount);
+        Assert.Equal(27000m, payload.TotalAmount);
     }
 
     private sealed class StubTimeProvider(DateTimeOffset utcNow) : TimeProvider

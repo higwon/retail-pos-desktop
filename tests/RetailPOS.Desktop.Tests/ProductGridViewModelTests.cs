@@ -28,14 +28,53 @@ public sealed class ProductGridViewModelTests
     public async Task SearchCommand_UsesTrimmedKeywordAndExposesSelection()
     {
         var expected = Product("Cola");
-        var repository = new StubProductRepository { SearchProducts = [expected] };
+        var repository = new StubProductRepository { ActiveProducts = [Product("Water"), expected] };
         var viewModel = new ProductGridViewModel(repository, new CheckoutSession()) { SearchText = "  cola  " };
 
         await viewModel.SearchCommand.ExecuteAsync(null);
         viewModel.SelectedProduct = viewModel.Products.Single();
 
-        Assert.Equal("cola", repository.LastKeyword);
+        Assert.Equal(expected.Id, Assert.Single(viewModel.Products).Id);
         Assert.Same(expected, viewModel.SelectedProduct);
+    }
+
+    [Fact]
+    public async Task CategoryAndSearch_ComposeFromSharedCategorySource()
+    {
+        var cola = Product("Cola", category: "Drinks");
+        var water = Product("Water", category: "Drinks");
+        var noodles = Product("Cup Noodles", category: "Food");
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository { ActiveProducts = [cola, water, noodles] },
+            new CheckoutSession());
+        await viewModel.LoadAsync();
+
+        Assert.Equal(["All categories", "Drinks", "Food"], viewModel.Categories);
+        viewModel.SelectedCategory = "Drinks";
+        Assert.Equal(2, viewModel.Products.Count);
+
+        viewModel.SearchText = "cola";
+        await viewModel.SearchCommand.ExecuteAsync(null);
+        Assert.Equal(cola.Id, Assert.Single(viewModel.Products).Id);
+
+        viewModel.SelectedCategory = "Food";
+        Assert.Empty(viewModel.Products);
+    }
+
+    [Fact]
+    public async Task ProductTileCommand_RepeatedActivationAddsExactlyOneUnitEachTime()
+    {
+        var product = Product("Cola");
+        var session = new CheckoutSession();
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository { ActiveProducts = [product] }, session);
+        await viewModel.LoadAsync();
+
+        viewModel.AddProductCommand.Execute(product);
+        viewModel.AddProductCommand.Execute(product);
+        viewModel.AddProductCommand.Execute(product);
+
+        Assert.Equal(3, Assert.Single(session.Snapshot.Lines).Quantity);
     }
 
     [Fact]
@@ -108,12 +147,12 @@ public sealed class ProductGridViewModelTests
         Assert.DoesNotContain("InvalidOperationException", viewModel.ErrorMessage);
     }
 
-    private static Product Product(string name, string? barcode = null) => new(
+    private static Product Product(string name, string? barcode = null, string category = "Beverages") => new(
         Guid.NewGuid(),
         $"SKU-{name}",
         barcode ?? Guid.NewGuid().ToString("N"),
         name,
-        "Beverages",
+        category,
         1000m);
 
     private sealed class StubProductRepository : IProductRepository
