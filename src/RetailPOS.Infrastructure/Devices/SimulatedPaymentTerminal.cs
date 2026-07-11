@@ -31,6 +31,7 @@ public sealed class SimulatedPaymentTerminal : IPaymentTerminal, IPaymentTermina
 {
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromMinutes(5);
     private readonly object _sync = new();
+    private readonly object _operationSync = new();
     private readonly TimeProvider _timeProvider;
     private readonly DeviceRequestQueue<PaymentTerminalRequestPayload, PaymentTerminalResponse> _requests;
     private PaymentTerminalConnectionState _connection = PaymentTerminalConnectionState.Connected;
@@ -63,7 +64,15 @@ public sealed class SimulatedPaymentTerminal : IPaymentTerminal, IPaymentTermina
             throw new ArgumentException("Approval code and transaction reference are required for approval.", nameof(response));
         }
 
-        return _requests.TryComplete(requestId, response);
+        lock (_operationSync)
+        {
+            if (ConnectionState == PaymentTerminalConnectionState.Disconnected)
+            {
+                return false;
+            }
+
+            return _requests.TryComplete(requestId, response);
+        }
     }
 
     public void Connect()
@@ -80,9 +89,21 @@ public sealed class SimulatedPaymentTerminal : IPaymentTerminal, IPaymentTermina
     public void Disconnect()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        var pending = _requests.Pending;
-        lock (_sync) { _connection = PaymentTerminalConnectionState.Disconnected; _state = PaymentTerminalOperationalState.Disconnected; }
-        if (pending is not null) _requests.TryDisconnect(pending.RequestId);
+        lock (_operationSync)
+        {
+            var pending = _requests.Pending;
+            lock (_sync)
+            {
+                _connection = PaymentTerminalConnectionState.Disconnected;
+                _state = PaymentTerminalOperationalState.Disconnected;
+            }
+
+            if (pending is not null)
+            {
+                _requests.TryDisconnect(pending.RequestId);
+            }
+        }
+
         RaiseChanged();
     }
 

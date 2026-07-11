@@ -78,6 +78,41 @@ public sealed class SimulatedPaymentTerminalTests
     }
 
     [Fact]
+    public async Task DisconnectBeforeApprove_RejectsApprovalAndCompletesUnknown()
+    {
+        using var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
+        var authorization = terminal.AuthorizeAsync(new(AttemptId, 3600m));
+        var requestId = terminal.PendingRequest!.RequestId;
+
+        terminal.Disconnect();
+        var approved = terminal.Respond(
+            requestId,
+            new(PaymentTerminalResponseOutcome.Approve, "APP-001", "TX-001"));
+
+        Assert.False(approved);
+        Assert.Equal(PaymentStatus.Unknown, (await authorization).Status);
+        Assert.Equal(PaymentTerminalConnectionState.Disconnected, terminal.ConnectionState);
+        Assert.Equal(PaymentTerminalOperationalState.Disconnected, terminal.OperationalState);
+    }
+
+    [Fact]
+    public async Task ApproveBeforeDisconnect_PreservesApprovalAndDisconnectsTerminal()
+    {
+        using var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
+        var authorization = terminal.AuthorizeAsync(new(AttemptId, 3600m));
+        var requestId = terminal.PendingRequest!.RequestId;
+
+        Assert.True(terminal.Respond(
+            requestId,
+            new(PaymentTerminalResponseOutcome.Approve, "APP-001", "TX-001")));
+        terminal.Disconnect();
+
+        Assert.Equal(PaymentStatus.Approved, (await authorization).Status);
+        Assert.Equal(PaymentTerminalConnectionState.Disconnected, terminal.ConnectionState);
+        Assert.Equal(PaymentTerminalOperationalState.Disconnected, terminal.OperationalState);
+    }
+
+    [Fact]
     public void ApproveRequiresMetadata()
     {
         using var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
