@@ -6,6 +6,8 @@ using CommunityToolkit.Mvvm.Messaging;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Sync;
 using RetailPOS.Desktop.Sync;
+using RetailPOS.Desktop.DeviceSimulation;
+using RetailPOS.Application.Devices;
 
 namespace RetailPOS.Desktop.ViewModels;
 
@@ -18,21 +20,25 @@ public sealed partial class StatusViewModel : ObservableObject, IDisposable
     private readonly OrderSyncService _orderSyncService;
     private readonly IOrderSyncClock _clock;
     private readonly IMessenger _messenger;
+    private readonly DeviceStatusService? _deviceStatusService;
     private bool _disposed;
 
     public StatusViewModel(
         SyncStatusService syncStatusService,
         OrderSyncService orderSyncService,
         IOrderSyncClock clock,
-        IMessenger messenger)
+        IMessenger messenger,
+        DeviceStatusService? deviceStatusService = null)
     {
         _syncStatusService = syncStatusService;
         _orderSyncService = orderSyncService;
         _clock = clock;
         _messenger = messenger;
+        _deviceStatusService = deviceStatusService;
         RefreshCommand = new AsyncRelayCommand(LoadAsync, () => !IsBusy);
         RunSyncCommand = new AsyncRelayCommand(RunSyncAsync, () => !IsBusy);
         Items.CollectionChanged += OnItemsCollectionChanged;
+        if (_deviceStatusService is not null) _deviceStatusService.Changed += OnDeviceStatusChanged;
         _messenger.Register<SyncStatusChangedMessage>(
             this,
             (_, message) => ScheduleAutoRefresh(message.Reason));
@@ -42,6 +48,7 @@ public sealed partial class StatusViewModel : ObservableObject, IDisposable
     }
 
     public ObservableCollection<SyncQueueItemViewModel> Items { get; } = [];
+    public ObservableCollection<DeviceStatusItemViewModel> Devices { get; } = [];
     public IAsyncRelayCommand RefreshCommand { get; }
     public IAsyncRelayCommand RunSyncCommand { get; }
 
@@ -82,6 +89,8 @@ public sealed partial class StatusViewModel : ObservableObject, IDisposable
 
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
+        _deviceStatusService?.Refresh();
+        if (_deviceStatusService is not null) ApplyDeviceStatus(_deviceStatusService.Current);
         await RunBusyAsync(async token =>
         {
             var snapshot = await _syncStatusService.GetSnapshotAsync(SnapshotCount, token);
@@ -90,6 +99,23 @@ public sealed partial class StatusViewModel : ObservableObject, IDisposable
                 ? "No local sync queue records."
                 : $"{Items.Count:N0} local sync queue records loaded.";
         }, cancellationToken);
+    }
+
+    private void OnDeviceStatusChanged(object? sender, EventArgs e)
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher is not null && !dispatcher.CheckAccess())
+        {
+            _ = dispatcher.BeginInvoke(() => { if (_deviceStatusService is not null) ApplyDeviceStatus(_deviceStatusService.Current); });
+            return;
+        }
+        if (_deviceStatusService is not null) ApplyDeviceStatus(_deviceStatusService.Current);
+    }
+
+    private void ApplyDeviceStatus(DeviceStatusOverview overview)
+    {
+        Devices.Clear();
+        foreach (var device in overview.Devices.Select(x => new DeviceStatusItemViewModel(x))) Devices.Add(device);
     }
 
     private async Task RunSyncAsync(CancellationToken cancellationToken = default)
@@ -226,8 +252,18 @@ public sealed partial class StatusViewModel : ObservableObject, IDisposable
 
         _disposed = true;
         Items.CollectionChanged -= OnItemsCollectionChanged;
+        if (_deviceStatusService is not null) _deviceStatusService.Changed -= OnDeviceStatusChanged;
         _messenger.UnregisterAll(this);
     }
+}
+
+public sealed class DeviceStatusItemViewModel(DeviceStatusSnapshot snapshot)
+{
+    public string DisplayName { get; } = snapshot.DisplayName;
+    public string Availability { get; } = snapshot.Availability.ToString();
+    public string Readiness { get; } = snapshot.Readiness.ToString();
+    public string Detail { get; } = snapshot.Detail;
+    public string LastChangedText { get; } = snapshot.LastChangedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
 }
 
 public sealed class SyncQueueItemViewModel(SyncStatusItem item)

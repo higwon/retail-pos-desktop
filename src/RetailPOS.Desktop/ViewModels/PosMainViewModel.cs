@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using RetailPOS.Application.Authentication;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Sync;
+using RetailPOS.Desktop.DeviceSimulation;
 using RetailPOS.Desktop.Sync;
 
 namespace RetailPOS.Desktop.ViewModels;
@@ -16,6 +17,7 @@ public sealed partial class PosMainViewModel : ObservableObject, IDisposable
     private readonly IApiConnectivityStateStore _connectivityStateStore;
     private readonly SyncStatusService _syncStatusService;
     private readonly IMessenger _messenger;
+    private readonly DeviceStatusService? _deviceStatusService;
     private int _syncRefreshVersion;
     private bool _disposed;
 
@@ -24,15 +26,18 @@ public sealed partial class PosMainViewModel : ObservableObject, IDisposable
         CheckoutSession checkoutSession,
         IApiConnectivityStateStore connectivityStateStore,
         SyncStatusService syncStatusService,
-        IMessenger messenger)
+        IMessenger messenger,
+        DeviceStatusService? deviceStatusService = null)
     {
         _sessionContext = sessionContext;
         _checkoutSession = checkoutSession;
         _connectivityStateStore = connectivityStateStore;
         _syncStatusService = syncStatusService;
         _messenger = messenger;
+        _deviceStatusService = deviceStatusService;
 
         _checkoutSession.Changed += OnCheckoutChanged;
+        if (_deviceStatusService is not null) _deviceStatusService.Changed += OnDeviceStatusChanged;
         _messenger.Register<ApiConnectivityChangedMessage>(
             this,
             (_, message) => ScheduleOnUi(() => ApplyConnectivity(message.Current)));
@@ -46,6 +51,7 @@ public sealed partial class PosMainViewModel : ObservableObject, IDisposable
         RefreshSession();
         RefreshCheckout();
         ApplyConnectivity(_connectivityStateStore.Current);
+        if (_deviceStatusService is not null) ApplyDeviceStatus(_deviceStatusService.Current);
     }
 
     [ObservableProperty]
@@ -72,11 +78,16 @@ public sealed partial class PosMainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _hasSyncReview;
 
+    [ObservableProperty]
+    private string _deviceSummaryText = "Devices: Unknown";
+
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
         RefreshSession();
         RefreshCheckout();
         ApplyConnectivity(_connectivityStateStore.Current);
+        _deviceStatusService?.Refresh();
+        if (_deviceStatusService is not null) ApplyDeviceStatus(_deviceStatusService.Current);
         await RefreshSyncAsync(cancellationToken);
     }
 
@@ -148,6 +159,10 @@ public sealed partial class PosMainViewModel : ObservableObject, IDisposable
     }
 
     private void OnCheckoutChanged(object? sender, EventArgs e) => RefreshCheckout();
+    private void OnDeviceStatusChanged(object? sender, EventArgs e) =>
+        ScheduleOnUi(() => { if (_deviceStatusService is not null) ApplyDeviceStatus(_deviceStatusService.Current); });
+    private void ApplyDeviceStatus(RetailPOS.Application.Devices.DeviceStatusOverview overview) =>
+        DeviceSummaryText = overview.Summary;
 
     private void ScheduleSyncRefresh() =>
         ScheduleOnUi(() => _ = RefreshSyncAsync());
@@ -178,6 +193,7 @@ public sealed partial class PosMainViewModel : ObservableObject, IDisposable
 
         _disposed = true;
         _checkoutSession.Changed -= OnCheckoutChanged;
+        if (_deviceStatusService is not null) _deviceStatusService.Changed -= OnDeviceStatusChanged;
         _messenger.UnregisterAll(this);
     }
 

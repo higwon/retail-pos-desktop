@@ -96,6 +96,7 @@ public static class DesktopServiceRegistration
         services.AddTransient<Func<DeviceSimulatorWindow>>(provider =>
             () => provider.GetRequiredService<DeviceSimulatorWindow>());
         services.AddScoped<DeviceSimulatorWindowHost>();
+        services.AddScoped<DeviceStatusService>();
         services.AddScoped<BarcodeScannerCoordinator>();
         services.AddScoped<IUiDispatcher>(_ => new WpfUiDispatcher(
             System.Windows.Application.Current.Dispatcher));
