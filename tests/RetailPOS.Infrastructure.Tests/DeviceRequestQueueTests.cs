@@ -81,12 +81,15 @@ public sealed class DeviceRequestQueueTests
     [Fact]
     public async Task TimeoutTerminatesRequestAndRejectsLaterCompletion()
     {
-        using var queue = new DeviceRequestQueue<string, string>("Printer", TimeProvider.System);
-        var task = queue.BeginAsync("receipt", "payload", TimeSpan.FromMilliseconds(30));
+        var timeProvider = new TrackingTimeProvider();
+        using var queue = new DeviceRequestQueue<string, string>("Printer", timeProvider);
+        var task = queue.BeginAsync("receipt", "payload", TimeSpan.FromMinutes(1));
         var id = queue.Pending!.RequestId;
+        timeProvider.FireTimers();
         var completed = await task.WaitAsync(TimeSpan.FromSeconds(2));
         Assert.Equal(DeviceRequestState.TimedOut, completed.State);
         Assert.False(queue.TryComplete(id, "Printed"));
+        await WaitForTimersAsync(timeProvider, 0);
     }
 
     [Fact]
@@ -112,8 +115,17 @@ public sealed class DeviceRequestQueueTests
 
     private sealed class TrackingTimeProvider : TimeProvider
     {
+        private readonly List<Action> _timerCallbacks = [];
+        private readonly object _timerSync = new();
         private int _activeTimers;
         public int ActiveTimers => Volatile.Read(ref _activeTimers);
+
+        public void FireTimers()
+        {
+            Action[] callbacks;
+            lock (_timerSync) callbacks = [.. _timerCallbacks];
+            foreach (var callback in callbacks) callback();
+        }
 
         public override ITimer CreateTimer(
             TimerCallback callback,
@@ -122,6 +134,7 @@ public sealed class DeviceRequestQueueTests
             TimeSpan period)
         {
             Interlocked.Increment(ref _activeTimers);
+            lock (_timerSync) _timerCallbacks.Add(() => callback(state));
             return new TrackingTimer(
                 TimeProvider.System.CreateTimer(callback, state, dueTime, period),
                 () => Interlocked.Decrement(ref _activeTimers));
