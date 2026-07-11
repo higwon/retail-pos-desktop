@@ -1,6 +1,7 @@
 using RetailPOS.Desktop.ViewModels;
 using RetailPOS.Desktop.DeviceSimulation;
 using System.Windows.Controls;
+using RetailPOS.Desktop.Workflow;
 
 namespace RetailPOS.Desktop.Views;
 
@@ -8,13 +9,14 @@ public partial class PosMainView : UserControl
 {
     private readonly ReceiptPreviewState _receiptPreviewState;
     private readonly CustomerDisplayHost _customerDisplayHost;
-    private readonly Func<PaymentDialog> _paymentDialogFactory;
-    private readonly Func<ReceiptDialog> _receiptDialogFactory;
+    private readonly WorkflowWindowHost<PaymentDialog> _paymentDialogHost;
+    private readonly WorkflowWindowHost<ReceiptDialog> _receiptDialogHost;
     private readonly PosMainViewModel _viewModel;
     private readonly CartPanelView _cartPanel;
     private readonly BarcodeScannerCoordinator _barcodeScannerCoordinator;
     private bool _loadedOnce;
     private bool _isCheckoutSubscribed;
+    private bool _isPaymentHostSubscribed;
 
     public PosMainView(
         PosMainViewModel viewModel,
@@ -23,16 +25,16 @@ public partial class PosMainView : UserControl
         BarcodeScannerCoordinator barcodeScannerCoordinator,
         ReceiptPreviewState receiptPreviewState,
         CustomerDisplayHost customerDisplayHost,
-        Func<PaymentDialog> paymentDialogFactory,
-        Func<ReceiptDialog> receiptDialogFactory)
+        WorkflowWindowHost<PaymentDialog> paymentDialogHost,
+        WorkflowWindowHost<ReceiptDialog> receiptDialogHost)
     {
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
         _receiptPreviewState = receiptPreviewState;
         _customerDisplayHost = customerDisplayHost;
-        _paymentDialogFactory = paymentDialogFactory;
-        _receiptDialogFactory = receiptDialogFactory;
+        _paymentDialogHost = paymentDialogHost;
+        _receiptDialogHost = receiptDialogHost;
         _cartPanel = cartPanel;
         _barcodeScannerCoordinator = barcodeScannerCoordinator;
         ProductRegion.Content = productGrid;
@@ -44,6 +46,7 @@ public partial class PosMainView : UserControl
     private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
     {
         SubscribeCheckout();
+        SubscribePaymentHost();
         _barcodeScannerCoordinator.Start();
 
         if (_loadedOnce)
@@ -83,6 +86,11 @@ public partial class PosMainView : UserControl
     private void OnUnloaded(object sender, System.Windows.RoutedEventArgs e)
     {
         _barcodeScannerCoordinator.Stop();
+        if (_isPaymentHostSubscribed)
+        {
+            _paymentDialogHost.WindowClosed -= OnPaymentWindowClosed;
+            _isPaymentHostSubscribed = false;
+        }
         if (!_isCheckoutSubscribed)
         {
             return;
@@ -94,13 +102,24 @@ public partial class PosMainView : UserControl
 
     private void OpenPaymentFlow()
     {
-        _paymentDialogFactory().ShowDialog();
+        _paymentDialogHost.ShowOrActivate();
+    }
+
+    private void SubscribePaymentHost()
+    {
+        if (_isPaymentHostSubscribed) return;
+        _paymentDialogHost.WindowClosed += OnPaymentWindowClosed;
+        _isPaymentHostSubscribed = true;
+    }
+
+    private void OnPaymentWindowClosed(object? sender, EventArgs e)
+    {
         if (_receiptPreviewState.HasReceipt)
         {
-            _receiptDialogFactory().ShowDialog();
+            _receiptDialogHost.ShowOrActivate();
         }
     }
 
     private void OnOpenReceipt(object sender, System.Windows.RoutedEventArgs e) =>
-        _receiptDialogFactory().ShowDialog();
+        _receiptDialogHost.ShowOrActivate();
 }

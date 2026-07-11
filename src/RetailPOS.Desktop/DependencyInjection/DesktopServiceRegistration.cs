@@ -11,6 +11,7 @@ using RetailPOS.Desktop.DeviceSimulation;
 using RetailPOS.Desktop.ViewModels;
 using RetailPOS.Desktop.Views;
 using RetailPOS.Infrastructure.Devices;
+using RetailPOS.Desktop.Workflow;
 
 namespace RetailPOS.Desktop.DependencyInjection;
 
@@ -90,6 +91,8 @@ public static class DesktopServiceRegistration
             () => provider.GetRequiredService<PaymentDialog>());
         services.AddTransient<Func<ReceiptDialog>>(provider =>
             () => provider.GetRequiredService<ReceiptDialog>());
+        services.AddScoped<WorkflowWindowHost<PaymentDialog>>();
+        services.AddScoped<WorkflowWindowHost<ReceiptDialog>>();
         services.AddTransient<Func<DeviceSimulatorWindow>>(provider =>
             () => provider.GetRequiredService<DeviceSimulatorWindow>());
         services.AddScoped<DeviceSimulatorWindowHost>();
