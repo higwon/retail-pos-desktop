@@ -15,7 +15,7 @@ public sealed class ProductCategoryImageConverter : IValueConverter
             "Hair Care" => "hair-care.png",
             "Makeup" => "makeup.png",
             "Health" => "health.png",
-            _ => "skin-care.png"
+            _ => "generic-product.png"
         };
         return new BitmapImage(new Uri($"pack://application:,,,/Assets/Products/{file}"));
     }

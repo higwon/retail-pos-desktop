@@ -10,12 +10,16 @@ namespace RetailPOS.Desktop.ViewModels;
 
 public sealed partial class ProductGridViewModel : ObservableObject
 {
+    private const int ProductPageSize = 50;
+
     private readonly IProductRepository _productRepository;
     private readonly CheckoutSession _checkoutSession;
     private readonly AsyncRelayCommand _searchCommand;
     private readonly AsyncRelayCommand _scanBarcodeCommand;
     private bool _isLoaded;
     private readonly List<Product> _allProducts = [];
+    private readonly List<Product> _filteredProducts = [];
+    private int _visibleProductCount;
 
     public ProductGridViewModel(IProductRepository productRepository, CheckoutSession checkoutSession)
     {
@@ -24,12 +28,14 @@ public sealed partial class ProductGridViewModel : ObservableObject
         _searchCommand = new AsyncRelayCommand(SearchAsync);
         _scanBarcodeCommand = new AsyncRelayCommand(ScanBarcodeAsync);
         AddProductCommand = new RelayCommand<Product>(AddProduct);
+        LoadMoreProductsCommand = new RelayCommand(LoadMoreProducts, () => HasMoreProducts);
     }
 
     public ObservableCollection<Product> Products { get; } = [];
     public ObservableCollection<string> Categories { get; } = [];
     public IAsyncRelayCommand SearchCommand => _searchCommand;
     public IRelayCommand<Product> AddProductCommand { get; }
+    public IRelayCommand LoadMoreProductsCommand { get; }
     public IAsyncRelayCommand ScanBarcodeCommand => _scanBarcodeCommand;
 
     [ObservableProperty]
@@ -63,6 +69,10 @@ public sealed partial class ProductGridViewModel : ObservableObject
     public bool IsEmpty => !IsLoading && !HasError && Products.Count == 0;
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
     public bool HasBarcodeMessage => !string.IsNullOrEmpty(BarcodeMessage);
+    public bool HasMoreProducts => Products.Count < _filteredProducts.Count;
+    public string ProductResultsText => _filteredProducts.Count == 0
+        ? "No products"
+        : $"Showing {Products.Count:N0} of {_filteredProducts.Count:N0} products";
 
     private void AddProduct(Product? product)
     {
@@ -125,17 +135,35 @@ public sealed partial class ProductGridViewModel : ObservableObject
     {
         if (!_isLoaded) return;
         var keyword = SearchText.Trim();
-        var filtered = _allProducts.Where(product =>
+        _filteredProducts.Clear();
+        _filteredProducts.AddRange(_allProducts.Where(product =>
             (SelectedCategory == ProductCatalogCategories.All ||
              string.Equals(product.CategoryName, SelectedCategory, StringComparison.OrdinalIgnoreCase)) &&
             (keyword.Length == 0 ||
              product.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
              product.Sku.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-             product.Barcode.Contains(keyword, StringComparison.OrdinalIgnoreCase)));
+             product.Barcode.Contains(keyword, StringComparison.OrdinalIgnoreCase))));
+        _visibleProductCount = Math.Min(ProductPageSize, _filteredProducts.Count);
+        PresentProducts();
+    }
+
+    private void LoadMoreProducts()
+    {
+        _visibleProductCount = Math.Min(
+            _visibleProductCount + ProductPageSize,
+            _filteredProducts.Count);
+        PresentProducts();
+    }
+
+    private void PresentProducts()
+    {
         Products.Clear();
-        foreach (var product in filtered) Products.Add(product);
+        foreach (var product in _filteredProducts.Take(_visibleProductCount)) Products.Add(product);
         OnPropertyChanged(nameof(HasProducts));
         OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(HasMoreProducts));
+        OnPropertyChanged(nameof(ProductResultsText));
+        LoadMoreProductsCommand.NotifyCanExecuteChanged();
     }
 
     private async Task ScanBarcodeAsync(CancellationToken cancellationToken)

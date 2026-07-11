@@ -92,6 +92,12 @@ public sealed class ProductGridViewModelTests
             new CheckoutSession());
         await viewModel.LoadAsync();
 
+        Assert.Equal(50, viewModel.Products.Count);
+        Assert.True(viewModel.HasMoreProducts);
+        Assert.Equal("Showing 50 of 5,000 products", viewModel.ProductResultsText);
+        viewModel.LoadMoreProductsCommand.Execute(null);
+        Assert.Equal(100, viewModel.Products.Count);
+
         var stopwatch = Stopwatch.StartNew();
         viewModel.SelectedCategory = "Category 07";
         viewModel.SearchText = "Product 04";
@@ -99,6 +105,7 @@ public sealed class ProductGridViewModelTests
         stopwatch.Stop();
 
         Assert.Equal(50, viewModel.Products.Count);
+        Assert.False(viewModel.HasMoreProducts);
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5),
             $"Category/search filter exceeded baseline ceiling: {stopwatch.Elapsed}.");
     }

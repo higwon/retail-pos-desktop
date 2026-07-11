@@ -75,3 +75,48 @@ EPIC-08 adds a Desktop-owned display host that:
 
 Production display policy, advanced operator configuration, and non-WPF hardware
 adapters remain Phase 2.
+
+## POS-805 UI Smoke Checklist
+
+Run this checklist on Windows after UI or device-simulator layout changes. Use both
+100% and 150% display scaling, and repeat the secondary-display steps with monitors
+that use different scaling values.
+
+### Supported sizes and dense data
+
+- Main window at 1440x900 and the supported minimum 1180x720: header actions remain
+  reachable, status/cashier text does not overlap, and catalog/cart panels remain usable.
+- Payment at 520x600 and Receipt at 700x700 minimum: status, long approval codes,
+  transaction references, line totals, and action buttons remain readable or expose the
+  complete value through a tooltip.
+- Device Simulator at 980x780 and the supported minimum 860x700: every tab can scroll
+  its history, long request identifiers do not cover response controls, and ComboBox
+  selections remain visible.
+- Dashboard and Status at minimum size: summary cards, recent order rows, device badges,
+  sync queue details, and refresh actions remain reachable without horizontal clipping.
+- Load the 5,000-product reference dataset: the cashier grid initially presents 50 cards,
+  `Load more products` adds the next 50, and category/search changes reset the page.
+- Assign an unknown product category: the neutral generic product image is shown instead
+  of an unrelated known-category image.
+
+### Keyboard and assistive behavior
+
+- Starting at the first input, use only Tab and Shift+Tab through Login, POS, Payment,
+  Receipt, Status, and every Simulator tab; focus order follows the visual workflow.
+- Every focused button and text input has a visible blue focus outline at both scaling
+  values. Enter/Space activates product cards and buttons exactly once.
+- Payment and Receipt keep Tab navigation inside the modeless workflow window until it
+  is closed; Close/Done remain keyboard reachable.
+- Screen-reader names identify product results, sync queue, payment actions, receipt
+  actions, simulator tabs, scanner filters, and printer responses.
+- Dynamic errors are announced assertively; successful or informational status changes
+  are announced politely. Color is supplementary to readable state text.
+
+### Per-monitor display
+
+- Open Customer Display on each secondary monitor, then move it between targets while
+  open. The existing window moves without duplication and fills the target working area.
+- Disconnect the selected monitor and confirm the host reports unavailable/closed without
+  leaving an inaccessible window. Reconnect it and confirm the target list and status refresh.
+- Move Payment, Receipt, and Device Simulator between 100% and 150% monitors. Text stays
+  sharp, controls keep their minimum hit size, and no metadata overlaps after the DPI change.
