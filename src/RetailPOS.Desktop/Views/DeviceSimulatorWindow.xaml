@@ -268,20 +268,20 @@
                         </Grid>
                     </Border>
                     <Grid Grid.Row="1" Margin="0,18,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="5*"/><ColumnDefinition Width="18"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions>
-                        <Border Style="{StaticResource PanelBorderStyle}" Padding="22">
+                        <Border Style="{StaticResource PanelBorderStyle}" Padding="18">
                             <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                 <TextBlock Text="Pending authorization" FontWeight="SemiBold" FontSize="18"/>
-                                <Grid Grid.Row="1" Margin="0,14,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="145"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Amount" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Grid.Column="1" Text="{Binding RequestedAmount}" FontSize="22" FontWeight="Bold"/></Grid>
-                                <Grid Grid.Row="2" Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="145"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Payment attempt" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Grid.Column="1" Text="{Binding PaymentAttemptId}" TextTrimming="CharacterEllipsis"/></Grid>
-                                <Grid Grid.Row="3" Margin="0,8,0,16"><Grid.ColumnDefinitions><ColumnDefinition Width="145"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Request / received" Style="{StaticResource SecondaryTextBlockStyle}"/><StackPanel Grid.Column="1"><TextBlock Text="{Binding RequestId}" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding RequestedAt}" Style="{StaticResource SecondaryTextBlockStyle}"/></StackPanel></Grid>
+                                <Grid Grid.Row="1" Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="145"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Amount" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Grid.Column="1" Text="{Binding RequestedAmount}" FontSize="20" FontWeight="Bold"/></Grid>
+                                <Grid Grid.Row="2" Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="145"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Payment attempt" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Grid.Column="1" Text="{Binding PaymentAttemptId}" TextTrimming="CharacterEllipsis"/></Grid>
+                                <Grid Grid.Row="3" Margin="0,6,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="145"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Request / received" Style="{StaticResource SecondaryTextBlockStyle}"/><StackPanel Grid.Column="1"><TextBlock Text="{Binding RequestId}" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding RequestedAt}" Style="{StaticResource SecondaryTextBlockStyle}"/></StackPanel></Grid>
                                 <StackPanel Grid.Row="4">
                                     <TextBlock Text="Terminal response" FontWeight="SemiBold"/>
-                                    <ComboBox ItemsSource="{Binding Responses}" SelectedItem="{Binding SelectedResponse}" MinHeight="42" Margin="0,7,0,12"/>
+                                    <ComboBox ItemsSource="{Binding Responses}" SelectedItem="{Binding SelectedResponse}" MinHeight="38" Margin="0,5,0,8"/>
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                         <StackPanel><TextBlock Text="Approval code" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBox Text="{Binding ApprovalCode, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
                                         <StackPanel Grid.Column="2"><TextBlock Text="Transaction reference" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBox Text="{Binding TransactionReference, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
                                     </Grid>
-                                    <Button Content="Send response" Command="{Binding RespondCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" HorizontalAlignment="Right" MinWidth="138" Margin="0,14,0,0"/>
+                                    <Button Content="Send response" Command="{Binding RespondCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" HorizontalAlignment="Right" MinWidth="138" Height="44" Margin="0,10,0,0"/>
                                 </StackPanel>
                             </Grid>
                         </Border>

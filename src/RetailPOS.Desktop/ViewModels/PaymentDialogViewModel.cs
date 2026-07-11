@@ -88,6 +88,10 @@ public sealed partial class PaymentDialogViewModel : ObservableObject, IDisposab
     private async Task StartPaymentAsync(PaymentMethod method, CancellationToken cancellationToken)
     {
         IsPaymentInProgress = true;
+        Status = null;
+        Message = method == PaymentMethod.Card
+            ? "Authorization request sent. Waiting for terminal response..."
+            : "Recording cash payment...";
         NotifyCommandStateChanged();
 
         try

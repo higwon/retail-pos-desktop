@@ -77,6 +77,9 @@ public sealed class PaymentDialogViewModelTests
         await payment.Started.Task;
 
         Assert.True(viewModel.IsPaymentInProgress);
+        Assert.Equal(
+            "Authorization request sent. Waiting for terminal response...",
+            viewModel.Message);
         Assert.False(viewModel.ApproveCardPaymentCommand.CanExecute(null));
         Assert.False(viewModel.ApproveCashPaymentCommand.CanExecute(null));
 
