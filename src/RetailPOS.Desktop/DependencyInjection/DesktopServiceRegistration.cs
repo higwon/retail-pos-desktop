@@ -94,6 +94,8 @@ public static class DesktopServiceRegistration
             () => provider.GetRequiredService<ReceiptDialog>());
         services.AddScoped<WorkflowWindowHost<PaymentDialog>>();
         services.AddScoped<WorkflowWindowHost<ReceiptDialog>>();
+        services.AddScoped<ISessionWorkflowLifecycle, SessionWorkflowLifecycle>();
+        services.AddScoped<SessionSignOutCoordinator>();
         services.AddTransient<Func<DeviceSimulatorWindow>>(provider =>
             () => provider.GetRequiredService<DeviceSimulatorWindow>());
         services.AddScoped<DeviceSimulatorWindowHost>();

@@ -48,32 +48,25 @@ EPIC-08 demonstrates device integration concepts:
 - Receipt printer simulator.
 - Card reader simulator.
 - Secondary monitor customer display.
+- Operator-driven receipt printer and card terminal request/response workflows.
+- Product selection for simulated barcode scans.
+- Cashier-facing device connectivity and readiness status.
+- Catalog, cart, receipt, payment, navigation, and session lifecycle polish.
 
 Simulator controls remain separate from cashier business commands. Real hardware
 adapters remain Phase 2.
 
 ## Next Planned Area
 
-Before EPIC-09, the EPIC-08 follow-up turns the simulator into a stronger interactive
-integration demo and addresses visible cashier UX gaps:
+EPIC-09 improves production readiness without expanding the product into real hardware,
+production authentication, or Phase 2 retail features:
 
-- Operator-driven printer and card request/response workflows.
-- Receipt payload and payment request inspection in the simulator.
-- Product selection for simulated barcode scans.
-- Cashier-facing device connectivity/readiness status.
-- Receipt/payment feedback consistency and layout fixes.
-- Product category filtering, clickable product tiles, and cart interaction cleanup.
-- Safe sign-out/session teardown, header/navigation cleanup, payment/receipt spacing, and
-  dashboard row sizing.
-
-## Later Planned Areas
-
-Production readiness follows after core workflow and device simulation:
-
+- Automated build and test quality gates.
 - Configuration hardening.
 - Logging/audit hardening.
 - Offline and recovery scenario tests.
 - Performance and reliability polish.
+- UI, DPI, accessibility, demo, and portfolio presentation polish.
 
 ## Phase 2 Product Ideas
 

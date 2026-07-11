@@ -92,6 +92,24 @@ Cashier happy path demo checklist:
 5. Confirm the receipt preview shows the completed order and discount.
 6. Open sync status and confirm the order is queued while the API is offline.
 
+Device and session smoke checklist:
+
+1. Open the Device Simulator and confirm scanner, printer, card terminal, and customer
+   display status is visible without blocking the cashier window.
+2. Select a product in the scanner picker, emit it repeatedly, and confirm cart quantity
+   changes while manual unknown-barcode entry remains available.
+3. Start receipt printing, inspect the request payload, respond with a failure, retry, and
+   respond Printed; confirm feedback stays in the receipt header area.
+4. Start card payment and respond Approve from the simulator; confirm approval metadata does
+   not clip and the order completes only once.
+5. Move the customer display between secondary monitors, then disconnect the selected target
+   and confirm the POS remains usable with an attention state.
+6. Start a delayed card request and select Sign out while it is pending; confirm the request
+   is cancelled, scanner input stops, workflow windows and customer display close, and login
+   is shown.
+7. Sign in as a different cashier and confirm the previous cart, receipt, checkout, and
+   cashier context are absent.
+
 ## PR Description
 
 Include:

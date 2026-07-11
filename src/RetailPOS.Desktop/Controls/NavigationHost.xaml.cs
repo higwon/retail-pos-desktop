@@ -1,9 +1,7 @@
 using System.Windows.Controls;
 using Microsoft.Extensions.Logging;
-using RetailPOS.Application.Authentication;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Desktop.DeviceSimulation;
-using RetailPOS.Desktop.ViewModels;
 using RetailPOS.Desktop.Views;
 using RetailPOS.Desktop.Workflow;
 
@@ -19,12 +17,7 @@ public partial class NavigationHost : UserControl
     private readonly DashboardView _dashboardView;
     private readonly StatusView _statusView;
     private readonly DeviceSimulatorWindowHost _deviceSimulatorWindowHost;
-    private readonly ICurrentSessionContext _sessionContext;
-    private readonly CheckoutSession _checkoutSession;
-    private readonly ReceiptPreviewState _receiptPreviewState;
-    private readonly CustomerDisplayHost _customerDisplayHost;
-    private readonly WorkflowWindowHost<PaymentDialog> _paymentHost;
-    private readonly WorkflowWindowHost<ReceiptDialog> _receiptHost;
+    private readonly SessionSignOutCoordinator _signOutCoordinator;
     private bool _recoveryCheckedAfterSignIn;
     private bool _isLoginSubscribed;
 
@@ -32,12 +25,7 @@ public partial class NavigationHost : UserControl
         CheckoutRecoveryView checkoutRecoveryView, DashboardView dashboardView, StatusView statusView,
         ICheckoutRecoveryService checkoutRecoveryService,
         DeviceSimulatorWindowHost deviceSimulatorWindowHost,
-        ICurrentSessionContext sessionContext,
-        CheckoutSession checkoutSession,
-        ReceiptPreviewState receiptPreviewState,
-        CustomerDisplayHost customerDisplayHost,
-        WorkflowWindowHost<PaymentDialog> paymentHost,
-        WorkflowWindowHost<ReceiptDialog> receiptHost,
+        SessionSignOutCoordinator signOutCoordinator,
         ILogger<NavigationHost> logger)
     {
         InitializeComponent();
@@ -49,12 +37,7 @@ public partial class NavigationHost : UserControl
         _dashboardView = dashboardView;
         _statusView = statusView;
         _deviceSimulatorWindowHost = deviceSimulatorWindowHost;
-        _sessionContext = sessionContext;
-        _checkoutSession = checkoutSession;
-        _receiptPreviewState = receiptPreviewState;
-        _customerDisplayHost = customerDisplayHost;
-        _paymentHost = paymentHost;
-        _receiptHost = receiptHost;
+        _signOutCoordinator = signOutCoordinator;
         DeviceSimulatorButton.Visibility = deviceSimulatorWindowHost.IsEnabled
             ? System.Windows.Visibility.Visible
             : System.Windows.Visibility.Collapsed;
@@ -137,12 +120,7 @@ public partial class NavigationHost : UserControl
 
     private void OnSignOut(object sender, System.Windows.RoutedEventArgs e)
     {
-        _receiptPreviewState.Clear();
-        _paymentHost.Close();
-        _receiptHost.Close();
-        _customerDisplayHost.Close();
-        _checkoutSession.Clear();
-        _sessionContext.Clear();
+        _signOutCoordinator.SignOut();
         _recoveryCheckedAfterSignIn = false;
         DemoNavigation.Visibility = System.Windows.Visibility.Collapsed;
         Grid.SetRow(ContentRoot, 0);

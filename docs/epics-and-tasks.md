@@ -712,7 +712,7 @@ Acceptance criteria:
 Goal: Turn the device simulator into an operator-driven integration demo and remove
 the most visible cashier workflow and layout friction before production-readiness work.
 
-Status: Planned before EPIC-09.
+Status: Complete.
 
 Delivery guidance:
 
@@ -721,6 +721,15 @@ Delivery guidance:
 - Simulator requests and responses must remain separate from production business ports.
 - Do not block simulator interaction behind modal cashier windows.
 - Preserve fail-closed payment and pending-checkout policies.
+
+Completed scope:
+
+- Shared bounded request lifecycle for interactive printer and card workflows.
+- Operator responses with typed outcomes and safe request/history payloads.
+- Product picker and manual barcode modes for scanner simulation.
+- Cashier-facing device connectivity and display topology updates.
+- Filterable health-and-beauty catalog with direct tile-to-cart interaction.
+- Safe sign-out/session teardown and high-visibility layout polish.
 
 ### POS-705 Interactive Device Request/Response Foundation
 
@@ -871,8 +880,15 @@ Acceptance criteria:
 
 Goal: Improve reliability, performance, test coverage, and portfolio presentation.
 
-Status: Planned after the core workflow and device simulation epics. Some sync
-hardening work was completed early under the historical POS-711 through POS-715 IDs.
+Status: Next. Some sync hardening work was completed early under the historical
+POS-711 through POS-715 IDs.
+
+Scope boundary:
+
+- Improve automated verification, configuration, recovery, diagnostics, performance,
+  accessibility, and portfolio presentation.
+- Keep real device SDKs, production identity, deployment packaging, refunds,
+  cancellations, promotions, memberships, and a generic device framework out of scope.
 
 ### POS-801 Unit Tests
 

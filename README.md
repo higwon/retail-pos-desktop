@@ -1,5 +1,7 @@
 # Retail POS Desktop
 
+[![CI](https://github.com/higwon/retail-pos-desktop/actions/workflows/ci.yml/badge.svg)](https://github.com/higwon/retail-pos-desktop/actions/workflows/ci.yml)
+
 A portfolio-oriented Windows desktop POS system built with C# and .NET 8.
 
 The project focuses on offline-first retail sales, recoverable checkout, local SQLite persistence, central API synchronization, simulated POS devices, and maintainable WPF architecture.
