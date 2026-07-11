@@ -9,11 +9,18 @@ using RetailPOS.Domain.Orders;
 using RetailPOS.Domain.Payments;
 using RetailPOS.Infrastructure.DependencyInjection;
 using RetailPOS.Infrastructure.Persistence;
+using RetailPOS.Infrastructure.Persistence.Entities;
+using System.Diagnostics;
+using Xunit.Abstractions;
 
 namespace RetailPOS.Infrastructure.Tests;
 
 public sealed class PersistenceRepositoryTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public PersistenceRepositoryTests(ITestOutputHelper output) => _output = output;
+
     [Fact]
     public async Task ProductSeed_IsRepeatableAndReadableThroughRepository()
     {
@@ -75,6 +82,67 @@ public sealed class PersistenceRepositoryTests
         Assert.Equal("Current Product", restored.Name);
         Assert.Equal(5, restored.Version);
     }
+
+    [Fact]
+    public async Task LargeDeterministicDataset_KeepsCashierCriticalQueriesBounded()
+    {
+        await using var harness = await PersistenceHarness.CreateAsync();
+        var db = harness.Services.GetRequiredService<LocalPosDbContext>();
+        var now = new DateTime(2026, 7, 11, 3, 0, 0, DateTimeKind.Utc);
+        db.Products.AddRange(Enumerable.Range(1, 5000).Select(index => new ProductEntity
+        {
+            Id = DeterministicGuid(index),
+            Sku = $"PERF-{index:00000}",
+            Barcode = $"99000{index:0000000}",
+            Name = index == 4201 ? "Target Cleanser 04201" : $"Performance Product {index:00000}",
+            CategoryName = $"Category {index % 20:00}",
+            UnitPrice = 1000m + index,
+            StockQuantity = index % 100,
+            IsActive = index % 5 != 0,
+            Version = 1,
+            UpdatedUtc = now
+        }));
+        db.SyncQueue.AddRange(Enumerable.Range(1, 2000).Select(index => new SyncQueueEntity
+        {
+            Id = DeterministicGuid(10000 + index),
+            ItemType = "Order",
+            AggregateId = DeterministicGuid(20000 + index),
+            ReferenceKey = $"performance-{index:00000}",
+            Status = (int)SyncQueueStatus.Pending,
+            RetryCount = index % 4,
+            NextAttemptAtUtc = now.AddSeconds(index % 60),
+            CreatedAtUtc = now.AddSeconds(index),
+            UpdatedAtUtc = now.AddSeconds(index)
+        }));
+        await db.SaveChangesAsync();
+        var products = harness.Services.GetRequiredService<IProductRepository>();
+        var queue = harness.Services.GetRequiredService<ISyncQueueRepository>();
+
+        var active = await MeasureAsync("active catalog load", () => products.GetActiveAsync());
+        var barcode = await MeasureAsync("barcode lookup", () => products.GetByBarcodeAsync("990000004201"));
+        var search = await MeasureAsync("product search", () => products.SearchAsync("Target Cleanser"));
+        var due = await MeasureAsync("due sync selection", () =>
+            queue.GetDuePendingAsync(new DateTimeOffset(now.AddMinutes(1)), 100));
+
+        Assert.Equal(4006, active.Value.Count);
+        Assert.NotNull(barcode.Value);
+        Assert.Single(search.Value);
+        Assert.Equal(100, due.Value.Count);
+        Assert.All(new[] { active.Elapsed, barcode.Elapsed, search.Elapsed, due.Elapsed }, elapsed =>
+            Assert.True(elapsed < TimeSpan.FromSeconds(5), $"Query exceeded baseline ceiling: {elapsed}."));
+    }
+
+    private async Task<(T Value, TimeSpan Elapsed)> MeasureAsync<T>(string name, Func<Task<T>> action)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var value = await action();
+        stopwatch.Stop();
+        _output.WriteLine($"{name}: {stopwatch.Elapsed.TotalMilliseconds:N1} ms");
+        return (value, stopwatch.Elapsed);
+    }
+
+    private static Guid DeterministicGuid(int value) =>
+        Guid.Parse($"00000000-0000-0000-0000-{value:000000000000}");
 
     [Fact]
     public async Task OrderRepository_RoundTripsCompletedOrderAggregate()
