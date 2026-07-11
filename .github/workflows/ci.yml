@@ -32,7 +32,20 @@ jobs:
         run: dotnet build RetailPOS.sln -c Release --no-restore
 
       - name: Test
-        run: dotnet test RetailPOS.sln -c Release --no-build --no-restore
+        run: >-
+          dotnet test RetailPOS.sln -c Release --no-build --no-restore
+          --logger "trx;LogFilePrefix=test-results"
+          --results-directory TestResults
+          --collect "XPlat Code Coverage"
+
+      - name: Publish test and coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-and-coverage
+          path: TestResults
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Check pull request whitespace
         if: github.event_name == 'pull_request'

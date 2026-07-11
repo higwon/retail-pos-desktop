@@ -25,6 +25,22 @@ Run all tests:
 dotnet test RetailPOS.sln
 ```
 
+Run the CI-equivalent Release validation:
+
+```powershell
+dotnet restore RetailPOS.sln
+dotnet build RetailPOS.sln -c Release --no-restore
+dotnet test RetailPOS.sln -c Release --no-build --no-restore --collect "XPlat Code Coverage"
+git diff --check
+```
+
+Tests are categorized by project boundary: Domain, Application, Infrastructure, Desktop,
+and API. CI publishes TRX results and Cobertura coverage files for all five projects as a
+single retained artifact. Coverage is evidence for identifying gaps; no percentage gate is
+enforced until a stable baseline and meaningful exclusions are agreed.
+
+Repository settings should require the `build-and-test` check before merging to `main`.
+
 Run Desktop tests:
 
 ```powershell
