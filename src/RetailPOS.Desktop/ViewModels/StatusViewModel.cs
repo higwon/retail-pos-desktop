@@ -264,6 +264,30 @@ public sealed class DeviceStatusItemViewModel(DeviceStatusSnapshot snapshot)
     public string Readiness { get; } = snapshot.Readiness.ToString();
     public string Detail { get; } = snapshot.Detail;
     public string LastChangedText { get; } = snapshot.LastChangedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+    public string BadgeBackground { get; } = snapshot.Availability switch
+    {
+        DeviceAvailability.Disabled => "#FFE5E7EB",
+        DeviceAvailability.Unavailable => "#FFFEE2E2",
+        _ => snapshot.Readiness switch
+        {
+            DeviceReadiness.Ready => "#FFDCFCE7",
+            DeviceReadiness.Busy => "#FFDBEAFE",
+            DeviceReadiness.Attention => "#FFFEF3C7",
+            _ => "#FFE5E7EB"
+        }
+    };
+    public string BadgeForeground { get; } = snapshot.Availability switch
+    {
+        DeviceAvailability.Unavailable => "#FFB91C1C",
+        DeviceAvailability.Disabled => "#FF4B5563",
+        _ => snapshot.Readiness switch
+        {
+            DeviceReadiness.Ready => "#FF166534",
+            DeviceReadiness.Busy => "#FF1D4ED8",
+            DeviceReadiness.Attention => "#FFB45309",
+            _ => "#FF4B5563"
+        }
+    };
 }
 
 public sealed class SyncQueueItemViewModel(SyncStatusItem item)

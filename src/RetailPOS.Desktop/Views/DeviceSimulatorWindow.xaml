@@ -10,6 +10,24 @@
         Background="{StaticResource AppBackgroundBrush}">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <Style x:Key="SimulatorStateTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Style.Triggers>
+                <Trigger Property="Text" Value="Connected"><Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/></Trigger>
+                <Trigger Property="Text" Value="Ready"><Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/></Trigger>
+                <Trigger Property="Text" Value="Idle"><Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/></Trigger>
+                <Trigger Property="Text" Value="Approved"><Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/></Trigger>
+                <Trigger Property="Text" Value="Printing"><Setter Property="Foreground" Value="{StaticResource PrimaryBlueBrush}"/></Trigger>
+                <Trigger Property="Text" Value="Processing"><Setter Property="Foreground" Value="{StaticResource PrimaryBlueBrush}"/></Trigger>
+                <Trigger Property="Text" Value="Disconnected"><Setter Property="Foreground" Value="{StaticResource DangerBrush}"/></Trigger>
+                <Trigger Property="Text" Value="Faulted"><Setter Property="Foreground" Value="{StaticResource DangerBrush}"/></Trigger>
+                <Trigger Property="Text" Value="Unknown"><Setter Property="Foreground" Value="{StaticResource WarningBrush}"/></Trigger>
+                <Trigger Property="Text" Value="Cancelled"><Setter Property="Foreground" Value="{StaticResource WarningBrush}"/></Trigger>
+                <Trigger Property="Text" Value="Declined"><Setter Property="Foreground" Value="{StaticResource DangerBrush}"/></Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -70,8 +88,7 @@
                             <StackPanel>
                                 <TextBlock Text="Connection" Style="{StaticResource SecondaryTextBlockStyle}"/>
                                 <TextBlock Text="{Binding ConnectionState}"
-                                           FontSize="18"
-                                           FontWeight="SemiBold"
+                                           Style="{StaticResource SimulatorStateTextStyle}"
                                            Margin="0,6,0,0"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -164,15 +181,13 @@
                             <StackPanel>
                                 <TextBlock Text="Connection" Style="{StaticResource SecondaryTextBlockStyle}"/>
                                 <TextBlock Text="{Binding ConnectionState}"
-                                           FontSize="18"
-                                           FontWeight="SemiBold"
+                                           Style="{StaticResource SimulatorStateTextStyle}"
                                            Margin="0,6,0,0"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1">
                                 <TextBlock Text="Current state" Style="{StaticResource SecondaryTextBlockStyle}"/>
                                 <TextBlock Text="{Binding OperationalState}"
-                                           FontSize="18"
-                                           FontWeight="SemiBold"
+                                           Style="{StaticResource SimulatorStateTextStyle}"
                                            Margin="0,6,0,0"/>
                             </StackPanel>
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
@@ -291,9 +306,9 @@
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Border Style="{StaticResource PanelBorderStyle}" Padding="24">
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <StackPanel><TextBlock Text="Connection" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding ConnectionState}" FontSize="18" FontWeight="SemiBold"/></StackPanel>
-                            <StackPanel Grid.Column="1"><TextBlock Text="Current state" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding OperationalState}" FontSize="18" FontWeight="SemiBold"/></StackPanel>
-                            <StackPanel Grid.Column="2"><TextBlock Text="Last outcome" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding LastOutcome}" FontSize="18" FontWeight="SemiBold"/></StackPanel>
+                            <StackPanel><TextBlock Text="Connection" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding ConnectionState}" Style="{StaticResource SimulatorStateTextStyle}"/></StackPanel>
+                            <StackPanel Grid.Column="1"><TextBlock Text="Current state" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding OperationalState}" Style="{StaticResource SimulatorStateTextStyle}"/></StackPanel>
+                            <StackPanel Grid.Column="2"><TextBlock Text="Last outcome" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding LastOutcome}" Style="{StaticResource SimulatorStateTextStyle}"/></StackPanel>
                             <StackPanel Grid.Column="3" Orientation="Horizontal"><Button Content="Connect" Command="{Binding ConnectCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" Margin="0,0,8,0"/><Button Content="Disconnect" Command="{Binding DisconnectCommand}" Style="{StaticResource SecondaryButtonStyle}"/></StackPanel>
                         </Grid>
                     </Border>

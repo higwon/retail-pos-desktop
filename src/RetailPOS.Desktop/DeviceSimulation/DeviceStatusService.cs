@@ -13,6 +13,7 @@ public sealed class DeviceStatusService : IDisposable
     private readonly IPaymentTerminalSimulatorControl _terminal;
     private readonly CustomerDisplayHost _customerDisplay;
     private readonly IDisplayTargetProvider _displayTargetProvider;
+    private readonly IDisplayTopologyMonitor _displayTopologyMonitor;
     private readonly DeviceSimulationOptions _options;
     private readonly TimeProvider _timeProvider;
     private DeviceStatusOverview _current;
@@ -24,6 +25,7 @@ public sealed class DeviceStatusService : IDisposable
         IPaymentTerminalSimulatorControl terminal,
         CustomerDisplayHost customerDisplay,
         IDisplayTargetProvider displayTargetProvider,
+        IDisplayTopologyMonitor displayTopologyMonitor,
         IOptions<DeviceSimulationOptions> options,
         TimeProvider timeProvider)
     {
@@ -32,6 +34,7 @@ public sealed class DeviceStatusService : IDisposable
         _terminal = terminal;
         _customerDisplay = customerDisplay;
         _displayTargetProvider = displayTargetProvider;
+        _displayTopologyMonitor = displayTopologyMonitor;
         _options = options.Value;
         _timeProvider = timeProvider;
         var now = UtcNow();
@@ -44,6 +47,7 @@ public sealed class DeviceStatusService : IDisposable
         _printer.StateChanged += OnChanged;
         _terminal.StateChanged += OnChanged;
         _customerDisplay.StateChanged += OnChanged;
+        _displayTopologyMonitor.Changed += OnChanged;
     }
 
     public event EventHandler? Changed;
@@ -144,5 +148,6 @@ public sealed class DeviceStatusService : IDisposable
         _printer.StateChanged -= OnChanged;
         _terminal.StateChanged -= OnChanged;
         _customerDisplay.StateChanged -= OnChanged;
+        _displayTopologyMonitor.Changed -= OnChanged;
     }
 }

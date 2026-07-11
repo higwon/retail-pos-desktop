@@ -84,6 +84,7 @@ public static class DesktopServiceRegistration
         services.AddTransient<Func<CustomerDisplayWindow>>(provider =>
             () => provider.GetRequiredService<CustomerDisplayWindow>());
         services.AddSingleton<IDisplayTargetProvider, WindowsDisplayTargetProvider>();
+        services.AddSingleton<IDisplayTopologyMonitor, WindowsDisplayTopologyMonitor>();
         services.AddTransient<Func<ICustomerDisplayWindow>>(provider =>
             () => provider.GetRequiredService<CustomerDisplayWindow>());
         services.AddScoped<CustomerDisplayHost>();
