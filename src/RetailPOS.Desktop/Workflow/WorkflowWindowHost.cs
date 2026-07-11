@@ -9,7 +9,13 @@ public interface IWorkflowWindow
     void Close();
 }
 
-public sealed class WorkflowWindowHost<TWindow>(Func<TWindow> windowFactory) : IDisposable
+public interface IWorkflowWindowCloser
+{
+    void Close();
+}
+
+public sealed class WorkflowWindowHost<TWindow>(Func<TWindow> windowFactory)
+    : IWorkflowWindowCloser, IDisposable
     where TWindow : class, IWorkflowWindow
 {
     private TWindow? _window;
