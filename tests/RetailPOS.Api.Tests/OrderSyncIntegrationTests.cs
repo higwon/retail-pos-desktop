@@ -65,6 +65,39 @@ public sealed class OrderSyncIntegrationTests
         Assert.Contains("idempotency conflict", exhausted.LastErrorSummary, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task RetryScheduledOrder_SurvivesRestartAndUploadsExactlyOnceAfterReconnect()
+    {
+        await using var harness = await SyncIntegrationHarness.CreateAsync();
+        var queueId = Guid.Parse("90000000-0000-0000-0000-000000000001");
+        await harness.EnqueueAsync(ValidPayload(), queueId);
+        harness.IsOnline = false;
+
+        var offline = await harness.SyncService.ProcessDueAsync(NowUtc, count: 10);
+
+        Assert.Equal(1, offline.RetriedCount);
+        Assert.Equal(0, offline.ExhaustedCount);
+        var retry = Assert.Single(await harness.SyncQueueRepository.GetRecentAsync(10));
+        Assert.Equal(SyncQueueStatus.Pending, retry.Status);
+        Assert.Equal(1, retry.RetryCount);
+        Assert.Equal(NowUtc.AddMinutes(1), retry.NextAttemptAtUtc);
+        Assert.Contains("offline", retry.LastErrorSummary, StringComparison.OrdinalIgnoreCase);
+
+        await harness.RestartAsync();
+        harness.IsOnline = true;
+        var reconnected = await harness.SyncService.ProcessDueAsync(NowUtc.AddMinutes(1), count: 10);
+
+        Assert.Equal(1, reconnected.CompletedCount);
+        var completed = Assert.Single(await harness.SyncQueueRepository.GetRecentAsync(10));
+        Assert.Equal(SyncQueueStatus.Completed, completed.Status);
+
+        await harness.RestartAsync();
+        var repeatedStart = await harness.SyncService.ProcessDueAsync(NowUtc, count: 10);
+
+        Assert.Equal(0, repeatedStart.ProcessedCount);
+        Assert.Single(await harness.SyncQueueRepository.GetRecentAsync(10));
+    }
+
     private static OrderUploadPayload ValidPayload() => new(
         OrderUploadPayload.CurrentSchemaVersion,
         Guid.Parse("10000000-0000-0000-0000-000000000001"),
@@ -101,20 +134,26 @@ public sealed class OrderSyncIntegrationTests
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
         private readonly WebApplicationFactory<Program> _apiFactory;
-        private readonly ServiceProvider _provider;
-        private readonly AsyncServiceScope _scope;
+        private ServiceProvider _provider;
+        private AsyncServiceScope _scope;
         private readonly string _directory;
+        private readonly IConfiguration _configuration;
+        private readonly TestUploadConnectivity _connectivity;
 
         private SyncIntegrationHarness(
             WebApplicationFactory<Program> apiFactory,
             ServiceProvider provider,
             AsyncServiceScope scope,
-            string directory)
+            string directory,
+            IConfiguration configuration,
+            TestUploadConnectivity connectivity)
         {
             _apiFactory = apiFactory;
             _provider = provider;
             _scope = scope;
             _directory = directory;
+            _configuration = configuration;
+            _connectivity = connectivity;
         }
 
         public ISyncQueueRepository SyncQueueRepository =>
@@ -122,6 +161,12 @@ public sealed class OrderSyncIntegrationTests
 
         public OrderSyncService SyncService =>
             _scope.ServiceProvider.GetRequiredService<OrderSyncService>();
+
+        public bool IsOnline
+        {
+            get => _connectivity.IsOnline;
+            set => _connectivity.IsOnline = value;
+        }
 
         public static async Task<SyncIntegrationHarness> CreateAsync()
         {
@@ -133,16 +178,11 @@ public sealed class OrderSyncIntegrationTests
                 })
                 .Build();
             var apiFactory = new WebApplicationFactory<Program>();
-            var services = new ServiceCollection();
-            services.AddLogging();
-            services.AddLocalPersistence(configuration);
-            services.AddSingleton<IOrderSyncClock>(new StubOrderSyncClock(NowUtc));
-            services.AddScoped<IOrderUploadClient>(_ => new HttpOrderUploadClient(apiFactory.CreateClient()));
-            services.AddScoped<OrderSyncService>();
-
-            var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
+            var connectivity = new TestUploadConnectivity();
+            var provider = BuildProvider(configuration, apiFactory, connectivity);
             var scope = provider.CreateAsyncScope();
-            var harness = new SyncIntegrationHarness(apiFactory, provider, scope, directory);
+            var harness = new SyncIntegrationHarness(
+                apiFactory, provider, scope, directory, configuration, connectivity);
             await harness._scope.ServiceProvider.GetRequiredService<LocalDatabaseInitializer>().InitializeAsync();
             return harness;
         }
@@ -167,6 +207,32 @@ public sealed class OrderSyncIntegrationTests
             return SyncQueueRepository.EnqueueAsync(item);
         }
 
+        public async Task RestartAsync()
+        {
+            await _scope.DisposeAsync();
+            await _provider.DisposeAsync();
+            SqliteConnection.ClearAllPools();
+            _provider = BuildProvider(_configuration, _apiFactory, _connectivity);
+            _scope = _provider.CreateAsyncScope();
+            await _scope.ServiceProvider.GetRequiredService<LocalDatabaseInitializer>().InitializeAsync();
+        }
+
+        private static ServiceProvider BuildProvider(
+            IConfiguration configuration,
+            WebApplicationFactory<Program> apiFactory,
+            TestUploadConnectivity connectivity)
+        {
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddLocalPersistence(configuration);
+            services.AddSingleton<IOrderSyncClock>(new StubOrderSyncClock(NowUtc));
+            services.AddScoped<IOrderUploadClient>(_ => new SwitchableOrderUploadClient(
+                connectivity,
+                new HttpOrderUploadClient(apiFactory.CreateClient())));
+            services.AddScoped<OrderSyncService>();
+            return services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
+        }
+
         public async ValueTask DisposeAsync()
         {
             await _scope.DisposeAsync();
@@ -183,5 +249,22 @@ public sealed class OrderSyncIntegrationTests
     private sealed class StubOrderSyncClock(DateTimeOffset utcNow) : IOrderSyncClock
     {
         public DateTimeOffset UtcNow => utcNow;
+    }
+
+    private sealed class TestUploadConnectivity
+    {
+        public bool IsOnline { get; set; } = true;
+    }
+
+    private sealed class SwitchableOrderUploadClient(
+        TestUploadConnectivity connectivity,
+        IOrderUploadClient onlineClient) : IOrderUploadClient
+    {
+        public Task<OrderUploadResult> UploadAsync(
+            OrderUploadPayload payload,
+            CancellationToken cancellationToken = default) =>
+            connectivity.IsOnline
+                ? onlineClient.UploadAsync(payload, cancellationToken)
+                : throw new HttpRequestException("API offline.");
     }
 }
