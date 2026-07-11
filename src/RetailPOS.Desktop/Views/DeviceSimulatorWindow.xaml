@@ -257,7 +257,8 @@
                 </Grid>
             </TabItem>
             <TabItem Header="Card Terminal">
-                <StackPanel Margin="0,18,0,0" DataContext="{Binding CardTerminal}">
+                <Grid Margin="0,18,0,0" DataContext="{Binding CardTerminal}">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Border Style="{StaticResource PanelBorderStyle}" Padding="24">
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel><TextBlock Text="Connection" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding ConnectionState}" FontSize="18" FontWeight="SemiBold"/></StackPanel>
@@ -266,13 +267,35 @@
                             <StackPanel Grid.Column="3" Orientation="Horizontal"><Button Content="Connect" Command="{Binding ConnectCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" Margin="0,0,8,0"/><Button Content="Disconnect" Command="{Binding DisconnectCommand}" Style="{StaticResource SecondaryButtonStyle}"/></StackPanel>
                         </Grid>
                     </Border>
-                    <Grid Margin="0,18,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="18"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                        <StackPanel><TextBlock Text="Next outcome" FontWeight="SemiBold"/><ComboBox ItemsSource="{Binding Scenarios}" SelectedItem="{Binding SelectedScenario}"/></StackPanel>
-                        <StackPanel Grid.Column="2"><TextBlock Text="Response delay (ms)" FontWeight="SemiBold"/><TextBox Text="{Binding ResponseDelayMilliseconds, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                    <Grid Grid.Row="1" Margin="0,18,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="5*"/><ColumnDefinition Width="18"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource PanelBorderStyle}" Padding="22">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <TextBlock Text="Pending authorization" FontWeight="SemiBold" FontSize="18"/>
+                                <Grid Grid.Row="1" Margin="0,14,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="145"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Amount" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Grid.Column="1" Text="{Binding RequestedAmount}" FontSize="22" FontWeight="Bold"/></Grid>
+                                <Grid Grid.Row="2" Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="145"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Payment attempt" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Grid.Column="1" Text="{Binding PaymentAttemptId}" TextTrimming="CharacterEllipsis"/></Grid>
+                                <Grid Grid.Row="3" Margin="0,8,0,16"><Grid.ColumnDefinitions><ColumnDefinition Width="145"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Request / received" Style="{StaticResource SecondaryTextBlockStyle}"/><StackPanel Grid.Column="1"><TextBlock Text="{Binding RequestId}" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding RequestedAt}" Style="{StaticResource SecondaryTextBlockStyle}"/></StackPanel></Grid>
+                                <StackPanel Grid.Row="4">
+                                    <TextBlock Text="Terminal response" FontWeight="SemiBold"/>
+                                    <ComboBox ItemsSource="{Binding Responses}" SelectedItem="{Binding SelectedResponse}" MinHeight="42" Margin="0,7,0,12"/>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        <StackPanel><TextBlock Text="Approval code" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBox Text="{Binding ApprovalCode, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                        <StackPanel Grid.Column="2"><TextBlock Text="Transaction reference" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBox Text="{Binding TransactionReference, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                                    </Grid>
+                                    <Button Content="Send response" Command="{Binding RespondCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" HorizontalAlignment="Right" MinWidth="138" Margin="0,14,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="22">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <TextBlock Text="Recent authorizations" FontWeight="SemiBold"/>
+                                <ListBox Grid.Row="1" ItemsSource="{Binding RecentRequests}" BorderThickness="0" Background="Transparent" Margin="0,12,0,0" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                    <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="0,8"><Grid><TextBlock Text="{Binding PaymentAttemptId}" TextTrimming="CharacterEllipsis" Margin="0,0,70,0"/><TextBlock Text="{Binding Outcome}" HorizontalAlignment="Right" FontWeight="SemiBold"/></Grid><TextBlock Text="{Binding CompletedAt}" Style="{StaticResource SecondaryTextBlockStyle}"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Border>
                     </Grid>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0"><Button Content="Reset" Command="{Binding ResetCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,10,0"/><Button Content="Apply" Command="{Binding ApplyCommand}" Style="{StaticResource PrimaryBlueButtonStyle}"/></StackPanel>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource SuccessBrush}" Margin="0,18,0,0"/><TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}"/>
-                </StackPanel>
+                    <Grid Grid.Row="2" Margin="0,18,0,0"><StackPanel><TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource SuccessBrush}"/><TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}"/></StackPanel><Button Content="Reset state" Command="{Binding ResetCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right"/></Grid>
+                </Grid>
             </TabItem>
             <TabItem Header="Customer Display">
                 <StackPanel Margin="0,18,0,0" DataContext="{Binding CustomerDisplay}">

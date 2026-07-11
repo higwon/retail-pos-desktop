@@ -6,159 +6,85 @@ namespace RetailPOS.Infrastructure.Tests;
 
 public sealed class SimulatedPaymentTerminalTests
 {
-    private static readonly Guid AttemptId =
-        Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001");
+    private static readonly Guid AttemptId = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001");
 
     [Fact]
-    public async Task AuthorizeAsync_DefaultScenarioApprovesRequest()
+    public async Task Authorization_WaitsForOperatorAndApprovesWithOperatorMetadata()
     {
         var now = new DateTimeOffset(2026, 7, 10, 1, 2, 3, TimeSpan.Zero);
-        var terminal = new SimulatedPaymentTerminal(new StubTimeProvider(now));
+        using var terminal = new SimulatedPaymentTerminal(new StubTimeProvider(now));
+        var authorization = terminal.AuthorizeAsync(new(AttemptId, 3600m));
+        var pending = terminal.PendingRequest!;
 
-        var result = await terminal.AuthorizeAsync(new PaymentAuthorizationRequest(AttemptId, 3600m));
+        Assert.False(authorization.IsCompleted);
+        Assert.Equal(AttemptId, pending.Payload.PaymentAttemptId);
+        Assert.Equal(3600m, pending.Payload.Amount);
+        Assert.True(terminal.Respond(pending.RequestId, new(PaymentTerminalResponseOutcome.Approve, "APP-001", "TX-001")));
 
+        var result = await authorization;
         Assert.Equal(PaymentStatus.Approved, result.Status);
         Assert.Equal(3600m, result.ApprovedAmount);
+        Assert.Equal("APP-001", result.ApprovalCode);
+        Assert.Equal("TX-001", result.TransactionReference);
         Assert.Equal(now, result.ApprovedAtUtc);
-        Assert.Contains(AttemptId.ToString("N"), result.TransactionReference);
     }
 
     [Theory]
-    [InlineData(PaymentTerminalSimulationScenario.Decline, PaymentStatus.Failed)]
-    [InlineData(PaymentTerminalSimulationScenario.Cancel, PaymentStatus.Cancelled)]
-    [InlineData(PaymentTerminalSimulationScenario.Timeout, PaymentStatus.Unknown)]
-    [InlineData(PaymentTerminalSimulationScenario.CommunicationError, PaymentStatus.Unknown)]
-    public async Task AuthorizeAsync_MapsConfiguredScenario(
-        PaymentTerminalSimulationScenario scenario,
-        PaymentStatus expectedStatus)
+    [InlineData(PaymentTerminalResponseOutcome.Decline, PaymentStatus.Failed)]
+    [InlineData(PaymentTerminalResponseOutcome.Cancel, PaymentStatus.Cancelled)]
+    [InlineData(PaymentTerminalResponseOutcome.Timeout, PaymentStatus.Unknown)]
+    [InlineData(PaymentTerminalResponseOutcome.CommunicationLoss, PaymentStatus.Unknown)]
+    [InlineData(PaymentTerminalResponseOutcome.Unknown, PaymentStatus.Unknown)]
+    public async Task OperatorResponse_MapsToSafePaymentStatus(PaymentTerminalResponseOutcome outcome, PaymentStatus expected)
     {
-        var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
-        terminal.ConfigureNext(new PaymentTerminalSimulationSettings(scenario, TimeSpan.Zero));
-
-        var result = await terminal.AuthorizeAsync(new PaymentAuthorizationRequest(AttemptId, 3600m));
-
-        Assert.Equal(expectedStatus, result.Status);
-        Assert.Equal(PaymentTerminalSimulationSettings.Default, terminal.Current);
+        using var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
+        var authorization = terminal.AuthorizeAsync(new(AttemptId, 3600m));
+        terminal.Respond(terminal.PendingRequest!.RequestId, new(outcome));
+        Assert.Equal(expected, (await authorization).Status);
     }
 
     [Fact]
-    public async Task AuthorizeAsync_CancellationAfterDispatchBecomesUnknown()
+    public async Task DuplicateOrLateApprove_IsRejected()
     {
-        var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
-        terminal.ConfigureNext(new PaymentTerminalSimulationSettings(
-            PaymentTerminalSimulationScenario.Approve,
-            TimeSpan.FromMinutes(1)));
+        using var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
+        var authorization = terminal.AuthorizeAsync(new(AttemptId, 3600m));
+        var id = terminal.PendingRequest!.RequestId;
+        Assert.True(terminal.Respond(id, new(PaymentTerminalResponseOutcome.Unknown)));
+        Assert.False(terminal.Respond(id, new(PaymentTerminalResponseOutcome.Approve, "APP", "TX")));
+        Assert.Equal(PaymentStatus.Unknown, (await authorization).Status);
+    }
+
+    [Fact]
+    public async Task ConcurrentRequest_IsBusyAndDoesNotReplacePendingAttempt()
+    {
+        using var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
         using var cancellation = new CancellationTokenSource();
-
-        var authorization = terminal.AuthorizeAsync(
-            new PaymentAuthorizationRequest(AttemptId, 3600m),
-            cancellation.Token);
+        var first = terminal.AuthorizeAsync(new(AttemptId, 3600m), cancellation.Token);
+        var second = await terminal.AuthorizeAsync(new(Guid.NewGuid(), 3600m));
+        Assert.Equal(PaymentStatus.Failed, second.Status);
+        Assert.Contains("busy", second.FailureMessage!, StringComparison.OrdinalIgnoreCase);
         cancellation.Cancel();
-
-        var result = await authorization;
-
-        Assert.Equal(PaymentStatus.Unknown, result.Status);
-        Assert.Equal(PaymentStatus.Unknown, terminal.LastOutcome);
-        Assert.Equal(PaymentTerminalOperationalState.Idle, terminal.OperationalState);
+        Assert.Equal(PaymentStatus.Unknown, (await first).Status);
     }
 
     [Fact]
-    public async Task AuthorizeAsync_UnknownScenarioIsNeverApproved()
+    public async Task DisconnectAndCancellationAfterDispatchBecomeUnknown()
     {
-        var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
-        Assert.Throws<ArgumentOutOfRangeException>(() => terminal.ConfigureNext(
-            new PaymentTerminalSimulationSettings(
-                (PaymentTerminalSimulationScenario)999,
-                TimeSpan.Zero)));
-    }
-
-    [Fact]
-    public async Task AuthorizeAsync_PublishesWaitingProcessingApprovedAndReturnsToIdle()
-    {
-        var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
-        var states = new List<PaymentTerminalOperationalState>();
-        terminal.StateChanged += (_, _) => states.Add(terminal.OperationalState);
-
-        var result = await terminal.AuthorizeAsync(new PaymentAuthorizationRequest(AttemptId, 3600m));
-
-        Assert.Equal(PaymentStatus.Approved, result.Status);
-        Assert.Contains(PaymentTerminalOperationalState.WaitingForCard, states);
-        Assert.Contains(PaymentTerminalOperationalState.Processing, states);
-        Assert.Contains(PaymentTerminalOperationalState.Approved, states);
-        Assert.Equal(PaymentTerminalOperationalState.Idle, terminal.OperationalState);
-    }
-
-    [Fact]
-    public async Task DisconnectedAndBusyRequestsDoNotStartAuthorization()
-    {
-        var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
+        using var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
+        var authorization = terminal.AuthorizeAsync(new(AttemptId, 3600m));
         terminal.Disconnect();
-        var disconnected = await terminal.AuthorizeAsync(new PaymentAuthorizationRequest(AttemptId, 3600m));
-        Assert.Equal(PaymentStatus.Failed, disconnected.Status);
-
-        terminal.Connect();
-        terminal.ConfigureNext(new(PaymentTerminalSimulationScenario.Approve, TimeSpan.FromMinutes(1)));
-        using var cancellation = new CancellationTokenSource();
-        var first = terminal.AuthorizeAsync(new PaymentAuthorizationRequest(AttemptId, 3600m), cancellation.Token);
-        var busy = await terminal.AuthorizeAsync(new PaymentAuthorizationRequest(Guid.NewGuid(), 3600m));
-        Assert.Equal(PaymentStatus.Failed, busy.Status);
-        Assert.Contains("busy", busy.FailureMessage, StringComparison.OrdinalIgnoreCase);
-        cancellation.Cancel();
-        await first;
-    }
-
-    [Fact]
-    public async Task DisconnectDuringDelayedAuthorizationBecomesUnknown()
-    {
-        var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
-        terminal.ConfigureNext(new(PaymentTerminalSimulationScenario.Approve, TimeSpan.FromMinutes(1)));
-        var authorization = terminal.AuthorizeAsync(new PaymentAuthorizationRequest(AttemptId, 3600m));
-
-        terminal.Disconnect();
-        var result = await authorization;
-
-        Assert.Equal(PaymentStatus.Unknown, result.Status);
-        Assert.Equal(PaymentTerminalConnectionState.Disconnected, terminal.ConnectionState);
+        Assert.Equal(PaymentStatus.Unknown, (await authorization).Status);
         Assert.Equal(PaymentTerminalOperationalState.Disconnected, terminal.OperationalState);
     }
 
     [Fact]
-    public async Task ReconnectDuringCancelledAuthorizationKeepsBusyAndRejectsMutationUntilCompletion()
+    public void ApproveRequiresMetadata()
     {
-        var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
-        var unknownPublished = new TaskCompletionSource(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-        using var releaseCompletion = new ManualResetEventSlim();
-        terminal.StateChanged += (_, _) =>
-        {
-            if (terminal.OperationalState != PaymentTerminalOperationalState.Unknown)
-            {
-                return;
-            }
-
-            unknownPublished.TrySetResult();
-            releaseCompletion.Wait();
-        };
-        terminal.ConfigureNext(new(PaymentTerminalSimulationScenario.Approve, TimeSpan.FromMinutes(1)));
-        var authorization = terminal.AuthorizeAsync(new PaymentAuthorizationRequest(AttemptId, 3600m));
-
-        var disconnect = Task.Run(terminal.Disconnect);
-        await unknownPublished.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        terminal.Connect();
-
-        Assert.Equal(PaymentTerminalOperationalState.Processing, terminal.OperationalState);
-        Assert.Throws<InvalidOperationException>(terminal.Reset);
-        Assert.Throws<InvalidOperationException>(() => terminal.ConfigureNext(
-            new(PaymentTerminalSimulationScenario.Decline, TimeSpan.Zero)));
-
-        releaseCompletion.Set();
-        await disconnect;
-        var result = await authorization;
-
-        Assert.Equal(PaymentStatus.Unknown, result.Status);
-        Assert.Equal(PaymentTerminalOperationalState.Idle, terminal.OperationalState);
-        terminal.Reset();
-        Assert.Null(terminal.LastOutcome);
+        using var terminal = new SimulatedPaymentTerminal(TimeProvider.System);
+        _ = terminal.AuthorizeAsync(new(AttemptId, 3600m));
+        Assert.Throws<ArgumentException>(() => terminal.Respond(
+            terminal.PendingRequest!.RequestId,
+            new(PaymentTerminalResponseOutcome.Approve)));
     }
 
     private sealed class StubTimeProvider(DateTimeOffset now) : TimeProvider

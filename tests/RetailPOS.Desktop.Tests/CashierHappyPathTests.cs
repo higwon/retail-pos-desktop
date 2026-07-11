@@ -87,9 +87,10 @@ public sealed class CashierHappyPathTests
         var pendingRepository = services.GetRequiredService<IPendingCheckoutRepository>();
         var orderRepository = services.GetRequiredService<IOrderRepository>();
         var syncQueueRepository = services.GetRequiredService<ISyncQueueRepository>();
+        using var paymentTerminal = new SimulatedPaymentTerminal(timeProvider);
         var paymentStart = new RecoverablePaymentStartService(
             pendingRepository,
-            new SimulatedPaymentTerminal(timeProvider),
+            paymentTerminal,
             new LocalCashPaymentProcessor(timeProvider),
             sessionContext,
             clock,
@@ -114,7 +115,18 @@ public sealed class CashierHappyPathTests
             receiptState,
             new CheckoutDisplayState());
 
-        await payment.ApproveCardPaymentCommand.ExecuteAsync(null);
+        var paymentExecution = payment.ApproveCardPaymentCommand.ExecuteAsync(null);
+        for (var attempt = 0; paymentTerminal.PendingRequest is null && attempt < 100; attempt++)
+        {
+            await Task.Delay(10);
+        }
+        var terminalRequest = Assert.IsType<DeviceRequest<PaymentTerminalRequestPayload, PaymentTerminalResponse>>(
+            paymentTerminal.PendingRequest);
+        paymentTerminal.Respond(terminalRequest.RequestId, new(
+            PaymentTerminalResponseOutcome.Approve,
+            "APP-HAPPY-PATH",
+            $"TX-{terminalRequest.Payload.PaymentAttemptId:N}"));
+        await paymentExecution;
 
         Assert.True(payment.IsApproved);
         Assert.Equal(PaymentMethod.Card, payment.Method);

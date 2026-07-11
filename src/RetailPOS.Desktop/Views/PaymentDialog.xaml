@@ -26,20 +26,17 @@
                            TextAlignment="Center"
                            HorizontalAlignment="Center"
                            Margin="0,24,0,0"/>
-                <StackPanel Margin="0,18,0,0">
-                    <Grid Margin="0,0,0,8">
-                        <TextBlock Text="Approval code" Style="{StaticResource SecondaryTextBlockStyle}" />
-                        <TextBlock Text="{Binding ApprovalCode, TargetNullValue=-}"
-                                   FontWeight="SemiBold"
-                                   HorizontalAlignment="Right" />
-                    </Grid>
-                    <Grid>
-                        <TextBlock Text="Transaction reference" Style="{StaticResource SecondaryTextBlockStyle}" />
-                        <TextBlock Text="{Binding TransactionReference, TargetNullValue=-}"
-                                   FontWeight="SemiBold"
-                                   HorizontalAlignment="Right" />
-                    </Grid>
-                </StackPanel>
+                <Grid Margin="0,18,0,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="16"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Approval code" Style="{StaticResource SecondaryTextBlockStyle}"/>
+                        <TextBlock Text="{Binding ApprovalCode, TargetNullValue=-}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Transaction reference" Style="{StaticResource SecondaryTextBlockStyle}"/>
+                        <TextBlock Text="{Binding TransactionReference, TargetNullValue=-}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Grid>
             </StackPanel>
         </Border>
         <TextBlock Grid.Row="2" Text="Local payment devices only. No external gateway is used." Style="{StaticResource SecondaryTextBlockStyle}" HorizontalAlignment="Center" Margin="0,20,0,0"/>
