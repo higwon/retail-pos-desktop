@@ -120,8 +120,7 @@
                 <Grid Margin="0,18,0,0" DataContext="{Binding ReceiptPrinter}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
@@ -162,38 +161,58 @@
 
                     <Grid Grid.Row="1" Margin="0,18,0,0">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="3*"/>
                             <ColumnDefinition Width="18"/>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="2*"/>
                         </Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource PanelBorderStyle}" Padding="22">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Pending request" Style="{StaticResource SecondaryTextBlockStyle}"/>
+                                <StackPanel Grid.Row="1" Margin="0,5,0,14">
+                                    <TextBlock Text="{Binding PendingRequestTitle}" FontSize="19" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding PendingRequestMetadata}" TextWrapping="Wrap"
+                                               Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,5,0,0"/>
+                                </StackPanel>
+                                <TextBox Grid.Row="2" Text="{Binding PrintableText}" IsReadOnly="True"
+                                         FontFamily="Consolas" TextWrapping="NoWrap"
+                                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                         MinHeight="270"/>
+                                <Grid Grid.Row="3" Margin="0,16,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <ComboBox ItemsSource="{Binding Outcomes}" SelectedItem="{Binding SelectedOutcome}"
+                                              DisplayMemberPath="Label" MinWidth="180"/>
+                                    <Button Grid.Column="1" Content="Send response" Command="{Binding RespondCommand}"
+                                            Style="{StaticResource PrimaryBlueButtonStyle}" MinWidth="128" Margin="10,0,0,0"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="22">
+                            <StackPanel>
+                                <TextBlock Text="Recent completed requests" FontWeight="SemiBold"/>
+                                <ItemsControl ItemsSource="{Binding RecentRequests}" Margin="0,12,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                                <StackPanel>
+                                                    <Grid><TextBlock Text="{Binding ReceiptIdentity}" FontWeight="SemiBold"/><TextBlock Text="{Binding Outcome}" HorizontalAlignment="Right"/></Grid>
+                                                    <TextBlock Text="{Binding CompletedAtText}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Row="2" Margin="0,18,0,0">
                         <StackPanel>
-                            <TextBlock Text="Next outcome" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                            <ComboBox ItemsSource="{Binding Outcomes}"
-                                      SelectedItem="{Binding SelectedOutcome}"
-                                      DisplayMemberPath="Label"
-                                      MinHeight="44"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="2">
-                            <TextBlock Text="Response delay (ms)" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                            <TextBox Text="{Binding ResponseDelayMilliseconds, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
-                    </Grid>
-
-                    <Grid Grid.Row="2" Margin="0,22,0,0">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button Content="Reset"
-                                    Command="{Binding ResetCommand}"
-                                    Style="{StaticResource SecondaryButtonStyle}"
-                                    MinWidth="96"
-                                    Margin="0,0,10,0"/>
-                            <Button Content="Apply"
-                                    Command="{Binding ApplyCommand}"
-                                    Style="{StaticResource PrimaryBlueButtonStyle}"
-                                    MinWidth="96"/>
-                        </StackPanel>
-                    </Grid>
-
-                    <StackPanel Grid.Row="3" Margin="0,20,0,0">
                         <TextBlock Text="{Binding StatusMessage}"
                                    Foreground="{StaticResource SuccessBrush}"
                                    TextWrapping="Wrap"/>
@@ -201,7 +220,10 @@
                                    Foreground="{StaticResource DangerBrush}"
                                    TextWrapping="Wrap"
                                    Margin="0,6,0,0"/>
-                    </StackPanel>
+                        </StackPanel>
+                        <Button Content="Reset state" Command="{Binding ResetCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right" MinWidth="110"/>
+                    </Grid>
                 </Grid>
             </TabItem>
             <TabItem Header="Card Terminal">

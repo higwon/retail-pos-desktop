@@ -10,14 +10,24 @@ public sealed class SimulatedReceiptPrinterTests
         new(2026, 7, 10, 1, 2, 3, TimeSpan.Zero);
 
     [Fact]
-    public async Task PrintAsync_DefaultSettingsPrintReceiptWithUtcTimestamp()
+    public async Task PrintAsync_WaitsForOperatorAndExposesPrintableRequest()
     {
-        var printer = new SimulatedReceiptPrinter(new StubTimeProvider(PrintedAtUtc));
+        using var printer = new SimulatedReceiptPrinter(new StubTimeProvider(PrintedAtUtc));
 
-        var result = await printer.PrintAsync(Receipt());
+        var printing = printer.PrintAsync(Receipt());
+        var pending = printer.PendingRequest;
 
+        Assert.NotNull(pending);
+        Assert.False(printing.IsCompleted);
+        Assert.Equal("LOCAL-001", pending.BusinessIdentity);
+        Assert.Equal("Retail Store", pending.Payload.Receipt.StoreName);
+        Assert.Equal("Register 01", pending.Payload.Receipt.RegisterName);
+        Assert.Equal("Cashier A", pending.Payload.Receipt.CashierName);
+        Assert.Contains("Cola", pending.Payload.PrintableText);
+        Assert.True(printer.Respond(pending.RequestId, ReceiptPrintOutcome.Printed));
+
+        var result = await printing;
         Assert.True(result.Succeeded);
-        Assert.Equal(ReceiptPrintOutcome.Printed, result.Outcome);
         Assert.Equal(PrintedAtUtc, result.PrintedAtUtc);
         Assert.Equal(ReceiptPrinterOperationalState.Ready, printer.OperationalState);
     }
@@ -27,136 +37,97 @@ public sealed class SimulatedReceiptPrinterTests
     [InlineData(ReceiptPrintOutcome.CoverOpen)]
     [InlineData(ReceiptPrintOutcome.Timeout)]
     [InlineData(ReceiptPrintOutcome.Failed)]
-    public async Task PrintAsync_FaultOutcomeIsTypedAndLeavesPrinterFaulted(
-        ReceiptPrintOutcome outcome)
+    public async Task OperatorFaultResponse_IsReturnedAsTypedOutcome(ReceiptPrintOutcome outcome)
     {
-        var printer = new SimulatedReceiptPrinter(TimeProvider.System);
-        printer.ConfigureNext(new ReceiptPrinterSimulationSettings(outcome, TimeSpan.Zero));
+        using var printer = new SimulatedReceiptPrinter(TimeProvider.System);
+        var printing = printer.PrintAsync(Receipt());
 
-        var result = await printer.PrintAsync(Receipt());
+        Assert.True(printer.Respond(printer.PendingRequest!.RequestId, outcome));
+        var result = await printing;
 
         Assert.Equal(outcome, result.Outcome);
-        Assert.False(result.Succeeded);
         Assert.Null(result.PrintedAtUtc);
         Assert.Equal(ReceiptPrinterOperationalState.Faulted, printer.OperationalState);
     }
 
     [Fact]
-    public async Task PrintAsync_ConcurrentRequestReturnsBusy()
+    public async Task ConcurrentRequest_IsAutomaticallyRejectedAsBusy()
     {
-        var printer = new SimulatedReceiptPrinter(TimeProvider.System);
-        printer.ConfigureNext(new ReceiptPrinterSimulationSettings(
-            ReceiptPrintOutcome.Printed,
-            TimeSpan.FromMinutes(1)));
+        using var printer = new SimulatedReceiptPrinter(TimeProvider.System);
         using var cancellation = new CancellationTokenSource();
         var first = printer.PrintAsync(Receipt(), cancellation.Token);
-        Assert.Equal(ReceiptPrinterOperationalState.Printing, printer.OperationalState);
 
         var second = await printer.PrintAsync(Receipt());
 
         Assert.Equal(ReceiptPrintOutcome.Busy, second.Outcome);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            printer.Respond(printer.PendingRequest!.RequestId, ReceiptPrintOutcome.Busy));
         cancellation.Cancel();
         Assert.Equal(ReceiptPrintOutcome.Cancelled, (await first).Outcome);
     }
 
     [Fact]
-    public async Task Disconnect_CancelsDelayedPrintAndLeavesPrinterDisconnected()
+    public async Task Retry_UsesNewRequestIdAndPreservesReceiptIdentity()
     {
-        var printer = new SimulatedReceiptPrinter(TimeProvider.System);
-        printer.ConfigureNext(new ReceiptPrinterSimulationSettings(
-            ReceiptPrintOutcome.Printed,
-            TimeSpan.FromMinutes(1)));
+        using var printer = new SimulatedReceiptPrinter(TimeProvider.System);
+        var first = printer.PrintAsync(Receipt());
+        var firstRequest = printer.PendingRequest!;
+        printer.Respond(firstRequest.RequestId, ReceiptPrintOutcome.PaperOut);
+        Assert.Equal(ReceiptPrintOutcome.PaperOut, (await first).Outcome);
+
+        printer.Reset();
+        var retry = printer.PrintAsync(Receipt());
+        var retryRequest = printer.PendingRequest!;
+
+        Assert.NotEqual(firstRequest.RequestId, retryRequest.RequestId);
+        Assert.Equal(firstRequest.BusinessIdentity, retryRequest.BusinessIdentity);
+        printer.Respond(retryRequest.RequestId, ReceiptPrintOutcome.Printed);
+        Assert.Equal(ReceiptPrintOutcome.Printed, (await retry).Outcome);
+    }
+
+    [Fact]
+    public async Task LateOrDuplicateResponse_IsRejected()
+    {
+        using var printer = new SimulatedReceiptPrinter(TimeProvider.System);
+        var printing = printer.PrintAsync(Receipt());
+        var requestId = printer.PendingRequest!.RequestId;
+
+        Assert.True(printer.Respond(requestId, ReceiptPrintOutcome.Printed));
+        Assert.False(printer.Respond(requestId, ReceiptPrintOutcome.Failed));
+        Assert.Equal(ReceiptPrintOutcome.Printed, (await printing).Outcome);
+    }
+
+    [Fact]
+    public async Task Disconnect_CompletesPendingRequestAsDisconnected()
+    {
+        using var printer = new SimulatedReceiptPrinter(TimeProvider.System);
         var printing = printer.PrintAsync(Receipt());
 
         printer.Disconnect();
-        var result = await printing;
 
-        Assert.Equal(ReceiptPrintOutcome.Disconnected, result.Outcome);
-        Assert.Equal(ReceiptPrinterConnectionState.Disconnected, printer.ConnectionState);
+        Assert.Equal(ReceiptPrintOutcome.Disconnected, (await printing).Outcome);
+        Assert.Null(printer.PendingRequest);
         Assert.Equal(ReceiptPrinterOperationalState.Disconnected, printer.OperationalState);
     }
 
     [Fact]
-    public async Task Disconnect_WhenPrintingStateIsPublishedCannotReturnPrintedOrReady()
+    public async Task Reset_WhileRequestPendingIsRejected()
     {
-        var printer = new SimulatedReceiptPrinter(TimeProvider.System);
-        printer.ConfigureNext(new ReceiptPrinterSimulationSettings(
-            ReceiptPrintOutcome.Printed,
-            TimeSpan.FromMinutes(1)));
-        printer.StateChanged += DisconnectWhenPrinting;
-
-        var result = await printer.PrintAsync(Receipt());
-
-        Assert.Equal(ReceiptPrintOutcome.Disconnected, result.Outcome);
-        Assert.Equal(ReceiptPrinterConnectionState.Disconnected, printer.ConnectionState);
-        Assert.Equal(ReceiptPrinterOperationalState.Disconnected, printer.OperationalState);
-
-        void DisconnectWhenPrinting(object? sender, EventArgs args)
-        {
-            if (printer.OperationalState == ReceiptPrinterOperationalState.Printing)
-            {
-                printer.Disconnect();
-            }
-        }
-    }
-
-    [Fact]
-    public async Task Reset_WhilePrintingIsRejectedAndDoesNotChangeOperationalState()
-    {
-        var printer = new SimulatedReceiptPrinter(TimeProvider.System);
-        printer.ConfigureNext(new ReceiptPrinterSimulationSettings(
-            ReceiptPrintOutcome.Printed,
-            TimeSpan.FromMinutes(1)));
+        using var printer = new SimulatedReceiptPrinter(TimeProvider.System);
         using var cancellation = new CancellationTokenSource();
         var printing = printer.PrintAsync(Receipt(), cancellation.Token);
 
-        var exception = Assert.Throws<InvalidOperationException>(printer.Reset);
-
-        Assert.Contains("while printing", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(ReceiptPrinterOperationalState.Printing, printer.OperationalState);
+        Assert.Throws<InvalidOperationException>(printer.Reset);
         cancellation.Cancel();
-        Assert.Equal(ReceiptPrintOutcome.Cancelled, (await printing).Outcome);
-    }
-
-    [Fact]
-    public async Task ResetAfterFaultAllowsRetry()
-    {
-        var printer = new SimulatedReceiptPrinter(TimeProvider.System);
-        printer.ConfigureNext(new ReceiptPrinterSimulationSettings(
-            ReceiptPrintOutcome.PaperOut,
-            TimeSpan.Zero));
-        Assert.Equal(ReceiptPrintOutcome.PaperOut, (await printer.PrintAsync(Receipt())).Outcome);
-
-        printer.Reset();
-        var retry = await printer.PrintAsync(Receipt());
-
-        Assert.Equal(ReceiptPrinterOperationalState.Ready, printer.OperationalState);
-        Assert.Equal(ReceiptPrintOutcome.Printed, retry.Outcome);
-    }
-
-    [Fact]
-    public void ConfigureNext_UnknownOutcomeFailsClosed()
-    {
-        var printer = new SimulatedReceiptPrinter(TimeProvider.System);
-
-        Assert.Throws<ArgumentOutOfRangeException>(() => printer.ConfigureNext(
-            new ReceiptPrinterSimulationSettings((ReceiptPrintOutcome)999, TimeSpan.Zero)));
+        await printing;
     }
 
     private static ReceiptPreview Receipt() => new(
-        "Retail Store",
-        "Local POS Terminal",
-        "LOCAL-001",
-        "Cashier A",
-        "Register 01",
-        PrintedAtUtc.AddMinutes(-1),
-        new DateOnly(2026, 7, 10),
+        "Retail Store", "Local POS Terminal", "LOCAL-001", "Cashier A", "Register 01",
+        PrintedAtUtc.AddMinutes(-1), new DateOnly(2026, 7, 10),
         [new ReceiptPreviewLine("Cola", 1800m, 1, 1800m, 0m, 1800m)],
         [new ReceiptPreviewPayment(PaymentMethod.Card, 1800m, "APP-001")],
-        1800m,
-        0m,
-        1800m,
-        "receipt");
+        1800m, 0m, 1800m, "Retail Store\nCola x1\nTotal 1,800");
 
     private sealed class StubTimeProvider(DateTimeOffset utcNow) : TimeProvider
     {

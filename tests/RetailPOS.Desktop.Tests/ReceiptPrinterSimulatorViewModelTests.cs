@@ -1,5 +1,6 @@
 using RetailPOS.Application.Receipts;
 using RetailPOS.Desktop.ViewModels;
+using RetailPOS.Domain.Payments;
 using RetailPOS.Infrastructure.Devices;
 
 namespace RetailPOS.Desktop.Tests;
@@ -7,101 +8,49 @@ namespace RetailPOS.Desktop.Tests;
 public sealed class ReceiptPrinterSimulatorViewModelTests
 {
     [Fact]
-    public void ApplyCommand_UpdatesNextOutcomeAndDelay()
+    public async Task PendingRequest_IsDisplayedAndCanBeCompleted()
     {
-        var control = new StubControl();
-        using var viewModel = new ReceiptPrinterSimulatorViewModel(control)
-        {
-            SelectedOutcome = new ReceiptPrintOutcomeOption(
-                ReceiptPrintOutcome.PaperOut,
-                "Paper out"),
-            ResponseDelayMilliseconds = 1250
-        };
+        using var printer = new SimulatedReceiptPrinter(TimeProvider.System);
+        using var viewModel = new ReceiptPrinterSimulatorViewModel(printer);
 
-        viewModel.ApplyCommand.Execute(null);
+        var printing = printer.PrintAsync(Receipt());
 
-        Assert.Equal(ReceiptPrintOutcome.PaperOut, control.CurrentSettings.NextOutcome);
-        Assert.Equal(TimeSpan.FromMilliseconds(1250), control.CurrentSettings.ResponseDelay);
-        Assert.Null(viewModel.ErrorMessage);
+        Assert.Contains("LOCAL-001", viewModel.PendingRequestTitle);
+        Assert.Contains("Cola", viewModel.PrintableText);
+        Assert.True(viewModel.RespondCommand.CanExecute(null));
+        viewModel.SelectedOutcome = viewModel.Outcomes.Single(x => x.Outcome == ReceiptPrintOutcome.Printed);
+        viewModel.RespondCommand.Execute(null);
+
+        Assert.Equal(ReceiptPrintOutcome.Printed, (await printing).Outcome);
+        Assert.Equal("No pending print request", viewModel.PendingRequestTitle);
+        Assert.Single(viewModel.RecentRequests);
     }
 
     [Fact]
-    public void InvalidDelay_ShowsSafeErrorWithoutChangingSettings()
+    public void Busy_IsNotAnOperatorResponseOption()
     {
-        var control = new StubControl();
-        using var viewModel = new ReceiptPrinterSimulatorViewModel(control)
-        {
-            ResponseDelayMilliseconds = 60_001
-        };
+        using var printer = new SimulatedReceiptPrinter(TimeProvider.System);
+        using var viewModel = new ReceiptPrinterSimulatorViewModel(printer);
 
-        viewModel.ApplyCommand.Execute(null);
-
-        Assert.Equal(ReceiptPrinterSimulationSettings.Default, control.CurrentSettings);
-        Assert.NotNull(viewModel.ErrorMessage);
+        Assert.DoesNotContain(viewModel.Outcomes, option => option.Outcome == ReceiptPrintOutcome.Busy);
     }
 
     [Fact]
     public void ConnectionCommandsTrackControlState()
     {
-        var control = new StubControl();
-        using var viewModel = new ReceiptPrinterSimulatorViewModel(control);
+        using var printer = new SimulatedReceiptPrinter(TimeProvider.System);
+        using var viewModel = new ReceiptPrinterSimulatorViewModel(printer);
 
         viewModel.DisconnectCommand.Execute(null);
         Assert.False(viewModel.IsConnected);
-        Assert.True(viewModel.ConnectCommand.CanExecute(null));
-
         viewModel.ConnectCommand.Execute(null);
         Assert.True(viewModel.IsConnected);
-        Assert.False(viewModel.ConnectCommand.CanExecute(null));
     }
 
-    [Fact]
-    public void DisposeUnsubscribesFromControlEvents()
-    {
-        var control = new StubControl();
-        var viewModel = new ReceiptPrinterSimulatorViewModel(control);
-        viewModel.Dispose();
-
-        control.Disconnect();
-
-        Assert.True(viewModel.IsConnected);
-    }
-
-    private sealed class StubControl : IReceiptPrinterSimulatorControl
-    {
-        public event EventHandler? StateChanged;
-
-        public ReceiptPrinterSimulationSettings CurrentSettings { get; private set; } =
-            ReceiptPrinterSimulationSettings.Default;
-        public ReceiptPrinterConnectionState ConnectionState { get; private set; } =
-            ReceiptPrinterConnectionState.Connected;
-        public ReceiptPrinterOperationalState OperationalState { get; private set; } =
-            ReceiptPrinterOperationalState.Ready;
-
-        public void ConfigureNext(ReceiptPrinterSimulationSettings settings)
-        {
-            CurrentSettings = settings;
-            StateChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        public void Connect()
-        {
-            ConnectionState = ReceiptPrinterConnectionState.Connected;
-            OperationalState = ReceiptPrinterOperationalState.Ready;
-            StateChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        public void Disconnect()
-        {
-            ConnectionState = ReceiptPrinterConnectionState.Disconnected;
-            OperationalState = ReceiptPrinterOperationalState.Disconnected;
-            StateChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        public void Reset()
-        {
-            CurrentSettings = ReceiptPrinterSimulationSettings.Default;
-            StateChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
+    private static ReceiptPreview Receipt() => new(
+        "Retail Store", "Local POS Terminal", "LOCAL-001", "Cashier A", "Register 01",
+        DateTimeOffset.UtcNow, DateOnly.FromDateTime(DateTime.Today),
+        [new ReceiptPreviewLine("Cola", 1800m, 1, 1800m, 0m, 1800m)],
+        [new ReceiptPreviewPayment(PaymentMethod.Card, 1800m, "APP-001")],
+        1800m, 0m, 1800m, "Retail Store\nCola x1\nTotal 1,800");
 }
