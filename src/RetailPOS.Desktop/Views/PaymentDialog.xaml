@@ -21,25 +21,37 @@
                         Command="{Binding ApproveCashPaymentCommand}"
                         Style="{StaticResource SecondaryButtonStyle}"/>
                 <TextBlock Text="{Binding Message}"
-                           Style="{StaticResource SecondaryTextBlockStyle}"
                            TextWrapping="Wrap"
                            TextAlignment="Center"
                            HorizontalAlignment="Center"
-                           Margin="0,24,0,0"/>
-                <StackPanel Margin="0,18,0,0">
-                    <Grid Margin="0,0,0,8">
-                        <TextBlock Text="Approval code" Style="{StaticResource SecondaryTextBlockStyle}" />
-                        <TextBlock Text="{Binding ApprovalCode, TargetNullValue=-}"
-                                   FontWeight="SemiBold"
-                                   HorizontalAlignment="Right" />
-                    </Grid>
-                    <Grid>
-                        <TextBlock Text="Transaction reference" Style="{StaticResource SecondaryTextBlockStyle}" />
-                        <TextBlock Text="{Binding TransactionReference, TargetNullValue=-}"
-                                   FontWeight="SemiBold"
-                                   HorizontalAlignment="Right" />
-                    </Grid>
-                </StackPanel>
+                           Margin="0,24,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryTextBlockStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsApproved}" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsFailed}" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsUnknown}" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <Grid Margin="0,18,0,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="16"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Approval code" Style="{StaticResource SecondaryTextBlockStyle}"/>
+                        <TextBlock Text="{Binding ApprovalCode, TargetNullValue=-}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Transaction reference" Style="{StaticResource SecondaryTextBlockStyle}"/>
+                        <TextBlock Text="{Binding TransactionReference, TargetNullValue=-}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Grid>
             </StackPanel>
         </Border>
         <TextBlock Grid.Row="2" Text="Local payment devices only. No external gateway is used." Style="{StaticResource SecondaryTextBlockStyle}" HorizontalAlignment="Center" Margin="0,20,0,0"/>

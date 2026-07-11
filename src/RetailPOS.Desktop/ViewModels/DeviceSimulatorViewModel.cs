@@ -57,20 +57,27 @@ public sealed partial class CardTerminalSimulatorViewModel : ObservableObject, I
     public CardTerminalSimulatorViewModel(IPaymentTerminalSimulatorControl control)
     {
         _control = control;
-        Scenarios = Enum.GetValues<PaymentTerminalSimulationScenario>();
+        Responses = Enum.GetValues<PaymentTerminalResponseOutcome>();
         ConnectCommand = new RelayCommand(control.Connect, () => !IsConnected);
         DisconnectCommand = new RelayCommand(control.Disconnect, () => IsConnected);
-        ApplyCommand = new RelayCommand(Apply, () => !IsBusy);
+        RespondCommand = new RelayCommand(Respond, CanRespond);
         ResetCommand = new RelayCommand(control.Reset, () => !IsBusy);
         control.StateChanged += OnChanged; Refresh();
     }
-    public IReadOnlyList<PaymentTerminalSimulationScenario> Scenarios { get; }
+    public IReadOnlyList<PaymentTerminalResponseOutcome> Responses { get; }
     public IRelayCommand ConnectCommand { get; }
     public IRelayCommand DisconnectCommand { get; }
-    public IRelayCommand ApplyCommand { get; }
+    public IRelayCommand RespondCommand { get; }
     public IRelayCommand ResetCommand { get; }
-    [ObservableProperty] private PaymentTerminalSimulationScenario _selectedScenario;
-    [ObservableProperty] private int _responseDelayMilliseconds;
+    [ObservableProperty] private PaymentTerminalResponseOutcome _selectedResponse;
+    [ObservableProperty] private Guid? _pendingRequestId;
+    [ObservableProperty] private string _paymentAttemptId = "-";
+    [ObservableProperty] private string _requestId = "-";
+    [ObservableProperty] private string _requestedAmount = "-";
+    [ObservableProperty] private string _requestedAt = "-";
+    [ObservableProperty] private string _approvalCode = "";
+    [ObservableProperty] private string _transactionReference = "";
+    [ObservableProperty] private IReadOnlyList<PaymentRequestHistoryViewModel> _recentRequests = [];
     [ObservableProperty] private string _connectionState = "";
     [ObservableProperty] private string _operationalState = "";
     [ObservableProperty] private string _lastOutcome = "None";
@@ -78,22 +85,55 @@ public sealed partial class CardTerminalSimulatorViewModel : ObservableObject, I
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string? _statusMessage;
     [ObservableProperty] private string? _errorMessage;
-    private void Apply()
+    partial void OnSelectedResponseChanged(PaymentTerminalResponseOutcome value) => RespondCommand.NotifyCanExecuteChanged();
+    partial void OnApprovalCodeChanged(string value) => RespondCommand.NotifyCanExecuteChanged();
+    partial void OnTransactionReferenceChanged(string value) => RespondCommand.NotifyCanExecuteChanged();
+    private bool CanRespond() => PendingRequestId is not null &&
+        (SelectedResponse != PaymentTerminalResponseOutcome.Approve ||
+         (!string.IsNullOrWhiteSpace(ApprovalCode) && !string.IsNullOrWhiteSpace(TransactionReference)));
+    private void Respond()
     {
-        if (ResponseDelayMilliseconds is < 0 or > 60000) { ErrorMessage = "Enter a delay from 0 to 60000 ms."; StatusMessage = null; return; }
-        _control.ConfigureNext(new(SelectedScenario, TimeSpan.FromMilliseconds(ResponseDelayMilliseconds)));
-        ErrorMessage = null; StatusMessage = "Card terminal settings applied.";
+        if (PendingRequestId is null) return;
+        var response = new PaymentTerminalResponse(
+            SelectedResponse,
+            SelectedResponse == PaymentTerminalResponseOutcome.Approve ? ApprovalCode : null,
+            SelectedResponse == PaymentTerminalResponseOutcome.Approve ? TransactionReference : null);
+        if (_control.Respond(PendingRequestId.Value, response))
+        {
+            ErrorMessage = null; StatusMessage = $"{SelectedResponse} response sent to POS.";
+        }
+        else
+        {
+            StatusMessage = null; ErrorMessage = "This authorization request is no longer pending.";
+        }
     }
     private void OnChanged(object? s, EventArgs e) { var d = System.Windows.Application.Current?.Dispatcher; if (d is not null && !d.CheckAccess()) { _ = d.BeginInvoke(Refresh); return; } Refresh(); }
     private void Refresh()
     {
-        var current = _control.Current; SelectedScenario = current.Scenario; ResponseDelayMilliseconds = (int)current.ResponseDelay.TotalMilliseconds;
         ConnectionState = _control.ConnectionState.ToString(); OperationalState = _control.OperationalState.ToString(); LastOutcome = _control.LastOutcome?.ToString() ?? "None";
-        IsConnected = _control.ConnectionState == PaymentTerminalConnectionState.Connected; IsBusy = _control.OperationalState is PaymentTerminalOperationalState.WaitingForCard or PaymentTerminalOperationalState.Processing;
-        ConnectCommand.NotifyCanExecuteChanged(); DisconnectCommand.NotifyCanExecuteChanged(); ApplyCommand.NotifyCanExecuteChanged(); ResetCommand.NotifyCanExecuteChanged();
+        IsConnected = _control.ConnectionState == PaymentTerminalConnectionState.Connected;
+        var pending = _control.PendingRequest;
+        IsBusy = pending is not null;
+        PendingRequestId = pending?.RequestId;
+        RequestId = pending?.RequestId.ToString("N") ?? "-";
+        PaymentAttemptId = pending?.Payload.PaymentAttemptId.ToString("N") ?? "-";
+        RequestedAmount = pending is null ? "-" : $"{pending.Payload.Amount:N0} KRW";
+        RequestedAt = pending?.ReceivedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
+        if (pending is not null)
+        {
+            ApprovalCode = $"APP-{pending.Payload.PaymentAttemptId:N}"[..16].ToUpperInvariant();
+            TransactionReference = $"SIM-CARD-{pending.Payload.PaymentAttemptId:N}";
+        }
+        RecentRequests = _control.RecentRequests.Select(x => new PaymentRequestHistoryViewModel(
+            x.Payload.PaymentAttemptId.ToString("N"),
+            x.State == DeviceRequestState.Completed ? x.Result!.Outcome.ToString() : x.State.ToString(),
+            x.CompletedAtUtc?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "-")).ToArray();
+        ConnectCommand.NotifyCanExecuteChanged(); DisconnectCommand.NotifyCanExecuteChanged(); RespondCommand.NotifyCanExecuteChanged(); ResetCommand.NotifyCanExecuteChanged();
     }
     public void Dispose() { if (_disposed) return; _disposed = true; _control.StateChanged -= OnChanged; }
 }
+
+public sealed record PaymentRequestHistoryViewModel(string PaymentAttemptId, string Outcome, string CompletedAt);
 
 public sealed partial class BarcodeScannerSimulatorViewModel : ObservableObject, IDisposable
 {

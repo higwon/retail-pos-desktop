@@ -16,7 +16,7 @@ public partial class NavigationHost : UserControl
     private readonly DashboardView _dashboardView;
     private readonly StatusView _statusView;
     private readonly DeviceSimulatorWindowHost _deviceSimulatorWindowHost;
-    private bool _startupRecoveryChecked;
+    private bool _recoveryCheckedAfterSignIn;
     private bool _isLoginSubscribed;
 
     public NavigationHost(LoginView loginView, PosMainView posMainView,
@@ -42,16 +42,15 @@ public partial class NavigationHost : UserControl
         Unloaded += OnUnloaded;
     }
 
-    private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
+    private void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
     {
         SubscribeLogin();
+    }
 
-        if (_startupRecoveryChecked)
-        {
-            return;
-        }
-
-        _startupRecoveryChecked = true;
+    private async Task ShowRecoveryAfterSignInAsync()
+    {
+        if (_recoveryCheckedAfterSignIn) return;
+        _recoveryCheckedAfterSignIn = true;
         IReadOnlyList<CheckoutRecoveryRecord> recoverable;
         try
         {
@@ -68,9 +67,6 @@ public partial class NavigationHost : UserControl
             return;
         }
 
-        DemoNavigation.Visibility = System.Windows.Visibility.Visible;
-        Grid.SetRow(ContentRoot, 1);
-        Grid.SetRowSpan(ContentRoot, 1);
         Show(_checkoutRecoveryView);
     }
 
@@ -96,12 +92,13 @@ public partial class NavigationHost : UserControl
         _isLoginSubscribed = false;
     }
 
-    private void ShowPosMain(object? sender, System.Windows.RoutedEventArgs e)
+    private async void ShowPosMain(object? sender, System.Windows.RoutedEventArgs e)
     {
         DemoNavigation.Visibility = System.Windows.Visibility.Visible;
         Grid.SetRow(ContentRoot, 1);
         Grid.SetRowSpan(ContentRoot, 1);
         Show(_posMainView);
+        await ShowRecoveryAfterSignInAsync();
     }
 
     private void Show(UserControl view)
