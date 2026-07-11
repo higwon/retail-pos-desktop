@@ -1,6 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Collections.ObjectModel;
+using RetailPOS.Application.Persistence;
+using RetailPOS.Application.Products;
 using RetailPOS.Application.Receipts;
+using RetailPOS.Domain.Products;
 using RetailPOS.Infrastructure.Devices;
 
 namespace RetailPOS.Desktop.ViewModels;
@@ -138,12 +142,18 @@ public sealed record PaymentRequestHistoryViewModel(string PaymentAttemptId, str
 public sealed partial class BarcodeScannerSimulatorViewModel : ObservableObject, IDisposable
 {
     private readonly IBarcodeScannerSimulatorControl _control;
+    private readonly IProductRepository _productRepository;
     private readonly AsyncRelayCommand _emitScanCommand;
+    private readonly List<Product> _allProducts = [];
     private bool _disposed;
+    private bool _loaded;
 
-    public BarcodeScannerSimulatorViewModel(IBarcodeScannerSimulatorControl control)
+    public BarcodeScannerSimulatorViewModel(
+        IBarcodeScannerSimulatorControl control,
+        IProductRepository productRepository)
     {
         _control = control;
+        _productRepository = productRepository;
         ConnectCommand = new RelayCommand(Connect, () => !IsConnected);
         DisconnectCommand = new RelayCommand(Disconnect, () => IsConnected);
         _emitScanCommand = new AsyncRelayCommand(EmitScanAsync, CanEmitScan);
@@ -154,6 +164,25 @@ public sealed partial class BarcodeScannerSimulatorViewModel : ObservableObject,
     public IRelayCommand ConnectCommand { get; }
     public IRelayCommand DisconnectCommand { get; }
     public IAsyncRelayCommand EmitScanCommand => _emitScanCommand;
+    public ObservableCollection<Product> Products { get; } = [];
+    public ObservableCollection<string> Categories { get; } = [];
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(EmitScanCommand))]
+    private BarcodeScannerInputMode _mode = BarcodeScannerInputMode.ProductPicker;
+
+    [ObservableProperty]
+    private string _searchText = string.Empty;
+
+    [ObservableProperty]
+    private string _selectedCategory = ProductCatalogCategories.All;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(EmitScanCommand))]
+    private Product? _selectedProduct;
+
+    [ObservableProperty]
+    private bool _isLoadingProducts;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(EmitScanCommand))]
@@ -178,13 +207,48 @@ public sealed partial class BarcodeScannerSimulatorViewModel : ObservableObject,
     partial void OnEmitOnBackgroundThreadChanged(bool value) =>
         _control.EmitOnBackgroundThread = value;
 
-    private bool CanEmitScan() => IsConnected && !string.IsNullOrWhiteSpace(Barcode);
+    partial void OnSearchTextChanged(string value) => ApplyProductFilter();
+    partial void OnSelectedCategoryChanged(string value) => ApplyProductFilter();
+
+    public string SelectedBarcodePreview => Mode == BarcodeScannerInputMode.ProductPicker
+        ? SelectedProduct?.Barcode ?? "Select a product"
+        : string.IsNullOrWhiteSpace(Barcode) ? "Enter a barcode" : Barcode.Trim();
+
+    public bool IsProductPickerMode
+    {
+        get => Mode == BarcodeScannerInputMode.ProductPicker;
+        set { if (value) Mode = BarcodeScannerInputMode.ProductPicker; }
+    }
+
+    public bool IsManualBarcodeMode
+    {
+        get => Mode == BarcodeScannerInputMode.ManualBarcode;
+        set { if (value) Mode = BarcodeScannerInputMode.ManualBarcode; }
+    }
+
+    partial void OnModeChanged(BarcodeScannerInputMode value)
+    {
+        OnPropertyChanged(nameof(SelectedBarcodePreview));
+        OnPropertyChanged(nameof(IsProductPickerMode));
+        OnPropertyChanged(nameof(IsManualBarcodeMode));
+    }
+    partial void OnSelectedProductChanged(Product? value) => OnPropertyChanged(nameof(SelectedBarcodePreview));
+    partial void OnBarcodeChanged(string value) => OnPropertyChanged(nameof(SelectedBarcodePreview));
+
+    private bool CanEmitScan() => IsConnected && (Mode switch
+    {
+        BarcodeScannerInputMode.ProductPicker => !string.IsNullOrWhiteSpace(SelectedProduct?.Barcode),
+        BarcodeScannerInputMode.ManualBarcode => !string.IsNullOrWhiteSpace(Barcode),
+        _ => false
+    });
 
     private async Task EmitScanAsync(CancellationToken cancellationToken)
     {
         try
         {
-            var barcode = Barcode.Trim();
+            var barcode = Mode == BarcodeScannerInputMode.ProductPicker
+                ? SelectedProduct!.Barcode.Trim()
+                : Barcode.Trim();
             if (!await _control.EmitAsync(barcode, cancellationToken))
             {
                 StatusMessage = null;
@@ -203,6 +267,47 @@ public sealed partial class BarcodeScannerSimulatorViewModel : ObservableObject,
             StatusMessage = null;
             ErrorMessage = "Enter a barcode before emitting a scan.";
         }
+    }
+
+    public async Task LoadAsync(CancellationToken cancellationToken = default)
+    {
+        if (_loaded) return;
+        _loaded = true;
+        IsLoadingProducts = true;
+        try
+        {
+            _allProducts.AddRange(await _productRepository.GetActiveAsync(cancellationToken));
+            Categories.Clear();
+            foreach (var category in ProductCatalogCategories.From(_allProducts)) Categories.Add(category);
+            SelectedCategory = ProductCatalogCategories.All;
+            ApplyProductFilter();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch
+        {
+            ErrorMessage = "Products could not be loaded for the scanner. Manual barcode mode is still available.";
+        }
+        finally
+        {
+            IsLoadingProducts = false;
+        }
+    }
+
+    private void ApplyProductFilter()
+    {
+        if (!_loaded) return;
+        var keyword = SearchText.Trim();
+        var filtered = _allProducts.Where(product =>
+            (SelectedCategory == ProductCatalogCategories.All ||
+             string.Equals(product.CategoryName, SelectedCategory, StringComparison.OrdinalIgnoreCase)) &&
+            (keyword.Length == 0 ||
+             product.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+             product.Sku.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+             product.Barcode.Contains(keyword, StringComparison.OrdinalIgnoreCase)));
+        Products.Clear();
+        foreach (var product in filtered) Products.Add(product);
     }
 
     private void Connect()
@@ -252,6 +357,12 @@ public sealed partial class BarcodeScannerSimulatorViewModel : ObservableObject,
         _control.StateChanged -= OnControlStateChanged;
         _emitScanCommand.Cancel();
     }
+}
+
+public enum BarcodeScannerInputMode
+{
+    ProductPicker,
+    ManualBarcode
 }
 
 public sealed partial class ReceiptPrinterSimulatorViewModel : ObservableObject, IDisposable
