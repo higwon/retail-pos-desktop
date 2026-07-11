@@ -4,6 +4,7 @@ using RetailPOS.Application.Sync;
 using RetailPOS.Desktop.Sync;
 using RetailPOS.Desktop.ViewModels;
 using RetailPOS.Domain.Orders;
+using System.Diagnostics;
 
 namespace RetailPOS.Desktop.Tests;
 
@@ -66,6 +67,35 @@ public sealed class DashboardViewModelTests
         Assert.Equal("No operations need attention", viewModel.AttentionTitle);
         Assert.False(viewModel.HasRecentOrders);
         Assert.True(viewModel.HasNoRecentOrders);
+    }
+
+    [Fact]
+    public async Task LargeOrderRecoveryAndSyncHistory_LoadsBoundedDashboardSummary()
+    {
+        var today = Today();
+        var orders = Enumerable.Range(1, 2000)
+            .Select(index => Order($"PERF-{index:00000}", today, NowUtc.AddSeconds(-index), 1000m + index))
+            .ToArray();
+        var queue = Enumerable.Range(1, 2000)
+            .Select(index => QueueItem(
+                index % 10 == 0 ? SyncQueueStatus.Exhausted : SyncQueueStatus.Pending,
+                index % 4))
+            .ToArray();
+        var viewModel = ViewModel(
+            new RecordingOrderRepository(orders),
+            new RecordingSyncQueueRepository(queue),
+            new RecordingCheckoutRecoveryService(recoverableCount: 1000),
+            ApiConnectivityStatus.Online);
+
+        var stopwatch = Stopwatch.StartNew();
+        await viewModel.LoadAsync();
+        stopwatch.Stop();
+
+        Assert.Equal("2,000", viewModel.OrderCountText);
+        Assert.Equal("1,000 checkouts", viewModel.CheckoutRecoveryText);
+        Assert.Equal(5, viewModel.RecentOrders.Count);
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5),
+            $"Dashboard load exceeded baseline ceiling: {stopwatch.Elapsed}.");
     }
 
     private static DashboardViewModel ViewModel(

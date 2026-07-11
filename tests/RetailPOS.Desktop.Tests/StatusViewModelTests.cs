@@ -7,6 +7,7 @@ using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Sync;
 using RetailPOS.Desktop.Sync;
 using RetailPOS.Desktop.ViewModels;
+using System.Diagnostics;
 
 namespace RetailPOS.Desktop.Tests;
 
@@ -92,6 +93,26 @@ public sealed class StatusViewModelTests
 
         Assert.Empty(viewModel.Items);
         Assert.Equal("Sync status has not been loaded yet.", viewModel.StatusMessage);
+    }
+
+    [Fact]
+    public async Task LargeSyncHistory_LoadsBoundedStatusSummary()
+    {
+        var queue = new RecordingSyncQueueRepository(
+            Enumerable.Range(1, 2000)
+                .Select(index => QueueItem(
+                    index % 10 == 0 ? SyncQueueStatus.Exhausted : SyncQueueStatus.Pending,
+                    index % 4))
+                .ToArray());
+        var viewModel = ViewModel(queue);
+
+        var stopwatch = Stopwatch.StartNew();
+        await viewModel.LoadAsync();
+        stopwatch.Stop();
+
+        Assert.Equal(50, viewModel.Items.Count);
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5),
+            $"Status load exceeded baseline ceiling: {stopwatch.Elapsed}.");
     }
 
     [Fact]

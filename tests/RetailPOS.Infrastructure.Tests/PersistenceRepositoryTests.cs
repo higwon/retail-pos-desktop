@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Products;
+using RetailPOS.Application.Sync;
 using RetailPOS.Domain.Orders;
 using RetailPOS.Domain.Payments;
 using RetailPOS.Infrastructure.DependencyInjection;
@@ -114,21 +115,60 @@ public sealed class PersistenceRepositoryTests
             CreatedAtUtc = now.AddSeconds(index),
             UpdatedAtUtc = now.AddSeconds(index)
         }));
+        var businessDate = new DateOnly(2026, 7, 11);
+        db.Orders.AddRange(Enumerable.Range(1, 2000).Select(index => PerformanceOrder(index, businessDate, now)));
+        db.PendingCheckouts.AddRange(Enumerable.Range(1, 1000).Select(index => new PendingCheckoutEntity
+        {
+            Id = DeterministicGuid(30000 + index),
+            StoreId = DeterministicGuid(40001),
+            TerminalId = DeterministicGuid(40002),
+            CashierId = DeterministicGuid(40003),
+            CreatedAtUtc = now.AddSeconds(-index),
+            RecoveryStatus = (int)PendingCheckoutStatus.ManagerReviewRequired,
+            CartSnapshotJson = PerformanceCartSnapshot,
+            PaymentSnapshotJson = "{}",
+            PaymentStatus = (int)PaymentStatus.Unknown,
+            LastUpdatedAtUtc = now.AddSeconds(-index)
+        }));
         await db.SaveChangesAsync();
         var products = harness.Services.GetRequiredService<IProductRepository>();
         var queue = harness.Services.GetRequiredService<ISyncQueueRepository>();
+        var orders = harness.Services.GetRequiredService<IOrderRepository>();
+        var pendingCheckouts = harness.Services.GetRequiredService<IPendingCheckoutRepository>();
+        var clock = new StubCheckoutClock(new DateTimeOffset(now));
+        var recovery = new CheckoutRecoveryService(pendingCheckouts, new UnusedOrderCompletionService(), clock);
+        var syncStatus = new SyncStatusService(queue, new StubOrderSyncClock(new DateTimeOffset(now)));
 
         var active = await MeasureAsync("active catalog load", () => products.GetActiveAsync());
         var barcode = await MeasureAsync("barcode lookup", () => products.GetByBarcodeAsync("990000004201"));
         var search = await MeasureAsync("product search", () => products.SearchAsync("Target Cleanser"));
         var due = await MeasureAsync("due sync selection", () =>
             queue.GetDuePendingAsync(new DateTimeOffset(now.AddMinutes(1)), 100));
+        var businessDayOrders = await MeasureAsync("business-day order history", () =>
+            orders.GetByBusinessDateAsync(businessDate));
+        var recentOrders = await MeasureAsync("recent order selection", () => orders.GetRecentAsync(5));
+        var recoverable = await MeasureAsync("checkout recovery history", () => recovery.GetRecoverableAsync());
+        var status = await MeasureAsync("sync status history", () => syncStatus.GetSnapshotAsync(50));
 
         Assert.Equal(4006, active.Value.Count);
         Assert.NotNull(barcode.Value);
         Assert.Single(search.Value);
         Assert.Equal(100, due.Value.Count);
-        Assert.All(new[] { active.Elapsed, barcode.Elapsed, search.Elapsed, due.Elapsed }, elapsed =>
+        Assert.Equal(2000, businessDayOrders.Value.Count);
+        Assert.Equal(5, recentOrders.Value.Count);
+        Assert.Equal(1000, recoverable.Value.Count);
+        Assert.Equal(50, status.Value.Items.Count);
+        Assert.All(new[]
+        {
+            active.Elapsed,
+            barcode.Elapsed,
+            search.Elapsed,
+            due.Elapsed,
+            businessDayOrders.Elapsed,
+            recentOrders.Elapsed,
+            recoverable.Elapsed,
+            status.Elapsed
+        }, elapsed =>
             Assert.True(elapsed < TimeSpan.FromSeconds(5), $"Query exceeded baseline ceiling: {elapsed}."));
     }
 
@@ -143,6 +183,60 @@ public sealed class PersistenceRepositoryTests
 
     private static Guid DeterministicGuid(int value) =>
         Guid.Parse($"00000000-0000-0000-0000-{value:000000000000}");
+
+    private const string PerformanceCartSnapshot =
+        """
+        {"lines":[{"productId":"00000000-0000-0000-0000-000000000001","productName":"Performance Product","unitPrice":1000,"quantity":1,"lineTotal":1000}],"subtotal":1000,"discountType":null,"discountValue":null,"discountAmount":0,"total":1000}
+        """;
+
+    private static OrderEntity PerformanceOrder(int index, DateOnly businessDate, DateTime now)
+    {
+        var orderId = DeterministicGuid(50000 + index);
+        var createdAt = now.AddSeconds(-index);
+        return new OrderEntity
+        {
+            LocalOrderId = orderId,
+            LocalOrderNumber = $"PERF-ORDER-{index:00000}",
+            StoreId = DeterministicGuid(40001),
+            TerminalId = DeterministicGuid(40002),
+            CashierId = DeterministicGuid(40003),
+            BusinessDate = businessDate,
+            CreatedAtUtc = createdAt,
+            Status = (int)OrderStatus.Completed,
+            SubtotalAmount = 1000m + index,
+            TotalAmount = 1000m + index,
+            Lines =
+            [
+                new OrderLineEntity
+                {
+                    Id = DeterministicGuid(60000 + index),
+                    LocalOrderId = orderId,
+                    ProductId = DeterministicGuid(index),
+                    ProductNameSnapshot = $"Performance Product {index:00000}",
+                    UnitPrice = 1000m + index,
+                    Quantity = 1,
+                    GrossAmount = 1000m + index,
+                    LineTotalAmount = 1000m + index
+                }
+            ],
+            Payments =
+            [
+                new PaymentEntity
+                {
+                    Id = DeterministicGuid(70000 + index),
+                    LocalOrderId = orderId,
+                    Method = (int)PaymentMethod.Card,
+                    Status = (int)PaymentStatus.Approved,
+                    RequestedAmount = 1000m + index,
+                    ApprovedAmount = 1000m + index,
+                    CreatedAtUtc = createdAt,
+                    ApprovedAtUtc = createdAt,
+                    ApprovalCode = $"APP-{index:00000}",
+                    TransactionReference = $"TX-{index:00000}"
+                }
+            ]
+        };
+    }
 
     [Fact]
     public async Task OrderRepository_RoundTripsCompletedOrderAggregate()
@@ -408,6 +502,19 @@ public sealed class PersistenceRepositoryTests
     private sealed class StubCheckoutIdGenerator : ICheckoutIdGenerator
     {
         public Guid NewId() => Guid.Parse("cccccccc-0000-0000-0000-000000000001");
+    }
+
+    private sealed class StubOrderSyncClock(DateTimeOffset utcNow) : IOrderSyncClock
+    {
+        public DateTimeOffset UtcNow => utcNow;
+    }
+
+    private sealed class UnusedOrderCompletionService : IOrderCompletionService
+    {
+        public Task<OrderCompletionResult> CompleteAsync(
+            Guid pendingCheckoutId,
+            CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("Completion is not used by the recovery query baseline.");
     }
 
     private sealed class PersistenceHarness : IAsyncDisposable
