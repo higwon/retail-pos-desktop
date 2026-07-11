@@ -53,6 +53,9 @@ Performance reference dataset:
   severe regressions rather than claiming production capacity across different CI hardware.
 - The repository currently returns the full active catalog; dense UI virtualization and
   progressive presentation are tracked under POS-805.
+- Phase 2 adds deterministic ViewModel baselines with 2,000 completed orders, 1,000 recovery
+  records, 2,000 sync history records, and a 5,000-product category/search filter. Dashboard
+  recent orders and Status items remain bounded to their presentation limits.
 
 Run Desktop tests:
 

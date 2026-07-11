@@ -2,6 +2,7 @@ using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Desktop.ViewModels;
 using RetailPOS.Domain.Products;
+using System.Diagnostics;
 
 namespace RetailPOS.Desktop.Tests;
 
@@ -75,6 +76,31 @@ public sealed class ProductGridViewModelTests
         viewModel.AddProductCommand.Execute(product);
 
         Assert.Equal(3, Assert.Single(session.Snapshot.Lines).Quantity);
+    }
+
+    [Fact]
+    public async Task LargeCatalog_CategoryAndSearchFilterRemainBounded()
+    {
+        var products = Enumerable.Range(1, 5000)
+            .Select(index => Product(
+                $"Product {index:00000}",
+                barcode: $"99{index:0000000000}",
+                category: $"Category {index % 20:00}"))
+            .ToArray();
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository { ActiveProducts = products },
+            new CheckoutSession());
+        await viewModel.LoadAsync();
+
+        var stopwatch = Stopwatch.StartNew();
+        viewModel.SelectedCategory = "Category 07";
+        viewModel.SearchText = "Product 04";
+        await viewModel.SearchCommand.ExecuteAsync(null);
+        stopwatch.Stop();
+
+        Assert.Equal(50, viewModel.Products.Count);
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5),
+            $"Category/search filter exceeded baseline ceiling: {stopwatch.Elapsed}.");
     }
 
     [Fact]
