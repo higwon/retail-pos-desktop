@@ -4,7 +4,7 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
-    <Border Style="{StaticResource PanelBorderStyle}" Padding="24">
+    <Border Style="{StaticResource PanelBorderStyle}" Padding="22">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -13,7 +13,7 @@
             </Grid.RowDefinitions>
 
             <DockPanel Margin="0,0,0,18">
-                <TextBlock Text="Shopping Cart" Style="{StaticResource TitleTextBlockStyle}" />
+                <TextBlock Text="Shopping Cart" Style="{StaticResource TitleTextBlockStyle}" FontSize="22"/>
                 <TextBlock HorizontalAlignment="Right" Style="{StaticResource SecondaryTextBlockStyle}">
                     <Run Text="{Binding ItemCount, Mode=OneWay}" /><Run Text=" items" />
                 </TextBlock>

@@ -9,31 +9,44 @@ public sealed class ProductSeedData(LocalPosDbContext dbContext)
 
     private static readonly ProductEntity[] Products =
     [
-        Create("10000000-0000-0000-0000-000000000001", "DRINK-001", "8801000000011", "Mineral Water 500ml", "Beverages", 1000m),
-        Create("10000000-0000-0000-0000-000000000002", "DRINK-002", "8801000000028", "Cola 355ml", "Beverages", 1800m),
-        Create("10000000-0000-0000-0000-000000000003", "FOOD-001", "8801000000035", "Triangle Kimbap", "Ready Meals", 1500m),
-        Create("10000000-0000-0000-0000-000000000004", "SNACK-001", "8801000000042", "Potato Chips", "Snacks", 2200m),
-        Create("10000000-0000-0000-0000-000000000005", "DAILY-001", "8801000000059", "Pocket Tissues", "Daily Goods", 1200m),
-        Create("10000000-0000-0000-0000-000000000006", "FOOD-002", "8801000000066", "Cup Noodles", "Ready Meals", 1900m)
+        Create("10000000-0000-0000-0000-000000000001", "SKIN-001", "8801000000011", "Low pH Facial Cleanser", "Skin Care", 12000m),
+        Create("10000000-0000-0000-0000-000000000002", "SUN-001", "8801000000028", "Daily Moisture Sunscreen SPF50+", "Sun Care", 18000m),
+        Create("10000000-0000-0000-0000-000000000003", "SKIN-002", "8801000000035", "Hydrating Sheet Mask", "Skin Care", 2500m),
+        Create("10000000-0000-0000-0000-000000000004", "HAIR-001", "8801000000042", "Damage Repair Shampoo", "Hair Care", 15000m),
+        Create("10000000-0000-0000-0000-000000000005", "MAKEUP-001", "8801000000059", "Soft Velvet Lip Tint", "Makeup", 13000m),
+        Create("10000000-0000-0000-0000-000000000006", "HEALTH-001", "8801000000066", "Vitamin C Gummies", "Health", 16000m)
     ];
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
         var seedIds = Products.Select(product => product.Id).ToArray();
-        var existingIds = await dbContext.Products
+        var existingProducts = await dbContext.Products
             .Where(product => seedIds.Contains(product.Id))
-            .Select(product => product.Id)
             .ToListAsync(cancellationToken);
+        var existingIds = existingProducts.Select(product => product.Id).ToHashSet();
         var missingProducts = Products
             .Where(product => !existingIds.Contains(product.Id))
             .Select(Clone)
             .ToList();
 
+        foreach (var existing in existingProducts.Where(product => product.Version == 0))
+        {
+            var seed = Products.Single(product => product.Id == existing.Id);
+            existing.Sku = seed.Sku;
+            existing.Barcode = seed.Barcode;
+            existing.Name = seed.Name;
+            existing.CategoryName = seed.CategoryName;
+            existing.UnitPrice = seed.UnitPrice;
+            existing.IsActive = seed.IsActive;
+            existing.UpdatedUtc = seed.UpdatedUtc;
+        }
+
         if (missingProducts.Count > 0)
         {
             dbContext.Products.AddRange(missingProducts);
-            await dbContext.SaveChangesAsync(cancellationToken);
         }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private static ProductEntity Create(
