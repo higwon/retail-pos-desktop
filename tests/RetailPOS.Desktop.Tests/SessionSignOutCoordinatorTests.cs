@@ -39,11 +39,18 @@ public sealed class SessionSignOutCoordinatorTests
             () => displayWindow);
         displayHost.Open("secondary");
 
-        using var pendingRequest = new CancellationTokenSource();
-        var workflow = new IntegratedWorkflowLifecycle(
+        var pendingPayment = new PendingOperation();
+        var receiptOperation = new PendingOperation();
+        using var paymentHost = new WorkflowWindowHost<TestWorkflowWindow>(
+            () => new TestWorkflowWindow(pendingPayment));
+        using var receiptHost = new WorkflowWindowHost<TestWorkflowWindow>(
+            () => new TestWorkflowWindow(receiptOperation));
+        paymentHost.ShowOrActivate();
+        receiptHost.ShowOrActivate();
+        var workflow = new SessionWorkflowLifecycle(
             scannerCoordinator,
-            displayHost,
-            pendingRequest);
+            new SessionWorkflowWindows(paymentHost, receiptHost),
+            displayHost);
         var coordinator = new SessionSignOutCoordinator(
             workflow,
             checkout,
@@ -52,9 +59,10 @@ public sealed class SessionSignOutCoordinatorTests
 
         coordinator.SignOut();
 
-        Assert.True(pendingRequest.IsCancellationRequested);
-        Assert.True(workflow.PaymentClosed);
-        Assert.True(workflow.ReceiptClosed);
+        Assert.True(pendingPayment.IsCancellationRequested);
+        Assert.True(receiptOperation.IsCancellationRequested);
+        Assert.False(paymentHost.IsOpen);
+        Assert.False(receiptHost.IsOpen);
         Assert.False(displayHost.IsOpen);
         Assert.True(displayWindow.WasClosed);
         Assert.True(checkout.Snapshot.IsEmpty);
@@ -73,6 +81,34 @@ public sealed class SessionSignOutCoordinatorTests
         Assert.False(receiptState.HasReceipt);
     }
 
+    [Fact]
+    public void SignOut_UsesDocumentedTeardownOrderBeforeClearingCheckoutAndSession()
+    {
+        var checkout = new CheckoutSession();
+        checkout.AddProduct(Product());
+        var receiptState = new ReceiptPreviewState();
+        receiptState.Set(Receipt());
+        var session = new CurrentSessionContext();
+        session.SignIn(Cashier("100001", "First Cashier"));
+        var lifecycle = new OrderingLifecycle(checkout, receiptState, session);
+        var coordinator = new SessionSignOutCoordinator(
+            lifecycle,
+            checkout,
+            receiptState,
+            session);
+
+        coordinator.SignOut();
+
+        Assert.Equal(
+            ["payment", "receipt", "display", "scanner"],
+            lifecycle.Calls);
+        Assert.All(lifecycle.ReceiptWasCleared, Assert.True);
+        Assert.All(lifecycle.CheckoutWasPresent, Assert.True);
+        Assert.All(lifecycle.SessionWasPresent, Assert.True);
+        Assert.True(checkout.Snapshot.IsEmpty);
+        Assert.False(session.IsSignedIn);
+    }
+
     private static Product Product() => new(
         Guid.NewGuid(), "SKU-1", "8800000000001", "Cleanser", "Skin Care", 12000m);
 
@@ -83,24 +119,50 @@ public sealed class SessionSignOutCoordinatorTests
         "Store", "Terminal", "Order", "Cashier", "Register", DateTimeOffset.UtcNow,
         DateOnly.FromDateTime(DateTime.Today), [], [], 12000m, 0m, 12000m, "receipt");
 
-    private sealed class IntegratedWorkflowLifecycle(
-        BarcodeScannerCoordinator scannerCoordinator,
-        CustomerDisplayHost displayHost,
-        CancellationTokenSource pendingRequest) : ISessionWorkflowLifecycle
+    private sealed class PendingOperation : IDisposable
     {
-        public bool PaymentClosed { get; private set; }
-        public bool ReceiptClosed { get; private set; }
+        private readonly CancellationTokenSource _cancellation = new();
+        public bool IsCancellationRequested => _cancellation.IsCancellationRequested;
+        public void Dispose() => _cancellation.Cancel();
+    }
 
-        public void StopScanner() => scannerCoordinator.Stop();
-
-        public void ClosePayment()
+    private sealed class TestWorkflowWindow(IDisposable viewModel) : IWorkflowWindow
+    {
+        public bool IsVisible { get; private set; }
+        public event EventHandler? Closed;
+        public void Show() => IsVisible = true;
+        public void Activate() { }
+        public void Close()
         {
-            PaymentClosed = true;
-            pendingRequest.Cancel();
+            if (!IsVisible) return;
+            IsVisible = false;
+            viewModel.Dispose();
+            Closed?.Invoke(this, EventArgs.Empty);
         }
+    }
 
-        public void CloseReceipt() => ReceiptClosed = true;
-        public void CloseCustomerDisplay() => displayHost.Close();
+    private sealed class OrderingLifecycle(
+        CheckoutSession checkout,
+        ReceiptPreviewState receipt,
+        ICurrentSessionContext session) : ISessionWorkflowLifecycle
+    {
+        public List<string> Calls { get; } = [];
+        public List<bool> ReceiptWasCleared { get; } = [];
+        public List<bool> CheckoutWasPresent { get; } = [];
+        public List<bool> SessionWasPresent { get; } = [];
+
+        public void ClosePayment() => Record("payment");
+        public void CloseReceipt() => Record("receipt");
+        public void CloseCustomerDisplay() => Record("display");
+        public void StopScanner() => Record("scanner");
+
+        private void Record(string call)
+        {
+            Calls.Add(call);
+            ReceiptWasCleared.Add(!receipt.HasReceipt);
+            CheckoutWasPresent.Add(!checkout.Snapshot.IsEmpty);
+            SessionWasPresent.Add(session.IsSignedIn);
+        }
     }
 
     private sealed class SecondaryDisplayProvider : IDisplayTargetProvider
