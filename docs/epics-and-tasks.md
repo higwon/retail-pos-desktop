@@ -890,34 +890,57 @@ Scope boundary:
 - Keep real device SDKs, production identity, deployment packaging, refunds,
   cancellations, promotions, memberships, and a generic device framework out of scope.
 
-### POS-801 Unit Tests
+### POS-801 Automated Quality and Test Baseline
 
-### POS-802 Integration Tests
+Extend the EPIC-08 closeout CI into a clear repository quality gate.
 
-### POS-803 Performance Test Data
+Scope:
 
-### POS-804 Error Handling Polish
+- Keep Windows Release restore, build, and full-solution tests required for pull requests.
+- Add deterministic test categorization and a coverage artifact or summary without imposing
+  an arbitrary percentage gate before a baseline is measured.
+- Document required-check and local validation expectations.
+- Keep CI free of machine-specific paths, secrets, and external service dependencies.
 
-### POS-805 UI Polish
+### POS-808 Configuration, Diagnostics, and Error Handling Hardening
 
-### POS-806 Demo Guide
+Combine environment configuration, operational diagnostics, audit-safe logging, and
+user-safe error boundary work that touches the same startup and composition roots.
 
-### POS-807 Portfolio Summary
+Scope:
 
-### POS-808 Configuration and Environment Hardening
+- Separate Development, Demo, and Production-safe configuration defaults.
+- Validate API endpoint, local database, logging, scheduler, connectivity, and simulator options.
+- Disable demo-only device controls and credentials outside explicit demo/development profiles.
+- Strengthen startup and operational failure diagnostics without logging credentials, payment
+  data, tokens, secrets, or internal exception details to users.
 
-Review appsettings, local development defaults, API/Desktop endpoint configuration,
-and machine-specific paths.
+### POS-810 Offline, Recovery, and Restart Integration Scenarios
 
-### POS-809 Logging and Audit Hardening
+Combine integration-test and recovery-test work around the same durable SQLite workflows.
 
-Strengthen operational logging, audit-relevant events, and safe diagnostic context
-without logging sensitive data.
+Scope:
 
-### POS-810 Offline and Recovery Scenario Tests
+- Exercise offline checkout, order persistence, sync queue creation, reconnect, retry, and
+  duplicate-safe upload through real application/infrastructure boundaries.
+- Exercise restart recovery for interrupted and Unknown payment states.
+- Verify manager-review records remain durable and carts/orders are not duplicated or lost.
+- Keep tests deterministic and independent of developer machine state.
 
-Exercise offline/online transitions, interrupted checkout recovery, sync retries, and
-large product/order scenarios.
+### POS-803 Performance Test Data and Baselines
+
+Add repeatable large catalog, cart, order history, recovery, and sync queue data sets and
+record baseline timings for the operations that affect cashier responsiveness.
+
+### POS-805 UI, DPI, and Accessibility Polish
+
+Validate supported window sizes, keyboard focus, readable status semantics, long metadata,
+per-monitor DPI behavior, and the documented device/session smoke paths.
+
+### POS-806 Demo Guide and Portfolio Summary
+
+Combine operator demo instructions and the architecture portfolio narrative so the documented
+scenario, screenshots, limitations, and design decisions stay aligned with the shipped build.
 
 ### POS-711 Add Sync Integration Tests from SQLite Queue to API Upload
 
