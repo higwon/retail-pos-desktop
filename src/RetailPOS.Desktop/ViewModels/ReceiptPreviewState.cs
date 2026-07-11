@@ -14,4 +14,6 @@ public sealed class ReceiptPreviewState
     }
 
     public ReceiptPreview? GetCurrent() => Current;
+
+    public void Clear() => Current = null;
 }
