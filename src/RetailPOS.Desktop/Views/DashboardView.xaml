@@ -102,15 +102,15 @@
                                 <DataTemplate>
                                     <Grid Margin="0,8">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition />
-                                            <ColumnDefinition />
-                                            <ColumnDefinition />
-                                            <ColumnDefinition />
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="1.25*" />
+                                            <ColumnDefinition Width="1.15*" />
+                                            <ColumnDefinition Width="Auto" MinWidth="100" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{Binding OrderNumber}" />
-                                        <TextBlock Grid.Column="1" Text="{Binding CreatedAtText}" />
-                                        <TextBlock Grid.Column="2" Text="{Binding StatusText}" Foreground="{StaticResource SuccessBrush}" />
-                                        <TextBlock Grid.Column="3" Text="{Binding TotalText}" HorizontalAlignment="Right" />
+                                        <TextBlock Text="{Binding OrderNumber}" TextWrapping="Wrap" Margin="0,0,10,0" />
+                                        <TextBlock Grid.Column="1" Text="{Binding CreatedAtText}" TextWrapping="Wrap" Margin="0,0,10,0" />
+                                        <TextBlock Grid.Column="2" Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,10,0" Foreground="{StaticResource SuccessBrush}" />
+                                        <TextBlock Grid.Column="3" Text="{Binding TotalText}" HorizontalAlignment="Right" TextWrapping="NoWrap" />
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

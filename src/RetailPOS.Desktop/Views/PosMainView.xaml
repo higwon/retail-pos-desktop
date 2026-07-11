@@ -10,8 +10,6 @@
                     <Border Background="{Binding ConnectivityBadgeBackground}" CornerRadius="12" Padding="12,5" Margin="0,0,12,0">
                         <TextBlock Text="{Binding ConnectivityText}" Foreground="{Binding ConnectivityBadgeForeground}" FontSize="12"/>
                     </Border>
-                    <TextBlock Text="{Binding CartSummaryText}" Style="{StaticResource SecondaryTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <TextBlock Text="{Binding SyncSummaryText}" Style="{StaticResource SecondaryTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,18,0"/>
                     <TextBlock Text="{Binding DeviceSummaryText}" Style="{StaticResource SecondaryTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,18,0"/>
                     <Button Content="Customer Display" Style="{StaticResource SecondaryButtonStyle}"
                             MinHeight="34" Padding="12,4" Margin="0,0,18,0"

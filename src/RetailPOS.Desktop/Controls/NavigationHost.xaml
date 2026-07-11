@@ -17,6 +17,7 @@
                     <Button Content="Dashboard" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,8,0" Click="OnShowDashboard"/>
                     <Button Content="Status" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,8,0" Click="OnShowStatus"/>
                     <Button x:Name="DeviceSimulatorButton" Content="Simulator" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Click="OnOpenDeviceSimulator"/>
+                    <Button Content="Sign out" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="8,0,0,0" Click="OnSignOut"/>
                 </StackPanel>
             </Grid>
         </Border>

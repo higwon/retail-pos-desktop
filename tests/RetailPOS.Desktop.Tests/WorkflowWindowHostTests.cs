@@ -24,6 +24,22 @@ public sealed class WorkflowWindowHostTests
         Assert.Equal(0, closedEvents);
     }
 
+    [Fact]
+    public void ExplicitCloseNotifiesOnceAndAllowsNewInstance()
+    {
+        var factory = new FakeFactory();
+        using var host = new WorkflowWindowHost<FakeWindow>(factory.Create);
+        var closedEvents = 0;
+        host.WindowClosed += (_, _) => closedEvents++;
+
+        host.ShowOrActivate();
+        host.Close();
+        host.ShowOrActivate();
+
+        Assert.Equal(1, closedEvents);
+        Assert.Equal(2, factory.Count);
+    }
+
     private sealed class FakeFactory
     {
         public int Count { get; private set; } public FakeWindow Last { get; private set; } = null!;

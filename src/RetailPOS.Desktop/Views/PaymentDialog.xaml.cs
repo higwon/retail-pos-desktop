@@ -6,17 +6,10 @@ namespace RetailPOS.Desktop.Views;
 
 public partial class PaymentDialog : Window, IWorkflowWindow
 {
-    private readonly Window? _ownerWindow;
-
     public PaymentDialog(PaymentDialogViewModel viewModel)
     {
         InitializeComponent();
-        _ownerWindow = System.Windows.Application.Current?.MainWindow;
-        Owner = _ownerWindow;
-        if (_ownerWindow is not null)
-        {
-            _ownerWindow.IsEnabled = false;
-        }
+        Owner = System.Windows.Application.Current?.MainWindow;
         DataContext = viewModel;
         Closed += OnClosed;
     }
@@ -28,10 +21,6 @@ public partial class PaymentDialog : Window, IWorkflowWindow
     private void OnClosed(object? sender, EventArgs e)
     {
         Closed -= OnClosed;
-        if (_ownerWindow is not null)
-        {
-            _ownerWindow.IsEnabled = true;
-        }
         (DataContext as IDisposable)?.Dispose();
         DataContext = null;
     }

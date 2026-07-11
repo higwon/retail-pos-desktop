@@ -14,7 +14,6 @@ public partial class PosMainView : UserControl
     private readonly PosMainViewModel _viewModel;
     private readonly CartPanelView _cartPanel;
     private readonly BarcodeScannerCoordinator _barcodeScannerCoordinator;
-    private bool _loadedOnce;
     private bool _isCheckoutSubscribed;
     private bool _isPaymentHostSubscribed;
 
@@ -50,12 +49,6 @@ public partial class PosMainView : UserControl
         SubscribePaymentHost();
         _barcodeScannerCoordinator.Start();
 
-        if (_loadedOnce)
-        {
-            return;
-        }
-
-        _loadedOnce = true;
         await _viewModel.LoadAsync();
     }
 
@@ -103,6 +96,7 @@ public partial class PosMainView : UserControl
 
     private void OpenPaymentFlow()
     {
+        IsEnabled = false;
         _paymentDialogHost.ShowOrActivate();
     }
 
@@ -115,6 +109,7 @@ public partial class PosMainView : UserControl
 
     private void OnPaymentWindowClosed(object? sender, EventArgs e)
     {
+        IsEnabled = true;
         if (_receiptPreviewState.HasReceipt)
         {
             _receiptDialogHost.ShowOrActivate();

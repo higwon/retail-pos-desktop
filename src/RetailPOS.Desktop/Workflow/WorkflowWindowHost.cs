@@ -33,11 +33,17 @@ public sealed class WorkflowWindowHost<TWindow>(Func<TWindow> windowFactory) : I
 
     public void Close()
     {
+        Close(notify: true);
+    }
+
+    private void Close(bool notify)
+    {
         if (_window is null) return;
         var window = _window;
         _window = null;
         window.Closed -= OnClosed;
         window.Close();
+        if (notify) WindowClosed?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnClosed(object? sender, EventArgs e)
@@ -50,7 +56,7 @@ public sealed class WorkflowWindowHost<TWindow>(Func<TWindow> windowFactory) : I
     public void Dispose()
     {
         if (_disposed) return;
-        Close();
+        Close(notify: false);
         _disposed = true;
     }
 }
