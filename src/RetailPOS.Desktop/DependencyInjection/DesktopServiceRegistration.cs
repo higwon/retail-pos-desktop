@@ -84,6 +84,7 @@ public static class DesktopServiceRegistration
         services.AddTransient<Func<CustomerDisplayWindow>>(provider =>
             () => provider.GetRequiredService<CustomerDisplayWindow>());
         services.AddSingleton<IDisplayTargetProvider, WindowsDisplayTargetProvider>();
+        services.AddSingleton<IDisplayTopologyMonitor, WindowsDisplayTopologyMonitor>();
         services.AddTransient<Func<ICustomerDisplayWindow>>(provider =>
             () => provider.GetRequiredService<CustomerDisplayWindow>());
         services.AddScoped<CustomerDisplayHost>();
@@ -96,6 +97,7 @@ public static class DesktopServiceRegistration
         services.AddTransient<Func<DeviceSimulatorWindow>>(provider =>
             () => provider.GetRequiredService<DeviceSimulatorWindow>());
         services.AddScoped<DeviceSimulatorWindowHost>();
+        services.AddScoped<DeviceStatusService>();
         services.AddScoped<BarcodeScannerCoordinator>();
         services.AddScoped<IUiDispatcher>(_ => new WpfUiDispatcher(
             System.Windows.Application.Current.Dispatcher));
