@@ -68,8 +68,16 @@
             <Grid Grid.Row="3">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
+                              CanContentScroll="True"
+                              AutomationProperties.Name="Product results"
                               Visibility="{Binding HasProducts, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <ItemsControl ItemsSource="{Binding Products}">
+                <StackPanel>
+                <TextBlock Text="{Binding ProductResultsText}"
+                           Style="{StaticResource SecondaryTextBlockStyle}"
+                           Margin="0,0,0,10"
+                           AutomationProperties.LiveSetting="Polite"/>
+                <ItemsControl ItemsSource="{Binding Products}"
+                              AutomationProperties.Name="Available products">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <UniformGrid Columns="2" />
@@ -111,6 +119,14 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <Button Content="Load more products"
+                        Command="{Binding LoadMoreProductsCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,4,12,12"
+                        Visibility="{Binding HasMoreProducts, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        AutomationProperties.HelpText="Shows the next 50 matching products"/>
+                </StackPanel>
                 </ScrollViewer>
 
                 <TextBlock Text="Loading products..."
@@ -127,7 +143,8 @@
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            Foreground="{StaticResource DangerBrush}"
-                           Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                           Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}"
+                           AutomationProperties.LiveSetting="Assertive" />
             </Grid>
         </Grid>
     </Border>

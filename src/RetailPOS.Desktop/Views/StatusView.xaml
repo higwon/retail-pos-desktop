@@ -13,7 +13,8 @@
             <StackPanel>
                 <TextBlock Text="System status" Style="{StaticResource TitleTextBlockStyle}" />
                 <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,6,0,0" />
-                <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" Margin="0,8,0,0" />
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" Margin="0,8,0,0"
+                           AutomationProperties.LiveSetting="Assertive" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <TextBlock Text="{Binding LastCheckedText}" Style="{StaticResource SecondaryTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,16,0" />
@@ -89,7 +90,8 @@
                              ItemsSource="{Binding Items}"
                              SelectedItem="{Binding SelectedItem}"
                              BorderThickness="0"
-                             Background="Transparent">
+                             Background="Transparent"
+                             AutomationProperties.Name="Synchronization queue">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Grid Margin="0,0,0,8">
@@ -132,7 +134,8 @@
                     <TextBlock Text="Last error" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,12,0,6" />
                     <TextBlock Text="{Binding SelectedItem.LastErrorSummary}" TextWrapping="Wrap" />
                     <TextBlock Text="Reference" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,18,0,6" />
-                    <TextBlock Text="{Binding SelectedItem.ReferenceKeyShort}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding SelectedItem.ReferenceKeyShort}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding SelectedItem.ReferenceKeyShort}" />
                 </StackPanel>
             </Border>
         </Grid>

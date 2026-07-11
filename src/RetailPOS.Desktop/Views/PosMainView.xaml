@@ -10,7 +10,8 @@
                     <Border Background="{Binding ConnectivityBadgeBackground}" CornerRadius="12" Padding="12,5" Margin="0,0,12,0">
                         <TextBlock Text="{Binding ConnectivityText}" Foreground="{Binding ConnectivityBadgeForeground}" FontSize="12"/>
                     </Border>
-                    <TextBlock Text="{Binding DeviceSummaryText}" Style="{StaticResource SecondaryTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,18,0"/>
+                    <TextBlock Text="{Binding DeviceSummaryText}" Style="{StaticResource SecondaryTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,18,0"
+                               MaxWidth="210" TextTrimming="CharacterEllipsis" ToolTip="{Binding DeviceSummaryText}"/>
                     <Button Content="Customer Display" Style="{StaticResource SecondaryButtonStyle}"
                             MinHeight="34" Padding="12,4" Margin="0,0,18,0"
                             Click="OnOpenCustomerDisplay" />
@@ -18,8 +19,9 @@
                             MinHeight="34" Padding="12,4" Margin="0,0,18,0"
                             Click="OnOpenReceipt" />
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="{Binding CashierText}" />
-                        <TextBlock Text="{Binding StoreTerminalText}" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="11" />
+                        <TextBlock Text="{Binding CashierText}" MaxWidth="180" TextTrimming="CharacterEllipsis" ToolTip="{Binding CashierText}" />
+                        <TextBlock Text="{Binding StoreTerminalText}" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="11"
+                                   MaxWidth="180" TextTrimming="CharacterEllipsis" ToolTip="{Binding StoreTerminalText}" />
                     </StackPanel>
                 </StackPanel>
             </Grid>
