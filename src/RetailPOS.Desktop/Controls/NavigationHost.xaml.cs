@@ -137,11 +137,11 @@ public partial class NavigationHost : UserControl
 
     private void OnSignOut(object sender, System.Windows.RoutedEventArgs e)
     {
+        _receiptPreviewState.Clear();
         _paymentHost.Close();
         _receiptHost.Close();
         _customerDisplayHost.Close();
         _checkoutSession.Clear();
-        _receiptPreviewState.Clear();
         _sessionContext.Clear();
         _recoveryCheckedAfterSignIn = false;
         DemoNavigation.Visibility = System.Windows.Visibility.Collapsed;

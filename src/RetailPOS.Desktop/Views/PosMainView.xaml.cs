@@ -96,6 +96,7 @@ public partial class PosMainView : UserControl
 
     private void OpenPaymentFlow()
     {
+        IsEnabled = false;
         _paymentDialogHost.ShowOrActivate();
     }
 
@@ -108,6 +109,7 @@ public partial class PosMainView : UserControl
 
     private void OnPaymentWindowClosed(object? sender, EventArgs e)
     {
+        IsEnabled = true;
         if (_receiptPreviewState.HasReceipt)
         {
             _receiptDialogHost.ShowOrActivate();
