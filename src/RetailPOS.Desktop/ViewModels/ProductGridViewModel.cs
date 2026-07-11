@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Persistence;
+using RetailPOS.Application.Products;
 using RetailPOS.Domain.Products;
 using System.Collections.ObjectModel;
 
@@ -14,6 +15,7 @@ public sealed partial class ProductGridViewModel : ObservableObject
     private readonly AsyncRelayCommand _searchCommand;
     private readonly AsyncRelayCommand _scanBarcodeCommand;
     private bool _isLoaded;
+    private readonly List<Product> _allProducts = [];
 
     public ProductGridViewModel(IProductRepository productRepository, CheckoutSession checkoutSession)
     {
@@ -25,6 +27,7 @@ public sealed partial class ProductGridViewModel : ObservableObject
     }
 
     public ObservableCollection<Product> Products { get; } = [];
+    public ObservableCollection<string> Categories { get; } = [];
     public IAsyncRelayCommand SearchCommand => _searchCommand;
     public IRelayCommand<Product> AddProductCommand { get; }
     public IAsyncRelayCommand ScanBarcodeCommand => _scanBarcodeCommand;
@@ -51,6 +54,11 @@ public sealed partial class ProductGridViewModel : ObservableObject
     [ObservableProperty]
     private Product? _selectedProduct;
 
+    [ObservableProperty]
+    private string _selectedCategory = ProductCatalogCategories.All;
+
+    partial void OnSelectedCategoryChanged(string value) => ApplyFilters();
+
     public bool HasProducts => !IsLoading && Products.Count > 0;
     public bool IsEmpty => !IsLoading && !HasError && Products.Count == 0;
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
@@ -74,7 +82,6 @@ public sealed partial class ProductGridViewModel : ObservableObject
             return;
         }
 
-        _isLoaded = true;
         await _searchCommand.ExecuteAsync(null);
     }
 
@@ -87,15 +94,16 @@ public sealed partial class ProductGridViewModel : ObservableObject
 
         try
         {
-            var products = string.IsNullOrWhiteSpace(SearchText)
-                ? await _productRepository.GetActiveAsync(cancellationToken)
-                : await _productRepository.SearchAsync(SearchText.Trim(), cancellationToken);
-
-            Products.Clear();
-            foreach (var product in products)
+            if (!_isLoaded)
             {
-                Products.Add(product);
+                _allProducts.Clear();
+                _allProducts.AddRange(await _productRepository.GetActiveAsync(cancellationToken));
+                Categories.Clear();
+                foreach (var category in ProductCatalogCategories.From(_allProducts)) Categories.Add(category);
+                SelectedCategory = ProductCatalogCategories.All;
+                _isLoaded = true;
             }
+            ApplyFilters();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -111,6 +119,23 @@ public sealed partial class ProductGridViewModel : ObservableObject
             OnPropertyChanged(nameof(HasProducts));
             OnPropertyChanged(nameof(IsEmpty));
         }
+    }
+
+    private void ApplyFilters()
+    {
+        if (!_isLoaded) return;
+        var keyword = SearchText.Trim();
+        var filtered = _allProducts.Where(product =>
+            (SelectedCategory == ProductCatalogCategories.All ||
+             string.Equals(product.CategoryName, SelectedCategory, StringComparison.OrdinalIgnoreCase)) &&
+            (keyword.Length == 0 ||
+             product.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+             product.Sku.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+             product.Barcode.Contains(keyword, StringComparison.OrdinalIgnoreCase)));
+        Products.Clear();
+        foreach (var product in filtered) Products.Add(product);
+        OnPropertyChanged(nameof(HasProducts));
+        OnPropertyChanged(nameof(IsEmpty));
     }
 
     private async Task ScanBarcodeAsync(CancellationToken cancellationToken)

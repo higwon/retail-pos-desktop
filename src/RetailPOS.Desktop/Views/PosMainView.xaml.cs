@@ -38,6 +38,7 @@ public partial class PosMainView : UserControl
         _cartPanel = cartPanel;
         _barcodeScannerCoordinator = barcodeScannerCoordinator;
         ProductRegion.Content = productGrid;
+        CategoryRegion.DataContext = productGrid.DataContext;
         CartRegion.Content = cartPanel;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;

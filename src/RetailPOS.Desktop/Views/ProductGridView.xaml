@@ -64,8 +64,10 @@
             </Grid>
 
             <Grid Grid.Row="3">
-                <ItemsControl ItemsSource="{Binding Products}"
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
                               Visibility="{Binding HasProducts, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <ItemsControl ItemsSource="{Binding Products}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <UniformGrid Columns="3" />
@@ -78,33 +80,28 @@
                     </ItemsControl.ItemContainerStyle>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Style="{StaticResource PanelBorderStyle}" Padding="16" MinHeight="118">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="*" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
+                            <Button Command="{Binding DataContext.AddProductCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    CommandParameter="{Binding}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Padding="16" MinHeight="118"
+                                    HorizontalContentAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch"
+                                    AutomationProperties.Name="{Binding Name, StringFormat=Add {0} to cart}"
+                                    ToolTip="Click or press Enter or Space to add one to cart">
                                     <StackPanel>
-                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                    <TextBlock Text="{Binding CategoryName}"
-                                               Style="{StaticResource SecondaryTextBlockStyle}"
-                                               Margin="0,6" />
-                                    <TextBlock Text="{Binding UnitPrice, StringFormat={}{0:N0} KRW}"
-                                               FontWeight="Bold"
-                                               Margin="0,8,0,0" />
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding CategoryName}"
+                                                   Style="{StaticResource SecondaryTextBlockStyle}"
+                                                   Margin="0,6" />
+                                        <TextBlock Text="{Binding UnitPrice, StringFormat={}{0:N0} KRW}"
+                                                   FontWeight="Bold"
+                                                   Margin="0,8,0,0" />
                                     </StackPanel>
-                                    <Button Grid.Row="1"
-                                            Content="Add"
-                                            Command="{Binding DataContext.AddProductCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                            CommandParameter="{Binding}"
-                                            Style="{StaticResource SecondaryButtonStyle}"
-                                            Margin="0,12,0,0"
-                                            ToolTip="Add product to cart" />
-                                </Grid>
-                            </Border>
+                            </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                </ScrollViewer>
 
                 <TextBlock Text="Loading products..."
                            HorizontalAlignment="Center"
