@@ -33,6 +33,9 @@ public sealed partial class ReceiptViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string? _errorMessage;
 
+    [ObservableProperty]
+    private bool _isSuccessStatus;
+
     public bool HasReceipt => _receipt is not null;
     public string StoreName => _receipt?.StoreName ?? "Retail Store";
     public string StoreAddress => _receipt?.StoreAddress ?? "Local POS Terminal";
@@ -82,7 +85,8 @@ public sealed partial class ReceiptViewModel : ObservableObject, IDisposable
         }
 
         IsBusy = true;
-        StatusMessage = null;
+        IsSuccessStatus = false;
+        StatusMessage = "Print request sent. Waiting for simulator response...";
         ErrorMessage = null;
 
         try
@@ -95,10 +99,13 @@ public sealed partial class ReceiptViewModel : ObservableObject, IDisposable
 
             if (result.Succeeded)
             {
+                IsSuccessStatus = true;
                 StatusMessage = result.Message;
             }
             else
             {
+                IsSuccessStatus = false;
+                StatusMessage = null;
                 ErrorMessage = result.Message;
             }
         }
@@ -107,6 +114,8 @@ public sealed partial class ReceiptViewModel : ObservableObject, IDisposable
         }
         catch (Exception) when (!_disposed)
         {
+            IsSuccessStatus = false;
+            StatusMessage = null;
             ErrorMessage = "Receipt could not be printed. The order is already completed; try again.";
         }
         finally
@@ -152,6 +161,9 @@ public sealed partial class ReceiptViewModel : ObservableObject, IDisposable
 
         _disposed = true;
         PrintCommand.Cancel();
+        IsSuccessStatus = false;
+        StatusMessage = null;
+        ErrorMessage = null;
         PrintCommand.NotifyCanExecuteChanged();
     }
 }

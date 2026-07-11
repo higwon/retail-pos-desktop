@@ -16,99 +16,86 @@ public enum ReceiptPrinterOperationalState
     Faulted
 }
 
-public sealed record ReceiptPrinterSimulationSettings(
-    ReceiptPrintOutcome NextOutcome,
-    TimeSpan ResponseDelay)
-{
-    public static ReceiptPrinterSimulationSettings Default { get; } =
-        new(ReceiptPrintOutcome.Printed, TimeSpan.Zero);
-}
+public sealed record ReceiptPrintRequestPayload(
+    ReceiptPreview Receipt,
+    string PrintableText);
 
 public interface IReceiptPrinterSimulatorControl
 {
     event EventHandler? StateChanged;
 
-    ReceiptPrinterSimulationSettings CurrentSettings { get; }
     ReceiptPrinterConnectionState ConnectionState { get; }
     ReceiptPrinterOperationalState OperationalState { get; }
+    DeviceRequest<ReceiptPrintRequestPayload, ReceiptPrintOutcome>? PendingRequest { get; }
+    IReadOnlyList<DeviceRequest<ReceiptPrintRequestPayload, ReceiptPrintOutcome>> RecentRequests { get; }
 
-    void ConfigureNext(ReceiptPrinterSimulationSettings settings);
+    bool Respond(Guid requestId, ReceiptPrintOutcome outcome);
     void Connect();
     void Disconnect();
     void Reset();
 }
 
-public sealed class SimulatedReceiptPrinter(TimeProvider timeProvider)
-    : IReceiptPrinter, IReceiptPrinterSimulatorControl, IDisposable
+public sealed class SimulatedReceiptPrinter : IReceiptPrinter, IReceiptPrinterSimulatorControl, IDisposable
 {
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromMinutes(5);
     private readonly object _sync = new();
-    private readonly SemaphoreSlim _printGate = new(1, 1);
-    private ReceiptPrinterSimulationSettings _settings = ReceiptPrinterSimulationSettings.Default;
+    private readonly TimeProvider _timeProvider;
+    private readonly DeviceRequestQueue<ReceiptPrintRequestPayload, ReceiptPrintOutcome> _requests;
     private ReceiptPrinterConnectionState _connectionState = ReceiptPrinterConnectionState.Connected;
     private ReceiptPrinterOperationalState _operationalState = ReceiptPrinterOperationalState.Ready;
-    private CancellationTokenSource? _activePrintCancellation;
     private bool _disposed;
+
+    public SimulatedReceiptPrinter(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+        _requests = new DeviceRequestQueue<ReceiptPrintRequestPayload, ReceiptPrintOutcome>(
+            "Receipt printer",
+            timeProvider);
+        _requests.Changed += OnRequestsChanged;
+    }
 
     public event EventHandler? StateChanged;
 
-    public ReceiptPrinterSimulationSettings CurrentSettings
-    {
-        get
-        {
-            lock (_sync)
-            {
-                return _settings;
-            }
-        }
-    }
-
     public ReceiptPrinterConnectionState ConnectionState
     {
-        get
-        {
-            lock (_sync)
-            {
-                return _connectionState;
-            }
-        }
+        get { lock (_sync) return _connectionState; }
     }
 
     public ReceiptPrinterOperationalState OperationalState
     {
-        get
+        get { lock (_sync) return _operationalState; }
+    }
+
+    public DeviceRequest<ReceiptPrintRequestPayload, ReceiptPrintOutcome>? PendingRequest =>
+        _requests.Pending;
+
+    public IReadOnlyList<DeviceRequest<ReceiptPrintRequestPayload, ReceiptPrintOutcome>> RecentRequests =>
+        _requests.Recent;
+
+    public bool Respond(Guid requestId, ReceiptPrintOutcome outcome)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (!Enum.IsDefined(outcome) || outcome == ReceiptPrintOutcome.Busy)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(outcome),
+                outcome,
+                "Busy and unknown values are not valid operator responses.");
+        }
+
+        var completed = _requests.TryComplete(requestId, outcome);
+        if (completed && outcome == ReceiptPrintOutcome.Disconnected)
         {
             lock (_sync)
             {
-                return _operationalState;
+                _connectionState = ReceiptPrinterConnectionState.Disconnected;
+                _operationalState = ReceiptPrinterOperationalState.Disconnected;
             }
-        }
-    }
 
-    public void ConfigureNext(ReceiptPrinterSimulationSettings settings)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        ArgumentNullException.ThrowIfNull(settings);
-        if (settings.ResponseDelay < TimeSpan.Zero || settings.ResponseDelay > TimeSpan.FromMinutes(1))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(settings),
-                "Receipt printer response delay must be between zero and one minute.");
+            RaiseStateChanged();
         }
 
-        if (!Enum.IsDefined(settings.NextOutcome))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(settings),
-                settings.NextOutcome,
-                "Unsupported receipt printer simulation outcome.");
-        }
-
-        lock (_sync)
-        {
-            _settings = settings;
-        }
-
-        RaiseStateChanged();
+        return completed;
     }
 
     public void Connect()
@@ -116,13 +103,10 @@ public sealed class SimulatedReceiptPrinter(TimeProvider timeProvider)
         ObjectDisposedException.ThrowIf(_disposed, this);
         lock (_sync)
         {
-            if (_connectionState == ReceiptPrinterConnectionState.Connected)
-            {
-                return;
-            }
-
             _connectionState = ReceiptPrinterConnectionState.Connected;
-            _operationalState = ReceiptPrinterOperationalState.Ready;
+            _operationalState = _requests.Pending is null
+                ? ReceiptPrinterOperationalState.Ready
+                : ReceiptPrinterOperationalState.Printing;
         }
 
         RaiseStateChanged();
@@ -131,35 +115,32 @@ public sealed class SimulatedReceiptPrinter(TimeProvider timeProvider)
     public void Disconnect()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        CancellationTokenSource? active;
+        var pending = _requests.Pending;
         lock (_sync)
         {
-            if (_connectionState == ReceiptPrinterConnectionState.Disconnected)
-            {
-                return;
-            }
-
             _connectionState = ReceiptPrinterConnectionState.Disconnected;
             _operationalState = ReceiptPrinterOperationalState.Disconnected;
-            active = _activePrintCancellation;
         }
 
-        active?.Cancel();
+        if (pending is not null)
+        {
+            _requests.TryDisconnect(pending.RequestId);
+        }
+
         RaiseStateChanged();
     }
 
     public void Reset()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_requests.Pending is not null)
+        {
+            throw new InvalidOperationException(
+                "Receipt printer simulation cannot be reset while printing.");
+        }
+
         lock (_sync)
         {
-            if (_operationalState == ReceiptPrinterOperationalState.Printing)
-            {
-                throw new InvalidOperationException(
-                    "Receipt printer simulation cannot be reset while printing.");
-            }
-
-            _settings = ReceiptPrinterSimulationSettings.Default;
             _operationalState = _connectionState == ReceiptPrinterConnectionState.Connected
                 ? ReceiptPrinterOperationalState.Ready
                 : ReceiptPrinterOperationalState.Disconnected;
@@ -176,175 +157,106 @@ public sealed class SimulatedReceiptPrinter(TimeProvider timeProvider)
         ArgumentNullException.ThrowIfNull(receipt);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!await _printGate.WaitAsync(0, cancellationToken))
+        if (ConnectionState == ReceiptPrinterConnectionState.Disconnected)
+        {
+            return Result(
+                ReceiptPrintOutcome.Disconnected,
+                "Receipt printer is disconnected. Connect it and try again.");
+        }
+
+        Task<DeviceRequest<ReceiptPrintRequestPayload, ReceiptPrintOutcome>> completion;
+        try
+        {
+            completion = _requests.BeginAsync(
+                receipt.OrderNumber,
+                new ReceiptPrintRequestPayload(receipt, receipt.PlainText),
+                RequestTimeout,
+                cancellationToken);
+
+            var pending = _requests.Pending;
+            if (ConnectionState == ReceiptPrinterConnectionState.Disconnected && pending is not null)
+            {
+                _requests.TryDisconnect(pending.RequestId);
+            }
+        }
+        catch (DeviceRequestBusyException)
         {
             return Result(
                 ReceiptPrintOutcome.Busy,
                 "Receipt printer is busy. Wait for the current print to finish.");
         }
 
-        CancellationTokenSource? linkedCancellation = null;
-        try
+        var request = await completion;
+        var outcome = request.State switch
         {
-            var start = TryStartPrint(cancellationToken);
-            if (start is null)
-            {
-                return Result(
-                    ReceiptPrintOutcome.Disconnected,
-                    "Receipt printer is disconnected. Connect it and try again.");
-            }
+            DeviceRequestState.Completed => request.Result,
+            DeviceRequestState.Cancelled or DeviceRequestState.Disposed => ReceiptPrintOutcome.Cancelled,
+            DeviceRequestState.TimedOut => ReceiptPrintOutcome.Timeout,
+            DeviceRequestState.Disconnected => ReceiptPrintOutcome.Disconnected,
+            _ => ReceiptPrintOutcome.Failed
+        };
 
-            linkedCancellation = start.Cancellation;
-            RaiseStateChanged();
-            if (start.Settings.ResponseDelay > TimeSpan.Zero)
-            {
-                await Task.Delay(
-                    start.Settings.ResponseDelay,
-                    timeProvider,
-                    linkedCancellation.Token);
-            }
-
-            linkedCancellation.Token.ThrowIfCancellationRequested();
-            return Complete(start.Settings.NextOutcome);
-        }
-        catch (OperationCanceledException)
-        {
-            if (ConnectionState == ReceiptPrinterConnectionState.Disconnected)
-            {
-                return Result(
-                    ReceiptPrintOutcome.Disconnected,
-                    "Receipt printer disconnected before printing completed.");
-            }
-
-            SetOperationalState(ReceiptPrinterOperationalState.Ready);
-            return Result(
-                ReceiptPrintOutcome.Cancelled,
-                "Receipt printing was cancelled. The receipt can be retried.");
-        }
-        finally
-        {
-            lock (_sync)
-            {
-                if (ReferenceEquals(_activePrintCancellation, linkedCancellation))
-                {
-                    _activePrintCancellation = null;
-                }
-            }
-
-            linkedCancellation?.Dispose();
-            _printGate.Release();
-            RaiseStateChanged();
-        }
-    }
-
-    private PrintStartContext? TryStartPrint(CancellationToken cancellationToken)
-    {
-        lock (_sync)
-        {
-            if (_connectionState == ReceiptPrinterConnectionState.Disconnected)
-            {
-                return null;
-            }
-
-            var linkedCancellation =
-                CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var settings = _settings;
-            _settings = ReceiptPrinterSimulationSettings.Default;
-            _operationalState = ReceiptPrinterOperationalState.Printing;
-            _activePrintCancellation = linkedCancellation;
-            return new PrintStartContext(settings, linkedCancellation);
-        }
+        return Complete(outcome);
     }
 
     private ReceiptPrintResult Complete(ReceiptPrintOutcome outcome)
     {
         lock (_sync)
         {
-            if (_connectionState == ReceiptPrinterConnectionState.Disconnected)
-            {
-                return Result(
-                    ReceiptPrintOutcome.Disconnected,
-                    "Receipt printer disconnected before printing completed.");
-            }
-
             if (outcome == ReceiptPrintOutcome.Disconnected)
             {
                 _connectionState = ReceiptPrinterConnectionState.Disconnected;
                 _operationalState = ReceiptPrinterOperationalState.Disconnected;
             }
-            else
+            else if (_connectionState == ReceiptPrinterConnectionState.Connected)
             {
-                _operationalState = outcome is
-                    ReceiptPrintOutcome.Printed or
-                    ReceiptPrintOutcome.Cancelled or
-                    ReceiptPrintOutcome.Busy
+                _operationalState = outcome is ReceiptPrintOutcome.Printed or ReceiptPrintOutcome.Cancelled
                     ? ReceiptPrinterOperationalState.Ready
                     : ReceiptPrinterOperationalState.Faulted;
             }
-
-            return outcome switch
-            {
-                ReceiptPrintOutcome.Printed => new ReceiptPrintResult(
-                    outcome,
-                    timeProvider.GetUtcNow(),
-                    "Receipt printed successfully."),
-                ReceiptPrintOutcome.PaperOut => Result(
-                    outcome,
-                    "Receipt printer is out of paper. Refill paper and retry."),
-                ReceiptPrintOutcome.CoverOpen => Result(
-                    outcome,
-                    "Receipt printer cover is open. Close it and retry."),
-                ReceiptPrintOutcome.Disconnected => Result(
-                    outcome,
-                    "Receipt printer is disconnected. Connect it and try again."),
-                ReceiptPrintOutcome.Timeout => Result(
-                    outcome,
-                    "Receipt printer did not respond in time. Check it and retry."),
-                ReceiptPrintOutcome.Cancelled => Result(
-                    outcome,
-                    "Receipt printing was cancelled. The receipt can be retried."),
-                ReceiptPrintOutcome.Busy => Result(
-                    outcome,
-                    "Receipt printer is busy. Wait for the current print to finish."),
-                ReceiptPrintOutcome.Failed => Result(
-                    outcome,
-                    "Receipt could not be printed. Check the printer and retry."),
-                _ => throw new ArgumentOutOfRangeException(
-                    nameof(outcome),
-                    outcome,
-                    "Unsupported receipt printer outcome.")
-            };
         }
+
+        RaiseStateChanged();
+        return outcome switch
+        {
+            ReceiptPrintOutcome.Printed => new ReceiptPrintResult(
+                outcome,
+                _timeProvider.GetUtcNow(),
+                "Receipt printed successfully."),
+            ReceiptPrintOutcome.PaperOut => Result(outcome, "Receipt printer is out of paper. Refill paper and retry."),
+            ReceiptPrintOutcome.CoverOpen => Result(outcome, "Receipt printer cover is open. Close it and retry."),
+            ReceiptPrintOutcome.Disconnected => Result(outcome, "Receipt printer is disconnected. Connect it and try again."),
+            ReceiptPrintOutcome.Timeout => Result(outcome, "Receipt printer did not respond in time. Check it and retry."),
+            ReceiptPrintOutcome.Cancelled => Result(outcome, "Receipt printing was cancelled. The receipt can be retried."),
+            ReceiptPrintOutcome.Busy => Result(outcome, "Receipt printer is busy. Wait for the current print to finish."),
+            ReceiptPrintOutcome.Failed => Result(outcome, "Receipt could not be printed. Check the printer and retry."),
+            _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null)
+        };
     }
 
-    private void SetOperationalState(ReceiptPrinterOperationalState state)
+    private void OnRequestsChanged(object? sender, EventArgs e)
     {
         lock (_sync)
         {
-            _operationalState = state;
+            if (_connectionState == ReceiptPrinterConnectionState.Connected && _requests.Pending is not null)
+            {
+                _operationalState = ReceiptPrinterOperationalState.Printing;
+            }
         }
+
+        RaiseStateChanged();
     }
 
     private static ReceiptPrintResult Result(ReceiptPrintOutcome outcome, string message) =>
         new(outcome, null, message);
 
-    private sealed record PrintStartContext(
-        ReceiptPrinterSimulationSettings Settings,
-        CancellationTokenSource Cancellation);
-
     private void RaiseStateChanged() => StateChanged?.Invoke(this, EventArgs.Empty);
 
     public void Dispose()
     {
-        if (_disposed)
-        {
-            return;
-        }
-
+        if (_disposed) return;
         _disposed = true;
-        lock (_sync)
-        {
-            _activePrintCancellation?.Cancel();
-        }
+        _requests.Changed -= OnRequestsChanged;
+        _requests.Dispose();
     }
 }

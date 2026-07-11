@@ -223,11 +223,12 @@ public sealed partial class ReceiptPrinterSimulatorViewModel : ObservableObject,
     {
         _control = control;
         Outcomes = Enum.GetValues<ReceiptPrintOutcome>()
+            .Where(outcome => outcome != ReceiptPrintOutcome.Busy)
             .Select(outcome => new ReceiptPrintOutcomeOption(outcome, Label(outcome)))
             .ToArray();
         ConnectCommand = new RelayCommand(Connect, () => !IsConnected);
         DisconnectCommand = new RelayCommand(Disconnect, () => IsConnected);
-        ApplyCommand = new RelayCommand(Apply, () => !IsPrinting);
+        RespondCommand = new RelayCommand(Respond, () => PendingRequestId is not null && SelectedOutcome is not null);
         ResetCommand = new RelayCommand(Reset, () => !IsPrinting);
         _control.StateChanged += OnControlStateChanged;
         Refresh();
@@ -236,14 +237,26 @@ public sealed partial class ReceiptPrinterSimulatorViewModel : ObservableObject,
     public IReadOnlyList<ReceiptPrintOutcomeOption> Outcomes { get; }
     public IRelayCommand ConnectCommand { get; }
     public IRelayCommand DisconnectCommand { get; }
-    public IRelayCommand ApplyCommand { get; }
+    public IRelayCommand RespondCommand { get; }
     public IRelayCommand ResetCommand { get; }
 
     [ObservableProperty]
     private ReceiptPrintOutcomeOption? _selectedOutcome;
 
     [ObservableProperty]
-    private int _responseDelayMilliseconds;
+    private Guid? _pendingRequestId;
+
+    [ObservableProperty]
+    private string _pendingRequestTitle = "No pending print request";
+
+    [ObservableProperty]
+    private string _pendingRequestMetadata = "Print from POS to inspect receipt details here.";
+
+    [ObservableProperty]
+    private string _printableText = string.Empty;
+
+    [ObservableProperty]
+    private IReadOnlyList<ReceiptPrintHistoryViewModel> _recentRequests = [];
 
     [ObservableProperty]
     private string _connectionState = string.Empty;
@@ -277,29 +290,31 @@ public sealed partial class ReceiptPrinterSimulatorViewModel : ObservableObject,
         ErrorMessage = null;
     }
 
-    private void Apply()
+    private void Respond()
     {
-        if (SelectedOutcome is null ||
-            ResponseDelayMilliseconds < 0 ||
-            ResponseDelayMilliseconds > 60_000)
+        if (PendingRequestId is null || SelectedOutcome is null)
         {
-            StatusMessage = null;
-            ErrorMessage = "Choose an outcome and enter a delay from 0 to 60000 ms.";
             return;
         }
 
-        _control.ConfigureNext(new ReceiptPrinterSimulationSettings(
-            SelectedOutcome.Outcome,
-            TimeSpan.FromMilliseconds(ResponseDelayMilliseconds)));
-        ErrorMessage = null;
-        StatusMessage = "Printer simulation settings applied.";
+        var label = SelectedOutcome.Label;
+        if (_control.Respond(PendingRequestId.Value, SelectedOutcome.Outcome))
+        {
+            ErrorMessage = null;
+            StatusMessage = $"{label} response sent to POS.";
+        }
+        else
+        {
+            StatusMessage = null;
+            ErrorMessage = "This request is no longer pending. Refresh and try the current request.";
+        }
     }
 
     private void Reset()
     {
         _control.Reset();
         ErrorMessage = null;
-        StatusMessage = "Printer simulation reset to defaults.";
+        StatusMessage = "Printer state reset.";
     }
 
     private void OnControlStateChanged(object? sender, EventArgs e)
@@ -316,16 +331,33 @@ public sealed partial class ReceiptPrinterSimulatorViewModel : ObservableObject,
 
     private void Refresh()
     {
-        var settings = _control.CurrentSettings;
         ConnectionState = _control.ConnectionState.ToString();
         OperationalState = _control.OperationalState.ToString();
         IsConnected = _control.ConnectionState == ReceiptPrinterConnectionState.Connected;
         IsPrinting = _control.OperationalState == ReceiptPrinterOperationalState.Printing;
-        SelectedOutcome = Outcomes.Single(option => option.Outcome == settings.NextOutcome);
-        ResponseDelayMilliseconds = checked((int)settings.ResponseDelay.TotalMilliseconds);
+        SelectedOutcome ??= Outcomes[0];
+
+        var pending = _control.PendingRequest;
+        PendingRequestId = pending?.RequestId;
+        PendingRequestTitle = pending is null
+            ? "No pending print request"
+            : $"Receipt {pending.BusinessIdentity}";
+        PendingRequestMetadata = pending is null
+            ? "Print from POS to inspect receipt details here."
+            : $"{pending.Payload.Receipt.StoreName} · {pending.Payload.Receipt.RegisterName} · " +
+              $"{pending.Payload.Receipt.CashierName} · requested {pending.ReceivedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
+        PrintableText = pending?.Payload.PrintableText ?? string.Empty;
+        RecentRequests = _control.RecentRequests
+            .Select(request => new ReceiptPrintHistoryViewModel(
+                request.BusinessIdentity,
+                request.State == DeviceRequestState.Completed
+                    ? request.Result.ToString()
+                    : request.State.ToString(),
+                request.CompletedAtUtc?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "-"))
+            .ToArray();
         ConnectCommand.NotifyCanExecuteChanged();
         DisconnectCommand.NotifyCanExecuteChanged();
-        ApplyCommand.NotifyCanExecuteChanged();
+        RespondCommand.NotifyCanExecuteChanged();
         ResetCommand.NotifyCanExecuteChanged();
     }
 
@@ -357,3 +389,8 @@ public sealed partial class ReceiptPrinterSimulatorViewModel : ObservableObject,
 public sealed record ReceiptPrintOutcomeOption(
     ReceiptPrintOutcome Outcome,
     string Label);
+
+public sealed record ReceiptPrintHistoryViewModel(
+    string ReceiptIdentity,
+    string Outcome,
+    string CompletedAtText);
