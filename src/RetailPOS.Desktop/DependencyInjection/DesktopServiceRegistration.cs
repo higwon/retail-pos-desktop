@@ -6,6 +6,7 @@ using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Payments;
 using RetailPOS.Application.Receipts;
 using RetailPOS.Desktop.Controls;
+using RetailPOS.Desktop.Authentication;
 using RetailPOS.Desktop.Diagnostics;
 using RetailPOS.Desktop.DeviceSimulation;
 using RetailPOS.Desktop.ViewModels;
@@ -17,7 +18,9 @@ namespace RetailPOS.Desktop.DependencyInjection;
 
 public static class DesktopServiceRegistration
 {
-    public static IServiceCollection AddDesktopServices(this IServiceCollection services)
+    public static IServiceCollection AddDesktopServices(
+        this IServiceCollection services,
+        bool enableDemoLogin = true)
     {
         services.AddScoped<MainWindow>();
         services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
@@ -31,7 +34,10 @@ public static class DesktopServiceRegistration
             provider.GetRequiredService<CurrentSessionContext>());
         services.AddScoped<ICheckoutContextProvider>(provider =>
             provider.GetRequiredService<CurrentSessionContext>());
-        services.AddScoped<ILoginService, DemoLoginService>();
+        if (enableDemoLogin)
+            services.AddScoped<ILoginService, DemoLoginService>();
+        else
+            services.AddScoped<ILoginService, UnavailableLoginService>();
         services.AddSingleton<ICheckoutClock, SystemCheckoutClock>();
         services.AddSingleton<ICheckoutIdGenerator, GuidCheckoutIdGenerator>();
         services.AddSingleton<IReceiptContextProvider, DemoReceiptContextProvider>();

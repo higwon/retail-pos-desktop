@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RetailPOS.Desktop.DependencyInjection;
+using RetailPOS.Desktop.Configuration;
 using RetailPOS.Desktop.DeviceSimulation;
 using RetailPOS.Desktop.Diagnostics;
 using RetailPOS.Desktop.Sync;
@@ -33,11 +34,13 @@ public partial class App : System.Windows.Application
                 ContentRootPath = AppContext.BaseDirectory
             });
             builder.Configuration.AddEnvironmentVariables("RETAILPOS_");
+            Log.Logger = CreateLogger(builder.Configuration);
             builder.Logging.ClearProviders();
-            builder.Services.AddSerilog(CreateLogger(builder.Configuration), dispose: true);
+            builder.Services.AddSerilog(Log.Logger, dispose: true);
+            var validatedConfiguration = DesktopConfigurationValidator.Validate(builder.Configuration);
             builder.Services.AddSingleton<System.Windows.Application>(this);
             builder.Services.AddLocalPersistence(builder.Configuration);
-            builder.Services.AddApiSyncClient(ApiBaseAddress(builder.Configuration));
+            builder.Services.AddApiSyncClient(validatedConfiguration.ApiBaseAddress);
             builder.Services.AddSingleton(TimeProvider.System);
             builder.Services.Configure<BackgroundOrderSyncOptions>(
                 builder.Configuration.GetSection(BackgroundOrderSyncOptions.SectionName));
@@ -48,20 +51,24 @@ public partial class App : System.Windows.Application
             builder.Services.AddSingleton<IApiConnectivityStateStore, ApiConnectivityStateStore>();
             builder.Services.AddHttpClient<IApiConnectivityClient, HttpApiConnectivityClient>(client =>
             {
-                client.BaseAddress = ApiBaseAddress(builder.Configuration);
+                client.BaseAddress = validatedConfiguration.ApiBaseAddress;
                 client.Timeout = TimeSpan.FromSeconds(5);
             });
             builder.Services.AddScoped<IBackgroundOrderSyncRunner, BackgroundOrderSyncRunner>();
             builder.Services.AddSingleton<BackgroundOrderSyncScheduler>();
             builder.Services.AddHostedService(provider => provider.GetRequiredService<BackgroundOrderSyncScheduler>());
             builder.Services.AddHostedService<ApiConnectivityMonitor>();
-            builder.Services.AddDesktopServices();
+            builder.Services.AddDesktopServices(validatedConfiguration.EnableDemoLogin);
 
             _host = builder.Build();
             _exceptionHandler = _host.Services.GetRequiredService<GlobalExceptionHandler>();
             _exceptionHandler.Register();
 
             var logger = _host.Services.GetRequiredService<ILogger<App>>();
+            logger.LogInformation(
+                "Retail POS starting with profile {Profile}. Demo login enabled: {DemoLoginEnabled}.",
+                validatedConfiguration.Profile,
+                validatedConfiguration.EnableDemoLogin);
             await using (var scope = _host.Services.CreateAsyncScope())
             {
                 await scope.ServiceProvider
@@ -79,6 +86,7 @@ public partial class App : System.Windows.Application
         }
         catch (Exception exception)
         {
+            Log.Fatal(exception, "Retail POS failed during startup.");
             _host?.Services.GetService<ILogger<App>>()?
                 .LogCritical(exception, "Retail POS failed during startup.");
             Trace.TraceError("Retail POS failed to start: {0}", exception);
@@ -124,14 +132,6 @@ public partial class App : System.Windows.Application
         Enum.TryParse<Serilog.Events.LogEventLevel>(value, ignoreCase: true, out var level)
             ? level
             : Serilog.Events.LogEventLevel.Information;
-
-    private static Uri ApiBaseAddress(IConfiguration configuration)
-    {
-        var value = configuration["ApiSync:BaseAddress"];
-        return Uri.TryCreate(value, UriKind.Absolute, out var uri)
-            ? uri
-            : new Uri("http://localhost:5000/");
-    }
 
     protected override void OnExit(ExitEventArgs e)
     {
