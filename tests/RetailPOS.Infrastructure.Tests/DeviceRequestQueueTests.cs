@@ -7,7 +7,8 @@ public sealed class DeviceRequestQueueTests
     [Fact]
     public async Task CompleteIsExactlyOnceAndContinuationRunsAsynchronously()
     {
-        using var queue = new DeviceRequestQueue<string, string>("Printer", TimeProvider.System);
+        var timeProvider = new TrackingTimeProvider();
+        using var queue = new DeviceRequestQueue<string, string>("Printer", timeProvider);
         var task = queue.BeginAsync("receipt-1", "immutable payload", TimeSpan.FromMinutes(1));
         var requestId = queue.Pending!.RequestId;
         var continuationRan = false;
@@ -22,13 +23,15 @@ public sealed class DeviceRequestQueueTests
         Assert.Equal(DeviceRequestState.Completed, completed.State);
         Assert.Equal("Printed", completed.Result);
         Assert.Single(queue.Recent);
+        await WaitForTimersAsync(timeProvider, 0);
     }
 
     [Fact]
     public async Task CancellationWinsAndLateResponseIsRejected()
     {
+        var timeProvider = new TrackingTimeProvider();
         using var cancellation = new CancellationTokenSource();
-        using var queue = new DeviceRequestQueue<string, string>("Card", TimeProvider.System);
+        using var queue = new DeviceRequestQueue<string, string>("Card", timeProvider);
         var task = queue.BeginAsync("attempt-1", "amount=1000", TimeSpan.FromMinutes(1), cancellation.Token);
         var id = queue.Pending!.RequestId;
 
@@ -37,6 +40,7 @@ public sealed class DeviceRequestQueueTests
 
         Assert.Equal(DeviceRequestState.Cancelled, completed.State);
         Assert.False(queue.TryComplete(id, "Approve"));
+        await WaitForTimersAsync(timeProvider, 0);
     }
 
     [Fact]
@@ -62,11 +66,13 @@ public sealed class DeviceRequestQueueTests
     [Fact]
     public async Task DisposeTerminatesPendingRequest()
     {
-        var queue = new DeviceRequestQueue<string, string>("Printer", TimeProvider.System);
+        var timeProvider = new TrackingTimeProvider();
+        var queue = new DeviceRequestQueue<string, string>("Printer", timeProvider);
         var task = queue.BeginAsync("receipt", "payload", TimeSpan.FromMinutes(1));
         queue.Dispose();
         Assert.Equal(DeviceRequestState.Disposed, (await task).State);
         Assert.Throws<ObjectDisposedException>(BeginAfterDispose);
+        await WaitForTimersAsync(timeProvider, 0);
 
         void BeginAfterDispose() =>
             _ = queue.BeginAsync("later", "payload", TimeSpan.FromMinutes(1));
@@ -86,10 +92,57 @@ public sealed class DeviceRequestQueueTests
     [Fact]
     public async Task DisconnectTerminatesOnlyMatchingPendingRequest()
     {
-        using var queue = new DeviceRequestQueue<string, string>("Card", TimeProvider.System);
+        var timeProvider = new TrackingTimeProvider();
+        using var queue = new DeviceRequestQueue<string, string>("Card", timeProvider);
         var task = queue.BeginAsync("attempt", "payload", TimeSpan.FromMinutes(1));
         Assert.False(queue.TryDisconnect(Guid.NewGuid()));
         Assert.True(queue.TryDisconnect(queue.Pending!.RequestId));
         Assert.Equal(DeviceRequestState.Disconnected, (await task).State);
+        await WaitForTimersAsync(timeProvider, 0);
+    }
+
+    private static async Task WaitForTimersAsync(TrackingTimeProvider provider, int expected)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        while (provider.ActiveTimers != expected)
+        {
+            await Task.Delay(10, timeout.Token);
+        }
+    }
+
+    private sealed class TrackingTimeProvider : TimeProvider
+    {
+        private int _activeTimers;
+        public int ActiveTimers => Volatile.Read(ref _activeTimers);
+
+        public override ITimer CreateTimer(
+            TimerCallback callback,
+            object? state,
+            TimeSpan dueTime,
+            TimeSpan period)
+        {
+            Interlocked.Increment(ref _activeTimers);
+            return new TrackingTimer(
+                TimeProvider.System.CreateTimer(callback, state, dueTime, period),
+                () => Interlocked.Decrement(ref _activeTimers));
+        }
+
+        private sealed class TrackingTimer(ITimer inner, Action onDispose) : ITimer
+        {
+            private int _disposed;
+            public bool Change(TimeSpan dueTime, TimeSpan period) => inner.Change(dueTime, period);
+            public void Dispose()
+            {
+                if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+                inner.Dispose();
+                onDispose();
+            }
+            public async ValueTask DisposeAsync()
+            {
+                if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+                await inner.DisposeAsync();
+                onDispose();
+            }
+        }
     }
 }

@@ -71,7 +71,7 @@ public sealed class DeviceRequestQueue<TPayload, TResult> : IDisposable
             TryFinish(active.Snapshot.RequestId, DeviceRequestState.Cancelled, default));
         active.CancellationRegistration = registration;
         if (active.Completion.Task.IsCompleted) registration.Dispose();
-        _ = TimeoutAsync(active.Snapshot.RequestId, timeout);
+        _ = TimeoutAsync(active.Snapshot.RequestId, timeout, active.TimeoutCancellation.Token);
         RaiseChanged();
         return active.Completion.Task;
     }
@@ -82,10 +82,19 @@ public sealed class DeviceRequestQueue<TPayload, TResult> : IDisposable
     public bool TryDisconnect(Guid requestId) =>
         TryFinish(requestId, DeviceRequestState.Disconnected, default);
 
-    private async Task TimeoutAsync(Guid requestId, TimeSpan timeout)
+    private async Task TimeoutAsync(
+        Guid requestId,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
     {
-        await Task.Delay(timeout, _timeProvider, CancellationToken.None);
-        TryFinish(requestId, DeviceRequestState.TimedOut, default);
+        try
+        {
+            await Task.Delay(timeout, _timeProvider, cancellationToken);
+            TryFinish(requestId, DeviceRequestState.TimedOut, default);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
     }
 
     private bool TryFinish(Guid requestId, DeviceRequestState state, TResult? result)
@@ -111,6 +120,8 @@ public sealed class DeviceRequestQueue<TPayload, TResult> : IDisposable
             if (_history.Count > _historyLimit) _history.RemoveRange(_historyLimit, _history.Count - _historyLimit);
         }
 
+        active.TimeoutCancellation.Cancel();
+        active.TimeoutCancellation.Dispose();
         active.CancellationRegistration.Dispose();
         active.Completion.TrySetResult(completed);
         RaiseChanged();
@@ -137,5 +148,6 @@ public sealed class DeviceRequestQueue<TPayload, TResult> : IDisposable
         public TaskCompletionSource<DeviceRequest<TPayload, TResult>> Completion { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         public CancellationTokenRegistration CancellationRegistration { get; set; }
+        public CancellationTokenSource TimeoutCancellation { get; } = new();
     }
 }
