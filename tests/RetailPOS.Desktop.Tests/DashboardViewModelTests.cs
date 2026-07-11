@@ -108,9 +108,10 @@ public sealed class DashboardViewModelTests
         connectivity.Update(new ApiConnectivitySnapshot(connectivityStatus, NowUtc, null));
         var clock = new StubOrderSyncClock(NowUtc);
         return new DashboardViewModel(
-            orderRepository,
+            new RecordingDashboardRepository(
+                orderRepository,
+                checkoutRecoveryService),
             new SyncStatusService(syncQueueRepository, clock),
-            checkoutRecoveryService,
             connectivity,
             clock);
     }
@@ -164,6 +165,30 @@ public sealed class DashboardViewModelTests
 
         public Task<bool> ExistsAsync(Guid localOrderId, CancellationToken cancellationToken = default) =>
             Task.FromResult(orders.Any(order => order.LocalOrderId == localOrderId));
+    }
+
+    private sealed class RecordingDashboardRepository(
+        IOrderRepository orderRepository,
+        ICheckoutRecoveryService checkoutRecoveryService) : IDashboardRepository
+    {
+        public async Task<DashboardSummary> GetSummaryAsync(
+            DateOnly businessDate,
+            int recentOrderCount,
+            CancellationToken cancellationToken = default)
+        {
+            var orders = await orderRepository.GetByBusinessDateAsync(businessDate, cancellationToken);
+            var recent = await orderRepository.GetRecentAsync(recentOrderCount, cancellationToken);
+            var recoverable = await checkoutRecoveryService.GetRecoverableAsync(cancellationToken);
+            return new DashboardSummary(
+                orders.Count,
+                orders.Sum(order => order.TotalAmount),
+                recoverable.Count,
+                recent.Select(order => new DashboardRecentOrder(
+                    order.LocalOrderNumber,
+                    order.CreatedAtUtc,
+                    order.Status,
+                    order.TotalAmount)).ToArray());
+        }
     }
 
     private sealed class RecordingSyncQueueRepository(params SyncQueueRecord[] items) : ISyncQueueRepository

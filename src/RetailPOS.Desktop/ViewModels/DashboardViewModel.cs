@@ -2,11 +2,9 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Sync;
 using RetailPOS.Desktop.Sync;
-using RetailPOS.Domain.Orders;
 
 namespace RetailPOS.Desktop.ViewModels;
 
@@ -15,22 +13,19 @@ public sealed partial class DashboardViewModel : ObservableObject
     private const int RecentOrderCount = 5;
     private const int SyncSnapshotCount = 50;
 
-    private readonly IOrderRepository _orderRepository;
+    private readonly IDashboardRepository _dashboardRepository;
     private readonly SyncStatusService _syncStatusService;
-    private readonly ICheckoutRecoveryService _checkoutRecoveryService;
     private readonly IApiConnectivityStateStore _connectivityStateStore;
     private readonly IOrderSyncClock _clock;
 
     public DashboardViewModel(
-        IOrderRepository orderRepository,
+        IDashboardRepository dashboardRepository,
         SyncStatusService syncStatusService,
-        ICheckoutRecoveryService checkoutRecoveryService,
         IApiConnectivityStateStore connectivityStateStore,
         IOrderSyncClock clock)
     {
-        _orderRepository = orderRepository;
+        _dashboardRepository = dashboardRepository;
         _syncStatusService = syncStatusService;
-        _checkoutRecoveryService = checkoutRecoveryService;
         _connectivityStateStore = connectivityStateStore;
         _clock = clock;
         RefreshCommand = new AsyncRelayCommand(LoadAsync, () => !IsBusy);
@@ -110,16 +105,17 @@ public sealed partial class DashboardViewModel : ObservableObject
         {
             var nowUtc = UtcNow();
             var businessDate = DateOnly.FromDateTime(nowUtc.ToLocalTime().Date);
-            var todaysOrders = await _orderRepository.GetByBusinessDateAsync(businessDate, cancellationToken);
-            var recentOrders = await _orderRepository.GetRecentAsync(RecentOrderCount, cancellationToken);
+            var dashboard = await _dashboardRepository.GetSummaryAsync(
+                businessDate,
+                RecentOrderCount,
+                cancellationToken);
             var sync = await _syncStatusService.GetSnapshotAsync(SyncSnapshotCount, cancellationToken);
-            var recoverable = await _checkoutRecoveryService.GetRecoverableAsync(cancellationToken);
 
-            ApplyOrders(todaysOrders, recentOrders);
+            ApplyOrders(dashboard);
             ApplySync(sync);
-            ApplyRecovery(recoverable.Count);
+            ApplyRecovery(dashboard.RecoverableCheckoutCount);
             ApplyConnectivity(_connectivityStateStore.Current);
-            ApplyAttention(sync, recoverable.Count);
+            ApplyAttention(sync, dashboard.RecoverableCheckoutCount);
             LastUpdatedText = nowUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -136,17 +132,16 @@ public sealed partial class DashboardViewModel : ObservableObject
         }
     }
 
-    private void ApplyOrders(IReadOnlyList<Order> todaysOrders, IReadOnlyList<Order> recentOrders)
+    private void ApplyOrders(DashboardSummary summary)
     {
-        var netSales = todaysOrders.Sum(order => order.TotalAmount);
-        NetSalesText = $"{netSales:N0} KRW";
-        OrderCountText = todaysOrders.Count.ToString("N0");
-        AverageOrderText = todaysOrders.Count == 0
+        NetSalesText = $"{summary.NetSales:N0} KRW";
+        OrderCountText = summary.OrderCount.ToString("N0");
+        AverageOrderText = summary.OrderCount == 0
             ? "No sales today"
-            : $"Average {netSales / todaysOrders.Count:N0} KRW";
+            : $"Average {summary.NetSales / summary.OrderCount:N0} KRW";
 
         RecentOrders.Clear();
-        foreach (var order in recentOrders.Select(order => new DashboardRecentOrderViewModel(order)))
+        foreach (var order in summary.RecentOrders.Select(order => new DashboardRecentOrderViewModel(order)))
         {
             RecentOrders.Add(order);
         }
@@ -270,7 +265,7 @@ public sealed partial class DashboardViewModel : ObservableObject
     }
 }
 
-public sealed class DashboardRecentOrderViewModel(Order order)
+public sealed class DashboardRecentOrderViewModel(DashboardRecentOrder order)
 {
     public string OrderNumber { get; } = order.LocalOrderNumber;
     public string CreatedAtText { get; } = order.CreatedAtUtc.ToLocalTime().ToString("HH:mm");

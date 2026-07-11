@@ -29,6 +29,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<OrderEntity>
         builder.HasKey(order => order.LocalOrderId);
         builder.HasIndex(order => order.LocalOrderNumber).IsUnique();
         builder.HasIndex(order => order.CreatedAtUtc);
+        builder.HasIndex(order => new { order.BusinessDate, order.CreatedAtUtc });
         builder.Property(order => order.LocalOrderNumber).HasMaxLength(64);
         builder.Property(order => order.SubtotalAmount).HasPrecision(18, 0);
         builder.Property(order => order.DiscountAmount).HasPrecision(18, 0);
