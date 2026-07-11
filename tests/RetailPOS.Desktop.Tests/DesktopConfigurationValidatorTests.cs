@@ -48,6 +48,24 @@ public sealed class DesktopConfigurationValidatorTests
     }
 
     [Fact]
+    public void InvalidLoggerSetting_FailsValidationBeforeConfiguredLoggerFactoryRuns()
+    {
+        var configuredLoggerFactoryRan = false;
+
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            DesktopStartupConfiguration.Create(
+                Configuration(("Serilog:Desktop:RetainedFileCountLimit", "0")),
+                _ =>
+                {
+                    configuredLoggerFactoryRan = true;
+                    return new Serilog.LoggerConfiguration().CreateLogger();
+                }));
+
+        Assert.False(configuredLoggerFactoryRan);
+        Assert.Contains("RetainedFileCountLimit", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ProductionLoginBoundary_ReturnsUserSafeUnavailableMessage()
     {
         var result = await new UnavailableLoginService().SignInAsync(new("E0001", "secret"));

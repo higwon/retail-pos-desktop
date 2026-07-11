@@ -34,10 +34,16 @@ public partial class App : System.Windows.Application
                 ContentRootPath = AppContext.BaseDirectory
             });
             builder.Configuration.AddEnvironmentVariables("RETAILPOS_");
-            Log.Logger = CreateLogger(builder.Configuration);
+            var bootstrapLogger = CreateBootstrapLogger();
+            Log.Logger = bootstrapLogger;
+            var startupConfiguration = DesktopStartupConfiguration.Create(
+                builder.Configuration,
+                CreateLogger);
+            Log.Logger = startupConfiguration.Logger;
+            (bootstrapLogger as IDisposable)?.Dispose();
+            var validatedConfiguration = startupConfiguration.Values;
             builder.Logging.ClearProviders();
             builder.Services.AddSerilog(Log.Logger, dispose: true);
-            var validatedConfiguration = DesktopConfigurationValidator.Validate(builder.Configuration);
             builder.Services.AddSingleton<System.Windows.Application>(this);
             builder.Services.AddLocalPersistence(builder.Configuration);
             builder.Services.AddApiSyncClient(validatedConfiguration.ApiBaseAddress);
@@ -99,6 +105,12 @@ public partial class App : System.Windows.Application
             Shutdown(-1);
         }
     }
+
+    private static Serilog.ILogger CreateBootstrapLogger() =>
+        new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .WriteTo.Debug()
+            .CreateBootstrapLogger();
 
     private static Serilog.ILogger CreateLogger(IConfiguration configuration)
     {
