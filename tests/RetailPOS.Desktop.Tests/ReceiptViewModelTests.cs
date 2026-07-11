@@ -110,6 +110,11 @@ public sealed class ReceiptViewModelTests
         var printing = viewModel.PrintCommand.ExecuteAsync(null);
         await printer.Started.Task;
 
+        Assert.Equal(
+            "Print request sent. Waiting for simulator response...",
+            viewModel.StatusMessage);
+        Assert.True(viewModel.IsBusy);
+
         viewModel.Dispose();
         await printing;
 
