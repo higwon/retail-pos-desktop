@@ -61,6 +61,15 @@ dotnet test tests\RetailPOS.Application.Tests\RetailPOS.Application.Tests.csproj
 
 ## Local Configuration
 
+Desktop runtime profiles:
+
+- `Production` is the default and requires HTTPS, disables demo login, and disables the
+  Device Simulator.
+- `Demo` or `Development` must be selected explicitly. Local development uses
+  `appsettings.Development.json` with the simulator and deterministic demo login enabled.
+- Environment-variable overrides use the `RETAILPOS_` prefix and `__` for nested keys,
+  for example `RETAILPOS_ApiSync__BaseAddress`.
+
 Desktop configuration:
 
 ```text
