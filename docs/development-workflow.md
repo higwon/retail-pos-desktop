@@ -56,6 +56,12 @@ Performance reference dataset:
 - Phase 2 adds deterministic ViewModel baselines with 2,000 completed orders, 1,000 recovery
   records, 2,000 sync history records, and a 5,000-product category/search filter. Dashboard
   recent orders and Status items remain bounded to their presentation limits.
+- The same large history volumes are persisted to a real SQLite database and measured through
+  the production order repository, checkout recovery service, and sync status service. The
+  five-second ceiling remains a severe-regression guard rather than a capacity target.
+- Dashboard summary calculation still materializes all business-date orders and unresolved
+  recovery snapshots. Replacing that path with database-side aggregates and a bounded recent
+  query is tracked by POS-811 (#153).
 
 Run Desktop tests:
 
