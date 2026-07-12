@@ -105,10 +105,10 @@ src/RetailPOS.Api/appsettings.json
 src/RetailPOS.Api/appsettings.Development.json
 ```
 
-Default Desktop API base address:
+Development Desktop API base address (matches the API `http` launch profile):
 
 ```text
-http://localhost:5000/
+http://localhost:5282/
 ```
 
 Default local database path:
@@ -129,6 +129,9 @@ MVP demo login accounts:
 Cashier: E0001 / 1234
 Manager: M0001 / 1234
 ```
+
+For the clean-checkout setup, reset steps, offline/recovery walkthrough, architecture
+narrative, and explicit portfolio limitations, use [Demo Guide and Portfolio Summary](demo-and-portfolio.md).
 
 Cashier happy path demo checklist:
 

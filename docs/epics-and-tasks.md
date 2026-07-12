@@ -880,7 +880,7 @@ Acceptance criteria:
 
 Goal: Improve reliability, performance, test coverage, and portfolio presentation.
 
-Status: Next. Some sync hardening work was completed early under the historical
+Status: Complete. Some sync hardening work was completed early under the historical
 POS-711 through POS-715 IDs.
 
 Scope boundary:

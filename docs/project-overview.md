@@ -63,8 +63,9 @@ not always at the same delivery stage.
 - Current product sync persists server stock quantities in the local cache.
 - Pending local-order stock deduction and estimated local stock remain target behavior
   for later hardening.
-- Device simulation is the next active epic. Production hardware adapters and
-  advanced multi-display administration remain Phase 2.
+- Device simulation and production-readiness hardening are implemented for the portfolio
+  build. Production hardware adapters, identity, deployment, and advanced multi-display
+  administration remain Phase 2.
 
 ## MVP Exclusions
 
