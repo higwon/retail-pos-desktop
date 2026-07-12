@@ -56,9 +56,9 @@ EPIC-08 demonstrates device integration concepts:
 Simulator controls remain separate from cashier business commands. Real hardware
 adapters remain Phase 2.
 
-## Next Planned Area
+## Completed Production Readiness
 
-EPIC-09 improves production readiness without expanding the product into real hardware,
+EPIC-09 improved production readiness without expanding the product into real hardware,
 production authentication, or Phase 2 retail features:
 
 - Automated build and test quality gates.
@@ -68,7 +68,10 @@ production authentication, or Phase 2 retail features:
 - Performance and reliability polish.
 - UI, DPI, accessibility, demo, and portfolio presentation polish.
 
-## Phase 2 Product Ideas
+The repeatable operator walkthrough, engineering narrative, evidence links, and explicit
+non-production boundaries are maintained in the [Demo Guide and Portfolio Summary](demo-and-portfolio.md).
+
+## Next Planned Area: Phase 2 Product Ideas
 
 - Refunds.
 - Order cancellation.

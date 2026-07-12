@@ -22,6 +22,7 @@ Start here:
 1. [Project Overview](docs/project-overview.md)
 2. [Architecture](docs/architecture.md)
 3. [Roadmap](docs/roadmap.md)
+4. [Demo Guide and Portfolio Summary](docs/demo-and-portfolio.md)
 
 For implementation planning:
 
@@ -35,6 +36,7 @@ For specific areas:
 - [Sync and Offline](docs/sync-and-offline.md)
 - [UI Guide](docs/ui-guide.md)
 - [Decisions](docs/decisions.md)
+- [Demo Guide and Portfolio Summary](docs/demo-and-portfolio.md)
 
 AI coding agents should also read [AGENTS.md](AGENTS.md) before working in this repository.
 
