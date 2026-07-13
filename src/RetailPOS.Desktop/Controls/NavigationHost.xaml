@@ -13,7 +13,7 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="#FF334155"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="MinHeight" Value="46"/>
             <Setter Property="Padding" Value="14,8"/>
             <Setter Property="Margin" Value="0,0,0,5"/>
@@ -23,7 +23,7 @@
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="150"/>
+            <ColumnDefinition Width="190"/>
         </Grid.ColumnDefinitions>
 
         <Grid x:Name="ContentRoot"
@@ -60,27 +60,27 @@
                     <Button x:Name="RegisterNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnShowRegister">
-                        <TextBlock Text="Register" Foreground="White"/>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconCardGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" HorizontalAlignment="Center"/><TextBlock Grid.Column="1" Text="Register" Foreground="White" Margin="10,0,0,0"/></Grid>
                     </Button>
                     <Button x:Name="ProductSearchNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnShowProductSearch">
-                        <TextBlock Text="Product Search" Foreground="White"/>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconSearchGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" HorizontalAlignment="Center"/><TextBlock Grid.Column="1" Text="Product Search" Foreground="White" Margin="10,0,0,0"/></Grid>
                     </Button>
                     <Button x:Name="RecoveryNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnShowRecovery">
-                        <TextBlock Text="Recovery" Foreground="White"/>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconRecoveryGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" HorizontalAlignment="Center"/><TextBlock Grid.Column="1" Text="Recovery" Foreground="White" Margin="10,0,0,0"/></Grid>
                     </Button>
                     <Button x:Name="DashboardNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnShowDashboard">
-                        <TextBlock Text="Dashboard" Foreground="White"/>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconDashboardGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" HorizontalAlignment="Center"/><TextBlock Grid.Column="1" Text="Dashboard" Foreground="White" Margin="10,0,0,0"/></Grid>
                     </Button>
                     <Button x:Name="StatusNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnShowStatus">
-                        <TextBlock Text="Status" Foreground="White"/>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconStatusGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" HorizontalAlignment="Center"/><TextBlock Grid.Column="1" Text="Status" Foreground="White" Margin="10,0,0,0"/></Grid>
                     </Button>
                 </StackPanel>
 
@@ -88,7 +88,7 @@
                     <Button x:Name="DeviceSimulatorButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnOpenDeviceSimulator">
-                        <TextBlock Text="Simulator" Foreground="White"/>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconDisplayGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" HorizontalAlignment="Center"/><TextBlock Grid.Column="1" Text="Simulator" Foreground="White" Margin="10,0,0,0"/></Grid>
                     </Button>
                     <Border BorderBrush="#FF475569"
                             BorderThickness="0,1,0,0"
@@ -96,7 +96,7 @@
                     <Button
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnSignOut">
-                        <TextBlock Text="Sign out" Foreground="White"/>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconSignOutGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" HorizontalAlignment="Center"/><TextBlock Grid.Column="1" Text="Sign out" Foreground="White" Margin="10,0,0,0"/></Grid>
                     </Button>
                 </StackPanel>
             </Grid>

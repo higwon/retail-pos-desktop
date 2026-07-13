@@ -11,12 +11,16 @@
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1"
                 Padding="32,24">
-            <StackPanel>
-                <TextBlock Text="Checkout recovery" Style="{StaticResource TitleTextBlockStyle}"/>
-                <TextBlock Text="{Binding StatusMessage}"
-                           Style="{StaticResource SecondaryTextBlockStyle}"
-                           Margin="0,6,0,0"/>
-            </StackPanel>
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Button Click="OnBack" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,16,0" VerticalAlignment="Top">
+                    <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconBackGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,8,0"/><TextBlock Text="Back"/></StackPanel>
+                </Button>
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="Checkout recovery" Style="{StaticResource TitleTextBlockStyle}"/>
+                    <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Grid>
         </Border>
 
         <Grid Grid.Row="1" Margin="32">
@@ -39,11 +43,15 @@
                              SelectedItem="{Binding SelectedItem}"
                              BorderThickness="0"
                              Background="Transparent">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="14"/><Setter Property="Margin" Value="0,0,0,8"/><Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/><Setter Property="BorderThickness" Value="1"/>
+                                <Style.Triggers><Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{StaticResource SelectionBrush}"/><Setter Property="BorderBrush" Value="#FF1769FF"/><Setter Property="BorderThickness" Value="2"/></Trigger></Style.Triggers>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border BorderBrush="{StaticResource BorderBrush}"
-                                        BorderThickness="0,0,0,1"
-                                        Padding="0,12"
+                                <Border Padding="0"
                                         MinWidth="260">
                                     <StackPanel>
                                         <TextBlock Text="{Binding CheckoutLabel}" FontWeight="SemiBold"/>
@@ -94,10 +102,9 @@
 
                     <ScrollViewer Grid.Row="1" Margin="0,28,0,20" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <TextBlock Text="{Binding SelectedItem.WarningMessage}"
-                                       Foreground="{StaticResource WarningBrush}"
-                                       FontWeight="SemiBold"
-                                       Margin="0,0,0,14"/>
+                            <Border Background="#FFFFF7ED" BorderBrush="#FFFED7AA" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,24">
+                                <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconWarningGeometry}" Style="{StaticResource IconPathStyle}" Width="28" Height="28" Stroke="#FFEA580C" Margin="0,0,14,0"/><TextBlock Text="{Binding SelectedItem.WarningMessage}" Foreground="#FFC2410C" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center"/></StackPanel>
+                            </Border>
 
                             <TextBlock Text="Cart snapshot" FontWeight="SemiBold" Margin="0,0,0,14"/>
                             <ItemsControl ItemsSource="{Binding SelectedItem.Lines}">
@@ -163,20 +170,10 @@
                                Style="{StaticResource SecondaryTextBlockStyle}"
                                Margin="0,6,0,24"/>
 
-                    <Button Content="Complete order"
-                            Command="{Binding CompleteOrderCommand}"
-                            Margin="0,0,0,10"/>
-                    <Button Content="Request manager review"
-                            Command="{Binding RequestManagerReviewCommand}"
-                            Style="{StaticResource DangerMutedButtonStyle}"
-                            Margin="0,0,0,10"/>
-                    <Button Content="Resolve and release"
-                            Command="{Binding ResolveManagerReviewCommand}"
-                            Style="{StaticResource DangerMutedButtonStyle}"
-                            Margin="0,0,0,20"/>
-                    <Button Content="Refresh"
-                            Command="{Binding LoadCommand}"
-                            Style="{StaticResource SecondaryButtonStyle}"/>
+                    <Button Command="{Binding CompleteOrderCommand}" Margin="0,0,0,10"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCheckGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,10,0"/><TextBlock Text="Complete order"/></StackPanel></Button>
+                    <Button Command="{Binding RequestManagerReviewCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,0,10"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconUserGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,10,0"/><TextBlock Text="Request manager review"/></StackPanel></Button>
+                    <Button Command="{Binding ResolveManagerReviewCommand}" Style="{StaticResource DangerMutedButtonStyle}" Margin="0,0,0,20"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconShieldGeometry}" Style="{StaticResource IconPathStyle}" Stroke="{StaticResource DangerBrush}" Margin="0,0,10,0"/><TextBlock Text="Resolve and release"/></StackPanel></Button>
+                    <Button Command="{Binding LoadCommand}" Style="{StaticResource SecondaryButtonStyle}"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconRefreshGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,10,0"/><TextBlock Text="Refresh"/></StackPanel></Button>
 
                     <Separator Margin="0,24"/>
                     <TextBlock Text="Payment" FontWeight="SemiBold" Margin="0,0,0,12"/>

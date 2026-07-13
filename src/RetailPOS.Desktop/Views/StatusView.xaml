@@ -10,24 +10,30 @@
         </Grid.RowDefinitions>
 
         <Grid>
-            <StackPanel>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Button Click="OnBack" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,16,0" VerticalAlignment="Top">
+                <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconBackGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,8,0"/><TextBlock Text="Back"/></StackPanel>
+            </Button>
+            <StackPanel Grid.Column="1">
                 <TextBlock Text="System status" Style="{StaticResource TitleTextBlockStyle}" />
                 <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,6,0,0" />
                 <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" Margin="0,8,0,0"
                            AutomationProperties.LiveSetting="Assertive" />
             </StackPanel>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <TextBlock Text="{Binding LastCheckedText}" Style="{StaticResource SecondaryTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,16,0" />
-                <Button Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0" />
-                <Button Content="Run sync" Command="{Binding RunSyncCommand}" />
+                <Button Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconRefreshGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,8,0"/><TextBlock Text="Refresh"/></StackPanel></Button>
+                <Button Command="{Binding RunSyncCommand}"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconRefreshGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" Margin="0,0,8,0"/><TextBlock Text="Run sync" Foreground="White"/></StackPanel></Button>
             </StackPanel>
         </Grid>
 
         <ItemsControl Grid.Row="1" ItemsSource="{Binding Devices}" Margin="0,24,0,20">
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="4"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate><DataTemplate>
-                <Border Style="{StaticResource PanelBorderStyle}" Padding="16" Margin="0,0,12,0">
-                    <StackPanel>
+                <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Border Width="50" Height="50" CornerRadius="8" Background="#FFE8F1FF" VerticalAlignment="Top"><Path x:Name="DeviceIcon" Data="{StaticResource IconDisplayGeometry}" Style="{StaticResource IconPathStyle}" Width="28" Height="28" Stroke="#FF1769FF"/></Border>
+                    <StackPanel Grid.Column="1">
                         <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="16"/>
                         <Border Background="{Binding BadgeBackground}" CornerRadius="10" Padding="9,3"
                                 HorizontalAlignment="Left" Margin="0,7,0,0">
@@ -39,35 +45,40 @@
                         </Border>
                         <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Margin="0,7,0,0"/>
                         <TextBlock Text="{Binding LastChangedText}" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="11" Margin="0,5,0,0"/>
-                    </StackPanel>
+                    </StackPanel></Grid>
                 </Border>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding DisplayName}" Value="Barcode scanner"><Setter TargetName="DeviceIcon" Property="Data" Value="{StaticResource IconScannerGeometry}"/></DataTrigger>
+                    <DataTrigger Binding="{Binding DisplayName}" Value="Receipt printer"><Setter TargetName="DeviceIcon" Property="Data" Value="{StaticResource IconReceiptGeometry}"/></DataTrigger>
+                    <DataTrigger Binding="{Binding DisplayName}" Value="Card terminal"><Setter TargetName="DeviceIcon" Property="Data" Value="{StaticResource IconCardGeometry}"/></DataTrigger>
+                </DataTemplate.Triggers>
             </DataTemplate></ItemsControl.ItemTemplate>
         </ItemsControl>
 
         <UniformGrid Grid.Row="2" Columns="4" Margin="0,0,0,20">
             <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0">
-                <StackPanel>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="42" Height="42" CornerRadius="8" Background="#FFE8F1FF"><Path Data="{StaticResource IconClockGeometry}" Style="{StaticResource IconPathStyle}" Width="24" Height="24" Stroke="#FF1769FF"/></Border><StackPanel Grid.Column="1">
                     <TextBlock Text="Pending" Style="{StaticResource SecondaryTextBlockStyle}" />
                     <TextBlock Text="{Binding PendingCountText}" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0" />
-                </StackPanel>
+                </StackPanel></Grid>
             </Border>
             <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0">
-                <StackPanel>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="42" Height="42" CornerRadius="8" Background="#FFE8F1FF"><Path Data="{StaticResource IconRefreshGeometry}" Style="{StaticResource IconPathStyle}" Width="24" Height="24" Stroke="#FF1769FF"/></Border><StackPanel Grid.Column="1">
                     <TextBlock Text="Retrying" Style="{StaticResource SecondaryTextBlockStyle}" />
                     <TextBlock Text="{Binding RetryCountText}" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0" />
-                </StackPanel>
+                </StackPanel></Grid>
             </Border>
             <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0">
-                <StackPanel>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="42" Height="42" CornerRadius="8" Background="#FFE8F1FF"><Path Data="{StaticResource IconInfoGeometry}" Style="{StaticResource IconPathStyle}" Width="24" Height="24" Stroke="#FF1769FF"/></Border><StackPanel Grid.Column="1">
                     <TextBlock Text="Needs review" Style="{StaticResource SecondaryTextBlockStyle}" />
                     <TextBlock Text="{Binding ReviewCountText}" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0" />
-                </StackPanel>
+                </StackPanel></Grid>
             </Border>
             <Border Style="{StaticResource PanelBorderStyle}" Padding="20">
-                <StackPanel>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="42" Height="42" CornerRadius="8" Background="#FFE8F1FF"><Path Data="{StaticResource IconCheckGeometry}" Style="{StaticResource IconPathStyle}" Width="24" Height="24" Stroke="#FF1769FF"/></Border><StackPanel Grid.Column="1">
                     <TextBlock Text="Completed" Style="{StaticResource SecondaryTextBlockStyle}" />
                     <TextBlock Text="{Binding CompletedCountText}" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0" />
-                </StackPanel>
+                </StackPanel></Grid>
             </Border>
         </UniformGrid>
 

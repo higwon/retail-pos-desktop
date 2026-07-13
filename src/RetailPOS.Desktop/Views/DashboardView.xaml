@@ -7,7 +7,11 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{StaticResource AppBackgroundBrush}">
         <StackPanel Margin="32">
             <Grid Margin="0,0,0,24">
-                <StackPanel>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Button Click="OnBack" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,16,0" VerticalAlignment="Top">
+                    <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconBackGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,8,0"/><TextBlock Text="Back"/></StackPanel>
+                </Button>
+                <StackPanel Grid.Column="1">
                     <TextBlock Text="Operations dashboard" Style="{StaticResource TitleTextBlockStyle}" />
                     <TextBlock Text="Today | Register overview"
                                Style="{StaticResource SecondaryTextBlockStyle}"
@@ -18,17 +22,17 @@
                                Margin="0,6,0,0" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal"
+                            Grid.Column="1"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Top">
                     <TextBlock Text="{Binding ConnectivityText}"
                                Style="{StaticResource SecondaryTextBlockStyle}"
                                VerticalAlignment="Center"
                                Margin="0,0,12,0" />
-                    <Button Content="Refresh"
-                            Command="{Binding RefreshCommand}"
+                    <Button Command="{Binding RefreshCommand}"
                             Style="{StaticResource SecondaryButtonStyle}"
                             MinWidth="88"
-                            Margin="0,0,12,0" />
+                            Margin="0,0,12,0"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconRefreshGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,8,0"/><TextBlock Text="Refresh"/></StackPanel></Button>
                     <Border Style="{StaticResource StatusPillStyle}"
                             Background="{Binding DashboardStatusBackground}">
                         <TextBlock Text="{Binding DashboardStatusText}"
@@ -45,32 +49,32 @@
 
             <UniformGrid Columns="4" Margin="0,0,0,20">
                 <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0">
-                    <StackPanel>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="50" Height="50" CornerRadius="25" Background="#FFE8F1FF"><Path Data="{StaticResource IconChartGeometry}" Style="{StaticResource IconPathStyle}" Width="27" Height="27" Stroke="#FF1769FF"/></Border><StackPanel Grid.Column="1">
                         <TextBlock Text="Net sales" Style="{StaticResource SecondaryTextBlockStyle}" />
                         <TextBlock Text="{Binding NetSalesText}" FontSize="24" FontWeight="Bold" Margin="0,10,0,0" />
                         <TextBlock Text="{Binding AverageOrderText}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,8,0,0" />
-                    </StackPanel>
+                    </StackPanel></Grid>
                 </Border>
                 <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0">
-                    <StackPanel>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="50" Height="50" CornerRadius="25" Background="{StaticResource SuccessMutedBrush}"><Path Data="{StaticResource IconCartGeometry}" Style="{StaticResource IconPathStyle}" Width="27" Height="27" Stroke="{StaticResource SuccessBrush}"/></Border><StackPanel Grid.Column="1">
                         <TextBlock Text="Orders" Style="{StaticResource SecondaryTextBlockStyle}" />
                         <TextBlock Text="{Binding OrderCountText}" FontSize="24" FontWeight="Bold" Margin="0,10,0,0" />
                         <TextBlock Text="Completed today" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,8,0,0" />
-                    </StackPanel>
+                    </StackPanel></Grid>
                 </Border>
                 <Border Style="{StaticResource PanelBorderStyle}" Padding="20" Margin="0,0,12,0">
-                    <StackPanel>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="50" Height="50" CornerRadius="25" Background="#FFFFF4D8"><Path Data="{StaticResource IconRefreshGeometry}" Style="{StaticResource IconPathStyle}" Width="27" Height="27" Stroke="#FFD97706"/></Border><StackPanel Grid.Column="1">
                         <TextBlock Text="Sync queue" Style="{StaticResource SecondaryTextBlockStyle}" />
                         <TextBlock Text="{Binding PendingSyncText}" FontSize="24" FontWeight="Bold" Margin="0,10,0,0" />
                         <TextBlock Text="{Binding RetrySyncText}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,8,0,0" />
-                    </StackPanel>
+                    </StackPanel></Grid>
                 </Border>
                 <Border Style="{StaticResource PanelBorderStyle}" Padding="20">
-                    <StackPanel>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="50" Height="50" CornerRadius="25" Background="#FFF0EDFF"><Path Data="{StaticResource IconShieldGeometry}" Style="{StaticResource IconPathStyle}" Width="27" Height="27" Stroke="#FF635BCE"/></Border><StackPanel Grid.Column="1">
                         <TextBlock Text="Recovery" Style="{StaticResource SecondaryTextBlockStyle}" />
                         <TextBlock Text="{Binding CheckoutRecoveryText}" FontSize="24" FontWeight="Bold" Margin="0,10,0,0" />
                         <TextBlock Text="{Binding SyncReviewText}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,8,0,0" />
-                    </StackPanel>
+                    </StackPanel></Grid>
                 </Border>
             </UniformGrid>
 
@@ -83,7 +87,7 @@
 
                 <Border Style="{StaticResource PanelBorderStyle}" Padding="24">
                     <StackPanel>
-                        <TextBlock Text="Recent local orders" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,16" />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16"><Path Data="{StaticResource IconReceiptGeometry}" Style="{StaticResource IconPathStyle}" Stroke="#FF1769FF" Margin="0,0,10,0"/><TextBlock Text="Recent local orders" FontSize="18" FontWeight="SemiBold"/></StackPanel>
                         <Grid Background="{StaticResource AppBackgroundBrush}" Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
@@ -124,15 +128,15 @@
 
                 <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="24">
                     <StackPanel>
-                        <TextBlock Text="Needs attention" FontSize="18" FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconWarningGeometry}" Style="{StaticResource IconPathStyle}" Stroke="#FF1769FF" Margin="0,0,10,0"/><TextBlock Text="Needs attention" FontSize="18" FontWeight="SemiBold"/></StackPanel>
                         <Border Background="{Binding AttentionBackground}" CornerRadius="6" Padding="14" Margin="0,20,0,0">
-                            <StackPanel>
-                                <TextBlock Text="{Binding AttentionTitle}" FontWeight="SemiBold" />
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconWarningGeometry}" Style="{StaticResource IconPathStyle}" Width="22" Height="22" Stroke="{StaticResource DangerBrush}" VerticalAlignment="Top"/><StackPanel Grid.Column="1">
+                                <TextBlock Text="{Binding AttentionTitle}" FontWeight="SemiBold" Foreground="{StaticResource DangerBrush}" />
                                 <TextBlock Text="{Binding AttentionDetail}"
                                            Style="{StaticResource SecondaryTextBlockStyle}"
                                            Margin="0,4,0,0"
                                            TextWrapping="Wrap" />
-                            </StackPanel>
+                            </StackPanel></Grid>
                         </Border>
                     </StackPanel>
                 </Border>

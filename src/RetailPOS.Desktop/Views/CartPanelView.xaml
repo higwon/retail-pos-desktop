@@ -30,14 +30,17 @@
                 </Grid.RowDefinitions>
                 <Grid Margin="18,0">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="Current Sale" FontSize="18" FontWeight="SemiBold"/>
+                        <Path Data="{StaticResource IconCartGeometry}" Style="{StaticResource IconPathStyle}" Width="18" Height="18"/>
+                        <TextBlock Text="Current Sale" FontSize="18" FontWeight="SemiBold" Margin="10,0,0,0"/>
                         <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource SecondaryTextBlockStyle}">
                             <Run Text="{Binding ItemCount, Mode=OneWay}"/><Run Text=" items"/>
                         </TextBlock>
                     </StackPanel>
-                    <Button Content="Clear sale" Command="{Binding ClearCommand}"
+                    <Button Command="{Binding ClearCommand}"
                             Style="{StaticResource DangerMutedButtonStyle}" HorizontalAlignment="Right"
-                            VerticalAlignment="Center" MinHeight="34" Padding="12,4"/>
+                            VerticalAlignment="Center" MinHeight="34" Padding="12,4">
+                        <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconTrashGeometry}" Style="{StaticResource IconPathStyle}" Stroke="{StaticResource DangerBrush}" Margin="0,0,8,0"/><TextBlock Text="Clear sale"/></StackPanel>
+                    </Button>
                 </Grid>
 
                 <Grid Grid.Row="1">
@@ -92,9 +95,11 @@
                             <DataGridTemplateColumn Header="" Width="90">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Content="Remove" Command="{Binding DataContext.RemoveProductCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        <Button Command="{Binding DataContext.RemoveProductCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                 CommandParameter="{Binding ProductId}" Style="{StaticResource InlineDangerButtonStyle}"
-                                                HorizontalAlignment="Center" ToolTip="Remove line"/>
+                                                HorizontalAlignment="Center" ToolTip="Remove line">
+                                            <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconTrashGeometry}" Style="{StaticResource IconPathStyle}" Stroke="{StaticResource DangerBrush}" Margin="0,0,6,0"/><TextBlock Text="Remove"/></StackPanel>
+                                        </Button>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -109,8 +114,8 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="2" Style="{StaticResource PanelBorderStyle}" Padding="18,16">
-            <Grid MinHeight="156">
+        <Grid Grid.Row="2" MinHeight="228">
+            <Grid>
                 <!-- Default checkout controls -->
                 <Grid>
                     <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Visible"/><Style.Triggers>
@@ -118,20 +123,22 @@
                         <DataTrigger Binding="{Binding IsCardPaymentVisible}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
                     </Style.Triggers></Style></Grid.Style>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="300"/><ColumnDefinition Width="1"/><ColumnDefinition Width="22"/>
-                        <ColumnDefinition Width="*"/><ColumnDefinition Width="22"/><ColumnDefinition Width="250"/>
+                        <ColumnDefinition Width="1.05*"/><ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="1.25*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="0.8*"/>
                     </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource PanelBorderStyle}" Padding="22,18">
                     <StackPanel>
-                        <TextBlock Text="Order Summary" FontWeight="SemiBold" Margin="0,0,0,14"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,18"><Path Data="{StaticResource IconReceiptGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Order Summary" FontSize="16" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
                         <Grid Margin="0,0,0,8"><TextBlock Text="Subtotal" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding Subtotal, StringFormat={}{0:N0} KRW}" HorizontalAlignment="Right" FontWeight="SemiBold"/></Grid>
                         <Grid Margin="0,0,0,10"><TextBlock Text="Order discount" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding DiscountAmount, StringFormat={}{0:N0} KRW}" HorizontalAlignment="Right" Foreground="{StaticResource SuccessBrush}"/></Grid>
                         <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,10"/>
-                        <Grid><TextBlock Text="Total" FontWeight="SemiBold"/><TextBlock Text="{Binding Total, StringFormat={}{0:N0} KRW}" HorizontalAlignment="Right" FontSize="25" FontWeight="Bold"/></Grid>
+                        <Grid><TextBlock Text="Total" FontWeight="SemiBold"/><TextBlock Text="{Binding Total, StringFormat={}{0:N0} KRW}" HorizontalAlignment="Right" Margin="12,0,4,0" FontSize="27" FontWeight="Bold"/></Grid>
                     </StackPanel>
-                    <Border Grid.Column="1" Background="{StaticResource BorderBrush}"/>
+                    </Border>
 
-                    <StackPanel Grid.Column="3">
-                        <TextBlock Text="Order Discount" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                    <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="22,18">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12"><Path Data="{StaticResource IconTagGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Order Discount" FontSize="16" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
                         <UniformGrid Rows="1" Columns="2" Margin="0,0,0,10">
                             <Button Content="Fixed amount" Command="{Binding SelectFixedDiscountCommand}" MinHeight="30">
                                 <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsFixedDiscountMode}" Value="True"><Setter Property="Background" Value="{StaticResource PrimaryBrush}"/><Setter Property="Foreground" Value="White"/></DataTrigger></Style.Triggers></Style></Button.Style>
@@ -140,7 +147,7 @@
                                 <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsPercentageDiscountMode}" Value="True"><Setter Property="Background" Value="{StaticResource PrimaryBrush}"/><Setter Property="Foreground" Value="White"/></DataTrigger></Style.Triggers></Style></Button.Style>
                             </Button>
                         </UniformGrid>
-                        <Grid Margin="0,0,0,8"><TextBox Text="{Binding DiscountInput, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right" Padding="8,5"/><TextBlock Text="{Binding DiscountUnitLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" Style="{StaticResource SecondaryTextBlockStyle}" IsHitTestVisible="False"/></Grid>
+                        <Grid Margin="0,0,0,8"><TextBox Text="{Binding DiscountInput, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right" Padding="8,5,58,5"/><TextBlock Text="{Binding DiscountUnitLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0" Style="{StaticResource SecondaryTextBlockStyle}" IsHitTestVisible="False"/></Grid>
                         <TextBlock Text="Quick select" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="12" Margin="0,0,0,5"/>
                         <UniformGrid Rows="1" Columns="4" Margin="0,0,0,10" Visibility="{Binding IsFixedDiscountMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Button Content="1,000" Command="{Binding SelectQuickDiscountCommand}" CommandParameter="1000" Style="{StaticResource SecondaryButtonStyle}" Padding="4,2" Margin="0,0,5,0"/>
@@ -160,20 +167,24 @@
                         </Grid>
                         <TextBlock Text="{Binding DiscountErrorMessage}" Foreground="{StaticResource DangerBrush}" FontSize="11" Margin="0,5,0,0"/>
                     </StackPanel>
+                    </Border>
 
-                    <StackPanel Grid.Column="5">
-                        <TextBlock Text="Payment Method" FontWeight="SemiBold" Margin="0,0,0,16"/>
-                        <Button Content="Credit Card" Command="{Binding StartCardPaymentCommand}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="50" Margin="0,0,0,10"/>
-                        <Button Content="Cash" Command="{Binding OpenCashTenderCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" MinHeight="50"/>
+                    <Border Grid.Column="4" Style="{StaticResource PanelBorderStyle}" Padding="22,18">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,18"><Path Data="{StaticResource IconCardGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Payment Method" FontSize="16" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
+                        <Button Command="{Binding StartCardPaymentCommand}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="54" Margin="0,0,0,10"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCardGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,10,0"/><TextBlock Text="Credit Card"/></StackPanel></Button>
+                        <Button Command="{Binding OpenCashTenderCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" MinHeight="54"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCashGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" Margin="0,0,10,0"/><TextBlock Text="Cash"/></StackPanel></Button>
                     </StackPanel>
+                    </Border>
                 </Grid>
 
                 <!-- Card authorization -->
                 <Grid>
                     <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsCardPaymentVisible}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Grid.Style>
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="1"/><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="1.95*"/></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource PanelBorderStyle}" Padding="22,18">
                     <StackPanel>
-                        <TextBlock Text="Payment summary" FontWeight="SemiBold" Margin="0,0,0,14"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16"><Path Data="{StaticResource IconReceiptGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Payment summary" FontSize="16" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
                         <Grid Margin="0,0,0,8"><TextBlock Text="Subtotal" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding CardSubtotal, StringFormat={}{0:N0} KRW}" HorizontalAlignment="Right"/></Grid>
                         <Grid Margin="0,0,0,12"><TextBlock Text="Discount" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding CardDiscountAmount, StringFormat={}{0:N0} KRW}" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right"/></Grid>
                         <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,12"/>
@@ -181,8 +192,9 @@
                         <TextBlock Text="{Binding CardAmountDue, StringFormat={}{0:N0} KRW}" HorizontalAlignment="Right" FontSize="26" FontWeight="Bold" Margin="0,4,0,10"/>
                         <TextBlock Text="Payment method    Credit Card" Style="{StaticResource SecondaryTextBlockStyle}"/>
                     </StackPanel>
-                    <Border Grid.Column="1" Background="{StaticResource BorderBrush}"/>
-                    <Grid Grid.Column="3">
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="22,18">
+                    <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                         <TextBlock Text="Card payment" FontWeight="SemiBold"/>
                         <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="430">
@@ -203,23 +215,30 @@
                             <Button Grid.Column="4" Content="Complete payment" Command="{Binding CompleteCardPaymentCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" MinWidth="140"/>
                         </Grid>
                     </Grid>
+                    </Border>
                 </Grid>
 
                 <!-- Cash tender -->
                 <Grid>
                     <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsCashTenderVisible}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Grid.Style>
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="280"/><ColumnDefinition Width="1"/><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="250"/></Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="1.25*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="0.8*"/></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource PanelBorderStyle}" Padding="22,18">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <StackPanel>
-                        <Grid Margin="0,0,0,14"><TextBlock Text="Cash payment" FontSize="17" FontWeight="SemiBold"/><Button Content="Cancel" Command="{Binding CancelCashTenderCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right" MinHeight="30" Padding="10,2"/></Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16"><Path Data="{StaticResource IconCashGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Cash payment" FontSize="17" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
                         <Grid Margin="0,0,0,10"><TextBlock Text="Amount due" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding Total, StringFormat={}{0:N0} KRW}" HorizontalAlignment="Right" FontSize="18" FontWeight="SemiBold"/></Grid>
                         <Grid Margin="0,0,0,12"><TextBlock Text="Cash received" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding CashReceivedAmount, StringFormat={}{0:N0} KRW}" HorizontalAlignment="Right"/></Grid>
                         <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,12"/>
                         <Grid><TextBlock Text="Change" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding ChangeDue, StringFormat={}{0:N0} KRW}" HorizontalAlignment="Right" Foreground="{StaticResource SuccessBrush}" FontSize="23" FontWeight="Bold"/></Grid>
                     </StackPanel>
-                    <Border Grid.Column="1" Background="{StaticResource BorderBrush}"/>
-                    <StackPanel Grid.Column="3">
-                        <TextBlock Text="Received amount" FontWeight="SemiBold"/>
-                        <Grid Margin="0,8,0,6"><TextBox Text="{Binding CashReceivedInput, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right" FontSize="21" FontWeight="SemiBold" Padding="8,5"/><TextBlock Text="KRW" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" Style="{StaticResource SecondaryTextBlockStyle}" IsHitTestVisible="False"/></Grid>
+                        <Button Grid.Row="1" Content="Back" Command="{Binding CancelCashTenderCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" MinWidth="90"/>
+                    </Grid>
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="22,18">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCashGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Received amount" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
+                        <Grid Margin="0,8,0,6"><TextBox Text="{Binding CashReceivedInput, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right" FontSize="21" FontWeight="SemiBold" Padding="8,5,66,5"/><TextBlock Text="KRW" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0" Style="{StaticResource SecondaryTextBlockStyle}" IsHitTestVisible="False"/></Grid>
                         <TextBlock Text="Enter the received amount" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="11" Margin="0,0,0,14"/>
                         <TextBlock Text="Quick tender" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="12"/>
                         <ItemsControl ItemsSource="{Binding QuickTenderOptions}" Margin="0,7,0,0"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate>
@@ -227,7 +246,9 @@
                         </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                         <TextBlock Text="{Binding CashTenderErrorMessage}" Foreground="{StaticResource DangerBrush}" FontSize="11" TextWrapping="Wrap" MinHeight="16"/>
                     </StackPanel>
-                    <Grid Grid.Column="5"><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    </Border>
+                    <Border Grid.Column="4" Style="{StaticResource PanelBorderStyle}" Padding="10,12">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                         <UniformGrid Rows="4" Columns="3">
                             <Button Content="7" Command="{Binding AppendCashDigitCommand}" CommandParameter="7" Style="{StaticResource TenderKeyButtonStyle}"/><Button Content="8" Command="{Binding AppendCashDigitCommand}" CommandParameter="8" Style="{StaticResource TenderKeyButtonStyle}"/><Button Content="9" Command="{Binding AppendCashDigitCommand}" CommandParameter="9" Style="{StaticResource TenderKeyButtonStyle}"/>
                             <Button Content="4" Command="{Binding AppendCashDigitCommand}" CommandParameter="4" Style="{StaticResource TenderKeyButtonStyle}"/><Button Content="5" Command="{Binding AppendCashDigitCommand}" CommandParameter="5" Style="{StaticResource TenderKeyButtonStyle}"/><Button Content="6" Command="{Binding AppendCashDigitCommand}" CommandParameter="6" Style="{StaticResource TenderKeyButtonStyle}"/>
@@ -239,8 +260,9 @@
                             <Button Grid.Column="2" Content="Complete payment" Command="{Binding CompleteCashPaymentCommand}" Style="{StaticResource PrimaryBlueButtonStyle}"/>
                         </Grid>
                     </Grid>
+                    </Border>
                 </Grid>
             </Grid>
-        </Border>
+        </Grid>
     </Grid>
 </UserControl>
