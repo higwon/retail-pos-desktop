@@ -81,6 +81,32 @@ public sealed class CheckoutPaymentCoordinatorTests
     }
 
     [Fact]
+    public async Task CancellationAfterOrderCompletion_PreservesApprovedCompletion()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var session = SessionWithProduct();
+        var receipts = new StubReceiptService();
+        var display = new CheckoutDisplayState();
+        var coordinator = new CheckoutPaymentCoordinator(
+            session,
+            new StubPaymentStartService(Approved(PaymentMethod.Card)),
+            new RecordingOrderCompletionService(cancellation.Cancel),
+            receipts,
+            new ReceiptPreviewState(),
+            display);
+
+        var execution = await coordinator.ExecuteAsync(
+            PaymentMethod.Card,
+            cancellation.Token);
+
+        Assert.True(execution.Payment.IsApproved);
+        Assert.True(session.Snapshot.IsEmpty);
+        Assert.Equal(CheckoutDisplayPhase.Completed, display.Snapshot.Phase);
+        Assert.NotNull(receipts.GeneratedForOrderId);
+        Assert.False(receipts.ReceivedCancellationToken.CanBeCanceled);
+    }
+
+    [Fact]
     public async Task ConcurrentPayment_IsRejectedBySharedBusyGate()
     {
         var session = SessionWithProduct();
@@ -175,7 +201,8 @@ public sealed class CheckoutPaymentCoordinatorTests
             _completion.TrySetResult(result);
     }
 
-    private sealed class RecordingOrderCompletionService : IOrderCompletionService
+    private sealed class RecordingOrderCompletionService(Action? onCompleted = null)
+        : IOrderCompletionService
     {
         public Guid? CompletedPendingCheckoutId { get; private set; }
 
@@ -184,6 +211,7 @@ public sealed class CheckoutPaymentCoordinatorTests
             CancellationToken cancellationToken = default)
         {
             CompletedPendingCheckoutId = pendingCheckoutId;
+            onCompleted?.Invoke();
             return Task.FromResult(new OrderCompletionResult(Guid.NewGuid(), AlreadyCompleted: false));
         }
     }
@@ -191,11 +219,13 @@ public sealed class CheckoutPaymentCoordinatorTests
     private sealed class StubReceiptService(bool throwOnGenerate = false) : IReceiptService
     {
         public Guid? GeneratedForOrderId { get; private set; }
+        public CancellationToken ReceivedCancellationToken { get; private set; }
 
         public Task<ReceiptPreview> GenerateAsync(
             Guid localOrderId,
             CancellationToken cancellationToken = default)
         {
+            ReceivedCancellationToken = cancellationToken;
             if (throwOnGenerate)
             {
                 throw new InvalidOperationException("Receipt failure.");

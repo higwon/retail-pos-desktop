@@ -59,27 +59,21 @@ public sealed class CheckoutPaymentCoordinator(
                 var completion = await orderCompletionService.CompleteAsync(
                     result.PendingCheckoutId,
                     activeToken);
-                activeToken.ThrowIfCancellationRequested();
+
+                checkoutSession.Clear();
+                displayState.ShowCompleted();
 
                 try
                 {
                     var receipt = await receiptService.GenerateAsync(
                         completion.LocalOrderId,
-                        activeToken);
-                    activeToken.ThrowIfCancellationRequested();
+                        CancellationToken.None);
                     receiptPreviewState.Set(receipt);
-                }
-                catch (OperationCanceledException) when (activeToken.IsCancellationRequested)
-                {
-                    throw;
                 }
                 catch (Exception)
                 {
                     successMessage = "Payment approved. Receipt preview could not be generated automatically.";
                 }
-
-                checkoutSession.Clear();
-                displayState.ShowCompleted();
             }
             else
             {

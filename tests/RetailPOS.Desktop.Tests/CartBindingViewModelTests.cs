@@ -287,6 +287,27 @@ public sealed class CartBindingViewModelTests
     }
 
     [Fact]
+    public async Task CompleteCashPayment_CompletionEventFailureDoesNotBecomePaymentFailure()
+    {
+        var session = new CheckoutSession();
+        session.AddProduct(Product("Water", 1000m));
+        var coordinator = new RecordingPaymentCoordinator(session);
+        var viewModel = new CartPanelViewModel(session, coordinator);
+        viewModel.CashPaymentCompleted += (_, _) =>
+            throw new InvalidOperationException("Receipt window failure.");
+        viewModel.OpenCashTenderCommand.Execute(null);
+        viewModel.CashReceivedInput = "1000";
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            viewModel.CompleteCashPaymentCommand.ExecuteAsync(null));
+
+        Assert.Equal("Cash payment approved.", viewModel.CashPaymentMessage);
+        Assert.Null(viewModel.CashTenderErrorMessage);
+        Assert.False(viewModel.IsPaymentInProgress);
+        Assert.True(session.Snapshot.IsEmpty);
+    }
+
+    [Fact]
     public void Dispose_UnsubscribesFromCheckoutSessionChanges()
     {
         var session = new CheckoutSession();

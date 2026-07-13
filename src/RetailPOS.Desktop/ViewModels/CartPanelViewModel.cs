@@ -466,6 +466,7 @@ public sealed partial class CartPanelViewModel : ObservableObject, IDisposable
         IsPaymentInProgress = true;
         CashPaymentMessage = "Recording cash payment...";
         NotifyCommandStateChanged();
+        var paymentCompleted = false;
 
         try
         {
@@ -480,12 +481,13 @@ public sealed partial class CartPanelViewModel : ObservableObject, IDisposable
             if (execution.Payment.IsApproved)
             {
                 CashPaymentMessage = execution.Message;
-                CashPaymentCompleted?.Invoke(this, EventArgs.Empty);
-                return;
+                paymentCompleted = true;
             }
-
-            CashPaymentMessage = execution.Message;
-            CashTenderErrorMessage = execution.Message;
+            else
+            {
+                CashPaymentMessage = execution.Message;
+                CashTenderErrorMessage = execution.Message;
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -503,6 +505,11 @@ public sealed partial class CartPanelViewModel : ObservableObject, IDisposable
                 IsPaymentInProgress = false;
                 NotifyCommandStateChanged();
             }
+        }
+
+        if (paymentCompleted && !_disposed)
+        {
+            CashPaymentCompleted?.Invoke(this, EventArgs.Empty);
         }
     }
 
