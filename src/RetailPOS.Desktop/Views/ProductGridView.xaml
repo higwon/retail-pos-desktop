@@ -1,151 +1,50 @@
 <UserControl x:Class="RetailPOS.Desktop.Views.ProductGridView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:converters="clr-namespace:RetailPOS.Desktop.Converters">
-    <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        <converters:ProductCategoryImageConverter x:Key="ProductCategoryImageConverter"/>
-    </UserControl.Resources>
-    <Border Style="{StaticResource PanelBorderStyle}" Padding="24">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-
-            <TextBlock Text="Products" Style="{StaticResource TitleTextBlockStyle}" />
-
-            <Grid Grid.Row="1" Margin="0,18,0,12">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBox Text="{Binding BarcodeText, UpdateSourceTrigger=PropertyChanged}"
-                         AutomationProperties.Name="Scan barcode">
-                    <TextBox.InputBindings>
-                        <KeyBinding Key="Enter" Command="{Binding ScanBarcodeCommand}" />
-                    </TextBox.InputBindings>
-                </TextBox>
-                <Button Grid.Column="1"
-                        Content="Scan"
-                        Command="{Binding ScanBarcodeCommand}"
-                        Style="{StaticResource PrimaryBlueButtonStyle}"
-                        MinWidth="88"
-                        Margin="10,0,0,0" />
-                <TextBlock Grid.Row="1"
-                           Grid.ColumnSpan="2"
-                           Text="{Binding BarcodeMessage}"
-                           Foreground="{StaticResource DangerBrush}"
-                           Margin="0,8,0,0"
-                           Visibility="{Binding HasBarcodeMessage, Converter={StaticResource BooleanToVisibilityConverter}}" />
-            </Grid>
-
-            <Grid Grid.Row="2" Margin="0,0,0,22">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                         AutomationProperties.Name="Search products">
-                    <TextBox.InputBindings>
-                        <KeyBinding Key="Enter" Command="{Binding SearchCommand}" />
-                    </TextBox.InputBindings>
-                </TextBox>
-                <Button Grid.Column="1"
-                        Content="Search"
-                        Command="{Binding SearchCommand}"
-                        Style="{StaticResource PrimaryBlueButtonStyle}"
-                        MinWidth="88"
-                        Margin="10,0,0,0" />
-            </Grid>
-
-            <Grid Grid.Row="3">
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled"
-                              CanContentScroll="True"
-                              AutomationProperties.Name="Product results"
-                              Visibility="{Binding HasProducts, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <StackPanel>
-                <TextBlock Text="{Binding ProductResultsText}"
-                           Style="{StaticResource SecondaryTextBlockStyle}"
-                           Margin="0,0,0,10"
-                           AutomationProperties.LiveSetting="Polite"/>
-                <ItemsControl ItemsSource="{Binding Products}"
-                              AutomationProperties.Name="Available products">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <UniformGrid Columns="2" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemContainerStyle>
-                        <Style TargetType="ContentPresenter">
-                            <Setter Property="Margin" Value="0,0,12,12" />
-                        </Style>
-                    </ItemsControl.ItemContainerStyle>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Button Command="{Binding DataContext.AddProductCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                    CommandParameter="{Binding}"
-                                    Style="{StaticResource SecondaryButtonStyle}"
-                                    Padding="0" MinHeight="224"
-                                    HorizontalContentAlignment="Stretch"
-                                    VerticalContentAlignment="Stretch"
-                                    AutomationProperties.Name="{Binding Name, StringFormat=Add {0} to cart}"
-                                    ToolTip="Click or press Enter or Space to add one to cart">
-                                    <Grid>
-                                        <Grid.RowDefinitions><RowDefinition Height="116"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                                        <Border Background="{StaticResource AppBackgroundBrush}" CornerRadius="5,5,0,0" ClipToBounds="True">
-                                            <Image Source="{Binding CategoryName, Converter={StaticResource ProductCategoryImageConverter}}"
-                                                   Stretch="UniformToFill"/>
-                                        </Border>
-                                        <StackPanel Grid.Row="1" Margin="16,13,16,16">
-                                        <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                        <TextBlock Text="{Binding CategoryName}"
-                                                   Style="{StaticResource SecondaryTextBlockStyle}"
-                                                   Margin="0,5,0,0" />
-                                        <TextBlock Text="{Binding UnitPrice, StringFormat={}{0:N0} KRW}"
-                                                   FontSize="18" FontWeight="Bold"
-                                                   Foreground="{StaticResource PrimaryBlueBrush}"
-                                                   Margin="0,10,0,0" />
-                                        </StackPanel>
-                                    </Grid>
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <Button Content="Load more products"
-                        Command="{Binding LoadMoreProductsCommand}"
-                        Style="{StaticResource SecondaryButtonStyle}"
-                        HorizontalAlignment="Stretch"
-                        Margin="0,4,12,12"
-                        Visibility="{Binding HasMoreProducts, Converter={StaticResource BooleanToVisibilityConverter}}"
-                        AutomationProperties.HelpText="Shows the next 50 matching products"/>
-                </StackPanel>
-                </ScrollViewer>
-
-                <TextBlock Text="Loading products..."
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           Style="{StaticResource SecondaryTextBlockStyle}"
-                           Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <TextBlock Text="No products found."
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           Style="{StaticResource SecondaryTextBlockStyle}"
-                           Visibility="{Binding IsEmpty, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <TextBlock Text="{Binding ErrorMessage}"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           Foreground="{StaticResource DangerBrush}"
-                           Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}"
-                           AutomationProperties.LiveSetting="Assertive" />
-            </Grid>
-        </Grid>
-    </Border>
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <UserControl.Resources><BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/></UserControl.Resources>
+ <Grid Background="{StaticResource AppBackgroundBrush}" FocusManager.FocusedElement="{Binding ElementName=SearchInput}">
+  <Grid.RowDefinitions><RowDefinition Height="64"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+  <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="24,0">
+   <Grid>
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Button Content="Back" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,14,0"/><TextBlock Text="Product Search" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/></StackPanel>
+    <TextBlock Text="Select a product to add it to the current sale" Style="{StaticResource SecondaryTextBlockStyle}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+   </Grid>
+  </Border>
+  <Grid Grid.Row="1" Margin="20">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+   <Border Style="{StaticResource PanelBorderStyle}" Padding="16">
+    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+     <TextBlock Text="Categories" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,14"/>
+     <ListBox Grid.Row="1" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" BorderThickness="0" Background="Transparent" AutomationProperties.Name="Product categories">
+      <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="12,10"/><Setter Property="Margin" Value="0,0,0,5"/><Style.Triggers><Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{StaticResource SelectionBrush}"/><Setter Property="Foreground" Value="{StaticResource PrimaryBlueBrush}"/><Setter Property="FontWeight" Value="SemiBold"/></Trigger></Style.Triggers></Style></ListBox.ItemContainerStyle>
+     </ListBox>
+    </Grid>
+   </Border>
+   <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}">
+    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+     <Grid Margin="16"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <TextBox x:Name="SearchInput" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Search by name, SKU, or barcode"><TextBox.InputBindings><KeyBinding Key="Enter" Command="{Binding SearchCommand}"/><KeyBinding Key="Escape" Command="{Binding CancelCommand}"/></TextBox.InputBindings></TextBox>
+      <Button Grid.Column="1" Content="Search" Command="{Binding SearchCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" MinWidth="96" Margin="10,0,0,0"/>
+     </Grid>
+     <TextBlock Grid.Row="1" Text="{Binding ProductResultsText}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="16,0,16,10" AutomationProperties.LiveSetting="Polite"/>
+     <Grid Grid.Row="2">
+      <DataGrid ItemsSource="{Binding Products}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal" RowHeaderWidth="0" RowHeight="52" ColumnHeaderHeight="40" BorderThickness="0,1,0,0" BorderBrush="{StaticResource BorderBrush}" AlternatingRowBackground="{StaticResource AppBackgroundBrush}" AutomationProperties.Name="Product search results">
+       <DataGrid.Columns>
+        <DataGridTextColumn Header="Code" Binding="{Binding Sku}" Width="150"/>
+        <DataGridTextColumn Header="Product" Binding="{Binding Name}" Width="*"/>
+        <DataGridTextColumn Header="Category" Binding="{Binding CategoryName}" Width="170"/>
+        <DataGridTextColumn Header="Price" Binding="{Binding UnitPrice, StringFormat={}{0:N0} KRW}" Width="150"/>
+        <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive, Mode=OneWay}" Width="82"/>
+        <DataGridTemplateColumn Header="" Width="96"><DataGridTemplateColumn.CellTemplate><DataTemplate><Button Content="Select" Command="{Binding DataContext.AddProductCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Style="{StaticResource PrimaryBlueButtonStyle}" MinHeight="32" Padding="10,3" ToolTip="Add product to current sale"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+       </DataGrid.Columns>
+      </DataGrid>
+      <TextBlock Text="Loading products..." HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource SecondaryTextBlockStyle}" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+      <TextBlock Text="No products found." HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource SecondaryTextBlockStyle}" Visibility="{Binding IsEmpty, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+      <TextBlock Text="{Binding ErrorMessage}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}" AutomationProperties.LiveSetting="Assertive"/>
+     </Grid>
+     <Button Grid.Row="3" Content="Load more" Command="{Binding LoadMoreProductsCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right" MinWidth="120" Margin="16,12,16,16" Visibility="{Binding HasMoreProducts, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+    </Grid>
+   </Border>
+  </Grid>
+ </Grid>
 </UserControl>

@@ -4,6 +4,7 @@ using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Products;
 using RetailPOS.Domain.Products;
+using RetailPOS.Desktop.Workflow;
 using System.Collections.ObjectModel;
 
 namespace RetailPOS.Desktop.ViewModels;
@@ -14,6 +15,7 @@ public sealed partial class ProductGridViewModel : ObservableObject
 
     private readonly IProductRepository _productRepository;
     private readonly CheckoutSession _checkoutSession;
+    private readonly CashierWorkflowNavigator? _workflowNavigator;
     private readonly AsyncRelayCommand _searchCommand;
     private readonly AsyncRelayCommand _scanBarcodeCommand;
     private bool _isLoaded;
@@ -21,13 +23,18 @@ public sealed partial class ProductGridViewModel : ObservableObject
     private readonly List<Product> _filteredProducts = [];
     private int _visibleProductCount;
 
-    public ProductGridViewModel(IProductRepository productRepository, CheckoutSession checkoutSession)
+    public ProductGridViewModel(
+        IProductRepository productRepository,
+        CheckoutSession checkoutSession,
+        CashierWorkflowNavigator? workflowNavigator = null)
     {
         _productRepository = productRepository;
         _checkoutSession = checkoutSession;
+        _workflowNavigator = workflowNavigator;
         _searchCommand = new AsyncRelayCommand(SearchAsync);
         _scanBarcodeCommand = new AsyncRelayCommand(ScanBarcodeAsync);
         AddProductCommand = new RelayCommand<Product>(AddProduct);
+        CancelCommand = new RelayCommand(ReturnToRegister);
         LoadMoreProductsCommand = new RelayCommand(LoadMoreProducts, () => HasMoreProducts);
     }
 
@@ -35,6 +42,7 @@ public sealed partial class ProductGridViewModel : ObservableObject
     public ObservableCollection<string> Categories { get; } = [];
     public IAsyncRelayCommand SearchCommand => _searchCommand;
     public IRelayCommand<Product> AddProductCommand { get; }
+    public IRelayCommand CancelCommand { get; }
     public IRelayCommand LoadMoreProductsCommand { get; }
     public IAsyncRelayCommand ScanBarcodeCommand => _scanBarcodeCommand;
 
@@ -83,6 +91,15 @@ public sealed partial class ProductGridViewModel : ObservableObject
 
         SelectedProduct = product;
         _checkoutSession.AddProduct(product);
+        ReturnToRegister();
+    }
+
+    private void ReturnToRegister()
+    {
+        if (_workflowNavigator?.Current == CashierWorkflowScreen.ProductSearch)
+        {
+            _workflowNavigator.GoBack();
+        }
     }
 
     public async Task LoadAsync()

@@ -2,6 +2,7 @@ using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Desktop.ViewModels;
 using RetailPOS.Domain.Products;
+using RetailPOS.Desktop.Workflow;
 using System.Diagnostics;
 
 namespace RetailPOS.Desktop.Tests;
@@ -180,6 +181,72 @@ public sealed class ProductGridViewModelTests
         Assert.DoesNotContain("InvalidOperationException", viewModel.ErrorMessage);
     }
 
+    [Fact]
+    public async Task SelectProduct_FromSearchAddsProductAndReturnsToRegister()
+    {
+        var product = Product("Cola");
+        var session = new CheckoutSession();
+        var navigator = CreateNavigator();
+        navigator.Reset(CashierWorkflowScreen.Register);
+        navigator.Navigate(CashierWorkflowScreen.ProductSearch);
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository { ActiveProducts = [product] },
+            session,
+            navigator);
+        await viewModel.LoadAsync();
+
+        viewModel.AddProductCommand.Execute(product);
+
+        Assert.Equal(product.Id, Assert.Single(session.Snapshot.Lines).ProductId);
+        Assert.Equal(CashierWorkflowScreen.Register, navigator.Current);
+    }
+
+    [Fact]
+    public void CancelSearch_ReturnsWithoutChangingCurrentSale()
+    {
+        var existing = Product("Water");
+        var session = new CheckoutSession();
+        session.AddProduct(existing);
+        var navigator = CreateNavigator();
+        navigator.Reset(CashierWorkflowScreen.Register);
+        navigator.Navigate(CashierWorkflowScreen.ProductSearch);
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository(),
+            session,
+            navigator);
+
+        viewModel.CancelCommand.Execute(null);
+
+        Assert.Equal(existing.Id, Assert.Single(session.Snapshot.Lines).ProductId);
+        Assert.Equal(CashierWorkflowScreen.Register, navigator.Current);
+    }
+
+    [Fact]
+    public async Task ScannerCallbacks_WhileSearchIsVisibleKeepAddingWithoutNavigating()
+    {
+        var scanned = Product("Water", barcode: "known");
+        var session = new CheckoutSession();
+        var navigator = CreateNavigator();
+        navigator.Reset(CashierWorkflowScreen.Register);
+        navigator.Navigate(CashierWorkflowScreen.ProductSearch);
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository { BarcodeProduct = scanned },
+            session,
+            navigator);
+
+        Assert.True(await viewModel.ProcessBarcodeAsync("known"));
+        Assert.True(await viewModel.ProcessBarcodeAsync("known"));
+
+        Assert.Equal(2, Assert.Single(session.Snapshot.Lines).Quantity);
+        Assert.Equal(CashierWorkflowScreen.ProductSearch, navigator.Current);
+    }
+
+    private static CashierWorkflowNavigator CreateNavigator()
+    {
+        var registry = new CashierWorkflowScreenRegistry();
+        registry.Register(Enum.GetValues<CashierWorkflowScreen>());
+        return new CashierWorkflowNavigator(registry);
+    }
     private static Product Product(string name, string? barcode = null, string category = "Beverages") => new(
         Guid.NewGuid(),
         $"SKU-{name}",

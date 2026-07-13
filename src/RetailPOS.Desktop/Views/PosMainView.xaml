@@ -1,59 +1,32 @@
 <UserControl x:Class="RetailPOS.Desktop.Views.PosMainView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid.RowDefinitions><RowDefinition Height="68"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-        <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="28,0">
-            <Grid>
-                <TextBlock Text="Retail POS" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Border Background="{Binding ConnectivityBadgeBackground}" CornerRadius="12" Padding="12,5" Margin="0,0,12,0">
-                        <TextBlock Text="{Binding ConnectivityText}" Foreground="{Binding ConnectivityBadgeForeground}" FontSize="12"/>
-                    </Border>
-                    <TextBlock Text="{Binding DeviceSummaryText}" Style="{StaticResource SecondaryTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,18,0"
-                               MaxWidth="210" TextTrimming="CharacterEllipsis" ToolTip="{Binding DeviceSummaryText}"/>
-                    <Button Content="Customer Display" Style="{StaticResource SecondaryButtonStyle}"
-                            MinHeight="34" Padding="12,4" Margin="0,0,18,0"
-                            Click="OnOpenCustomerDisplay" />
-                    <Button Content="Receipt" Style="{StaticResource SecondaryButtonStyle}"
-                            MinHeight="34" Padding="12,4" Margin="0,0,18,0"
-                            Click="OnOpenReceipt" />
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="{Binding CashierText}" MaxWidth="180" TextTrimming="CharacterEllipsis" ToolTip="{Binding CashierText}" />
-                        <TextBlock Text="{Binding StoreTerminalText}" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="11"
-                                   MaxWidth="180" TextTrimming="CharacterEllipsis" ToolTip="{Binding StoreTerminalText}" />
-                    </StackPanel>
-                </StackPanel>
-            </Grid>
-        </Border>
-        <Grid Grid.Row="1" Margin="24">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="440"/></Grid.ColumnDefinitions>
-            <Border Grid.Column="0" Style="{StaticResource PanelBorderStyle}" Padding="20">
-                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <TextBlock Text="Categories" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,18"/>
-                    <ListBox x:Name="CategoryRegion" Grid.Row="1" ItemsSource="{Binding Categories}"
-                             SelectedItem="{Binding SelectedCategory}" BorderThickness="0" Background="Transparent"
-                             AutomationProperties.Name="Product categories">
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                <Setter Property="Padding" Value="14,11"/>
-                                <Setter Property="Margin" Value="0,0,0,7"/>
-                                <Setter Property="BorderThickness" Value="0"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="{StaticResource SelectionBrush}"/>
-                                        <Setter Property="Foreground" Value="{StaticResource PrimaryBlueBrush}"/>
-                                        <Setter Property="FontWeight" Value="SemiBold"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                    </ListBox>
-                </Grid>
-            </Border>
-            <ContentControl x:Name="ProductRegion" Grid.Column="2" />
-            <ContentControl x:Name="CartRegion" Grid.Column="4" />
-        </Grid>
-    </Grid>
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <Grid Background="{StaticResource AppBackgroundBrush}">
+  <Grid.RowDefinitions><RowDefinition Height="64"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+  <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="24,0">
+   <Grid>
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+     <TextBlock Text="Register" FontSize="20" FontWeight="SemiBold"/>
+     <Border Background="{Binding ConnectivityBadgeBackground}" CornerRadius="12" Padding="10,4" Margin="14,0,0,0"><TextBlock Text="{Binding ConnectivityText}" Foreground="{Binding ConnectivityBadgeForeground}" FontSize="12"/></Border>
+     <TextBlock Text="{Binding DeviceSummaryText}" Style="{StaticResource SecondaryTextBlockStyle}" VerticalAlignment="Center" Margin="14,0,0,0" MaxWidth="210" TextTrimming="CharacterEllipsis" ToolTip="{Binding DeviceSummaryText}"/>
+    </StackPanel>
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+     <Button Content="Customer Display" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,10,0" Click="OnOpenCustomerDisplay"/>
+     <Button Content="Receipt" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,16,0" Click="OnOpenReceipt"/>
+     <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding CashierText}" MaxWidth="180" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding StoreTerminalText}" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="11" MaxWidth="180" TextTrimming="CharacterEllipsis"/></StackPanel>
+    </StackPanel>
+   </Grid>
+  </Border>
+  <Border Grid.Row="1" Margin="20,16,20,0" Style="{StaticResource PanelBorderStyle}" Padding="16">
+   <Grid x:Name="BarcodeRegion" FocusManager.FocusedElement="{Binding ElementName=BarcodeInput}">
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="18"/></Grid.RowDefinitions>
+    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+    <TextBlock Text="Barcode" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,14,0"/>
+    <TextBox x:Name="BarcodeInput" Grid.Column="1" Text="{Binding BarcodeText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Scan or enter barcode"><TextBox.InputBindings><KeyBinding Key="Enter" Command="{Binding ScanBarcodeCommand}"/></TextBox.InputBindings></TextBox>
+    <Button Grid.Column="2" Content="Add" Command="{Binding ScanBarcodeCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" MinWidth="84" Margin="10,0,0,0"/>
+    <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding BarcodeMessage}" Foreground="{StaticResource DangerBrush}" Margin="0,4,0,0" FontSize="12" AutomationProperties.LiveSetting="Assertive"/>
+   </Grid>
+  </Border>
+  <ContentControl x:Name="CartRegion" Grid.Row="2" Margin="20,16,20,20"/>
+ </Grid>
 </UserControl>
