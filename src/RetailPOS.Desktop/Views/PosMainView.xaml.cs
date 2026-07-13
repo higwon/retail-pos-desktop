@@ -13,15 +13,14 @@ public partial class PosMainView : UserControl
     private readonly WorkflowWindowHost<ReceiptDialog> _receiptDialogHost;
     private readonly PosMainViewModel _viewModel;
     private readonly CartPanelView _cartPanel;
-    private readonly BarcodeScannerCoordinator _barcodeScannerCoordinator;
     private bool _isCheckoutSubscribed;
     private bool _isPaymentHostSubscribed;
+    private bool _loadedOnce;
 
     public PosMainView(
         PosMainViewModel viewModel,
-        ProductGridView productGrid,
+        ProductGridViewModel productGrid,
         CartPanelView cartPanel,
-        BarcodeScannerCoordinator barcodeScannerCoordinator,
         ReceiptPreviewState receiptPreviewState,
         CustomerDisplayHost customerDisplayHost,
         WorkflowWindowHost<PaymentDialog> paymentDialogHost,
@@ -35,9 +34,7 @@ public partial class PosMainView : UserControl
         _paymentDialogHost = paymentDialogHost;
         _receiptDialogHost = receiptDialogHost;
         _cartPanel = cartPanel;
-        _barcodeScannerCoordinator = barcodeScannerCoordinator;
-        ProductRegion.Content = productGrid;
-        CategoryRegion.DataContext = productGrid.DataContext;
+        ScannerStatusText.DataContext = productGrid;
         CartRegion.Content = cartPanel;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -47,8 +44,12 @@ public partial class PosMainView : UserControl
     {
         SubscribeCheckout();
         SubscribePaymentHost();
-        _barcodeScannerCoordinator.Start();
+        if (_loadedOnce)
+        {
+            return;
+        }
 
+        _loadedOnce = true;
         await _viewModel.LoadAsync();
     }
 
@@ -79,7 +80,6 @@ public partial class PosMainView : UserControl
 
     private void OnUnloaded(object sender, System.Windows.RoutedEventArgs e)
     {
-        _barcodeScannerCoordinator.Stop();
         if (_isPaymentHostSubscribed)
         {
             _paymentDialogHost.WindowClosed -= OnPaymentWindowClosed;

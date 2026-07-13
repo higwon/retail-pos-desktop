@@ -1,4 +1,6 @@
 using System.Windows.Controls;
+using MediaBrush = System.Windows.Media.Brush;
+using MediaBrushes = System.Windows.Media.Brushes;
 using Microsoft.Extensions.Logging;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Desktop.DeviceSimulation;
@@ -16,21 +18,26 @@ public partial class NavigationHost : UserControl
     private readonly CheckoutRecoveryView _checkoutRecoveryView;
     private readonly DashboardView _dashboardView;
     private readonly StatusView _statusView;
+    private readonly ProductGridView _productSearchView;
+    private readonly BarcodeScannerCoordinator _barcodeScannerCoordinator;
     private readonly DeviceSimulatorWindowHost _deviceSimulatorWindowHost;
     private readonly SessionSignOutCoordinator _signOutCoordinator;
     private readonly CashierWorkflowNavigator _workflowNavigator;
     private readonly IReadOnlyDictionary<CashierWorkflowScreen, UserControl> _workflowViews;
+    private readonly IReadOnlyDictionary<CashierWorkflowScreen, Button> _navigationButtons;
     private bool _recoveryCheckedAfterSignIn;
     private bool _isLoginSubscribed;
     private bool _isWorkflowSubscribed;
 
     public NavigationHost(LoginView loginView, PosMainView posMainView,
+        ProductGridView productSearchView,
         CheckoutRecoveryView checkoutRecoveryView, DashboardView dashboardView, StatusView statusView,
         ICheckoutRecoveryService checkoutRecoveryService,
         DeviceSimulatorWindowHost deviceSimulatorWindowHost,
         SessionSignOutCoordinator signOutCoordinator,
         CashierWorkflowNavigator workflowNavigator,
         CashierWorkflowScreenRegistry workflowScreenRegistry,
+        BarcodeScannerCoordinator barcodeScannerCoordinator,
         ILogger<NavigationHost> logger)
     {
         InitializeComponent();
@@ -41,6 +48,8 @@ public partial class NavigationHost : UserControl
         _checkoutRecoveryView = checkoutRecoveryView;
         _dashboardView = dashboardView;
         _statusView = statusView;
+        _productSearchView = productSearchView;
+        _barcodeScannerCoordinator = barcodeScannerCoordinator;
         _deviceSimulatorWindowHost = deviceSimulatorWindowHost;
         _signOutCoordinator = signOutCoordinator;
         _workflowNavigator = workflowNavigator;
@@ -48,9 +57,18 @@ public partial class NavigationHost : UserControl
         {
             [CashierWorkflowScreen.Login] = _loginView,
             [CashierWorkflowScreen.Register] = _posMainView,
+            [CashierWorkflowScreen.ProductSearch] = _productSearchView,
             [CashierWorkflowScreen.Recovery] = _checkoutRecoveryView,
             [CashierWorkflowScreen.Dashboard] = _dashboardView,
             [CashierWorkflowScreen.Status] = _statusView
+        };
+        _navigationButtons = new Dictionary<CashierWorkflowScreen, Button>
+        {
+            [CashierWorkflowScreen.Register] = RegisterNavigationButton,
+            [CashierWorkflowScreen.ProductSearch] = ProductSearchNavigationButton,
+            [CashierWorkflowScreen.Recovery] = RecoveryNavigationButton,
+            [CashierWorkflowScreen.Dashboard] = DashboardNavigationButton,
+            [CashierWorkflowScreen.Status] = StatusNavigationButton
         };
         workflowScreenRegistry.Register(_workflowViews.Keys);
         DeviceSimulatorButton.Visibility = deviceSimulatorWindowHost.IsEnabled
@@ -103,6 +121,7 @@ public partial class NavigationHost : UserControl
 
     private void OnUnloaded(object sender, System.Windows.RoutedEventArgs e)
     {
+        _barcodeScannerCoordinator.Stop();
         if (_isLoginSubscribed)
         {
             _loginView.ContinueRequested -= ShowPosMain;
@@ -119,8 +138,8 @@ public partial class NavigationHost : UserControl
     private async void ShowPosMain(object? sender, System.Windows.RoutedEventArgs e)
     {
         DemoNavigation.Visibility = System.Windows.Visibility.Visible;
-        Grid.SetRow(ContentRoot, 1);
-        Grid.SetRowSpan(ContentRoot, 1);
+        Grid.SetColumn(ContentRoot, 0);
+        Grid.SetColumnSpan(ContentRoot, 1);
         _workflowNavigator.Reset(CashierWorkflowScreen.Register);
         await ShowRecoveryAfterSignInAsync();
     }
@@ -152,6 +171,8 @@ public partial class NavigationHost : UserControl
 
     private void ShowScreen(CashierWorkflowScreen screen)
     {
+        UpdateScannerLifecycle(screen);
+        UpdateNavigationSelection(screen);
         if (!_workflowViews.TryGetValue(screen, out var view))
         {
             throw new InvalidOperationException(
@@ -162,8 +183,50 @@ public partial class NavigationHost : UserControl
         ContentRoot.Children.Add(view);
     }
 
+    private void UpdateScannerLifecycle(CashierWorkflowScreen screen)
+    {
+        if (screen is CashierWorkflowScreen.Register or CashierWorkflowScreen.ProductSearch)
+        {
+            _barcodeScannerCoordinator.Start();
+            return;
+        }
+
+        _barcodeScannerCoordinator.Stop();
+    }
+
+    private void UpdateNavigationSelection(CashierWorkflowScreen screen)
+    {
+        foreach (var button in _navigationButtons.Values)
+        {
+            button.Background = MediaBrushes.Transparent;
+            button.Foreground = MediaBrushes.White;
+            button.BorderBrush = (MediaBrush)FindResource("BorderBrush");
+        }
+
+        if (_navigationButtons.TryGetValue(screen, out var selected))
+        {
+            selected.Background = (MediaBrush)FindResource("PrimaryBlueBrush");
+            selected.Foreground = MediaBrushes.White;
+            selected.BorderBrush = (MediaBrush)FindResource("PrimaryBlueBrush");
+        }
+    }
+
     private void OnShowRegister(object sender, System.Windows.RoutedEventArgs e) =>
         _workflowNavigator.Reset(CashierWorkflowScreen.Register);
+    private void OnShowProductSearch(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (_workflowNavigator.Current == CashierWorkflowScreen.ProductSearch)
+        {
+            return;
+        }
+
+        if (_workflowNavigator.Current != CashierWorkflowScreen.Register)
+        {
+            _workflowNavigator.Reset(CashierWorkflowScreen.Register);
+        }
+
+        _workflowNavigator.Navigate(CashierWorkflowScreen.ProductSearch);
+    }
     private void OnShowRecovery(object sender, System.Windows.RoutedEventArgs e) =>
         _workflowNavigator.Reset(CashierWorkflowScreen.Recovery);
     private void OnShowDashboard(object sender, System.Windows.RoutedEventArgs e) =>
@@ -178,7 +241,7 @@ public partial class NavigationHost : UserControl
         _signOutCoordinator.SignOut();
         _recoveryCheckedAfterSignIn = false;
         DemoNavigation.Visibility = System.Windows.Visibility.Collapsed;
-        Grid.SetRow(ContentRoot, 0);
-        Grid.SetRowSpan(ContentRoot, 2);
+        Grid.SetColumn(ContentRoot, 0);
+        Grid.SetColumnSpan(ContentRoot, 2);
     }
 }

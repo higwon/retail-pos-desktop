@@ -15,7 +15,7 @@
     <Color x:Key="ColorBrandPanel">#FF1F2937</Color>
     <Color x:Key="ColorPrimaryBlue">#FF2563EB</Color>
     <Color x:Key="ColorPrimaryBlueHover">#FF1D4ED8</Color>
-    <Color x:Key="ColorSelection">#FFEEF2FF</Color>
+    <Color x:Key="ColorSelection">#FFEAF2F0</Color>
     <Color x:Key="ColorDangerMuted">#FFFEE2E2</Color>
     <Color x:Key="ColorWarningMuted">#FFFFF4E5</Color>
     <Color x:Key="ColorSuccessMuted">#FFECFDF3</Color>

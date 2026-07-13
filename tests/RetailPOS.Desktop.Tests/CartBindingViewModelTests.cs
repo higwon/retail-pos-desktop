@@ -16,8 +16,9 @@ public sealed class CartBindingViewModelTests
         var cartViewModel = new CartPanelViewModel(session);
         await productViewModel.LoadAsync();
 
-        productViewModel.AddProductCommand.Execute(product);
-        productViewModel.AddProductCommand.Execute(product);
+        productViewModel.SelectedProduct = product;
+        productViewModel.AddSelectedProductCommand.Execute(null);
+        productViewModel.AddSelectedProductCommand.Execute(null);
 
         var line = Assert.Single(cartViewModel.Lines);
         Assert.Equal(2, line.Quantity);

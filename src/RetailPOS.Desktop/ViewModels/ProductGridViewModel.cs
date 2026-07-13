@@ -4,6 +4,7 @@ using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Products;
 using RetailPOS.Domain.Products;
+using RetailPOS.Desktop.Workflow;
 using System.Collections.ObjectModel;
 
 namespace RetailPOS.Desktop.ViewModels;
@@ -11,32 +12,41 @@ namespace RetailPOS.Desktop.ViewModels;
 public sealed partial class ProductGridViewModel : ObservableObject
 {
     private const int ProductPageSize = 50;
+    private const int MaxSelectedQuantity = 99;
 
     private readonly IProductRepository _productRepository;
     private readonly CheckoutSession _checkoutSession;
+    private readonly CashierWorkflowNavigator? _workflowNavigator;
     private readonly AsyncRelayCommand _searchCommand;
-    private readonly AsyncRelayCommand _scanBarcodeCommand;
     private bool _isLoaded;
     private readonly List<Product> _allProducts = [];
     private readonly List<Product> _filteredProducts = [];
     private int _visibleProductCount;
 
-    public ProductGridViewModel(IProductRepository productRepository, CheckoutSession checkoutSession)
+    public ProductGridViewModel(
+        IProductRepository productRepository,
+        CheckoutSession checkoutSession,
+        CashierWorkflowNavigator? workflowNavigator = null)
     {
         _productRepository = productRepository;
         _checkoutSession = checkoutSession;
+        _workflowNavigator = workflowNavigator;
         _searchCommand = new AsyncRelayCommand(SearchAsync);
-        _scanBarcodeCommand = new AsyncRelayCommand(ScanBarcodeAsync);
-        AddProductCommand = new RelayCommand<Product>(AddProduct);
+        AddSelectedProductCommand = new RelayCommand(AddSelectedProduct, CanAddSelectedProduct);
+        IncreaseSelectedQuantityCommand = new RelayCommand(IncreaseSelectedQuantity, CanIncreaseSelectedQuantity);
+        DecreaseSelectedQuantityCommand = new RelayCommand(DecreaseSelectedQuantity, CanDecreaseSelectedQuantity);
+        CancelCommand = new RelayCommand(ReturnToRegister);
         LoadMoreProductsCommand = new RelayCommand(LoadMoreProducts, () => HasMoreProducts);
     }
 
     public ObservableCollection<Product> Products { get; } = [];
     public ObservableCollection<string> Categories { get; } = [];
     public IAsyncRelayCommand SearchCommand => _searchCommand;
-    public IRelayCommand<Product> AddProductCommand { get; }
+    public IRelayCommand AddSelectedProductCommand { get; }
+    public IRelayCommand IncreaseSelectedQuantityCommand { get; }
+    public IRelayCommand DecreaseSelectedQuantityCommand { get; }
+    public IRelayCommand CancelCommand { get; }
     public IRelayCommand LoadMoreProductsCommand { get; }
-    public IAsyncRelayCommand ScanBarcodeCommand => _scanBarcodeCommand;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasProducts))]
@@ -51,21 +61,35 @@ public sealed partial class ProductGridViewModel : ObservableObject
     private string _searchText = string.Empty;
 
     [ObservableProperty]
-    private string _barcodeText = string.Empty;
-
-    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasBarcodeMessage))]
     private string? _barcodeMessage;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSelectedProduct))]
     private Product? _selectedProduct;
+
+    [ObservableProperty]
+    private int _selectedQuantity = 1;
 
     [ObservableProperty]
     private string _selectedCategory = ProductCatalogCategories.All;
 
-    partial void OnSelectedCategoryChanged(string value) => ApplyFilters();
+    partial void OnSelectedCategoryChanged(string value)
+    {
+        SelectedProduct = null;
+        ApplyFilters();
+    }
+
+    partial void OnSelectedProductChanged(Product? value)
+    {
+        SelectedQuantity = 1;
+        NotifySelectionCommandState();
+    }
+
+    partial void OnSelectedQuantityChanged(int value) => NotifySelectionCommandState();
 
     public bool HasProducts => !IsLoading && Products.Count > 0;
+    public bool HasSelectedProduct => SelectedProduct is not null;
     public bool IsEmpty => !IsLoading && !HasError && Products.Count == 0;
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
     public bool HasBarcodeMessage => !string.IsNullOrEmpty(BarcodeMessage);
@@ -74,15 +98,55 @@ public sealed partial class ProductGridViewModel : ObservableObject
         ? "No products"
         : $"Showing {Products.Count:N0} of {_filteredProducts.Count:N0} products";
 
-    private void AddProduct(Product? product)
+    private void AddSelectedProduct()
     {
-        if (product is null)
+        if (SelectedProduct is null)
         {
             return;
         }
 
-        SelectedProduct = product;
-        _checkoutSession.AddProduct(product);
+        _checkoutSession.AddProduct(SelectedProduct, SelectedQuantity);
+
+        ReturnToRegister();
+    }
+
+    private bool CanAddSelectedProduct() => SelectedProduct is not null;
+
+    private void IncreaseSelectedQuantity()
+    {
+        if (SelectedQuantity < MaxSelectedQuantity)
+        {
+            SelectedQuantity++;
+        }
+    }
+
+    private bool CanIncreaseSelectedQuantity() =>
+        SelectedProduct is not null && SelectedQuantity < MaxSelectedQuantity;
+
+    private void DecreaseSelectedQuantity()
+    {
+        if (SelectedQuantity > 1)
+        {
+            SelectedQuantity--;
+        }
+    }
+
+    private bool CanDecreaseSelectedQuantity() =>
+        SelectedProduct is not null && SelectedQuantity > 1;
+
+    private void NotifySelectionCommandState()
+    {
+        AddSelectedProductCommand.NotifyCanExecuteChanged();
+        IncreaseSelectedQuantityCommand.NotifyCanExecuteChanged();
+        DecreaseSelectedQuantityCommand.NotifyCanExecuteChanged();
+    }
+
+    private void ReturnToRegister()
+    {
+        if (_workflowNavigator?.Current == CashierWorkflowScreen.ProductSearch)
+        {
+            _workflowNavigator.GoBack();
+        }
     }
 
     public async Task LoadAsync()
@@ -164,21 +228,6 @@ public sealed partial class ProductGridViewModel : ObservableObject
         OnPropertyChanged(nameof(HasMoreProducts));
         OnPropertyChanged(nameof(ProductResultsText));
         LoadMoreProductsCommand.NotifyCanExecuteChanged();
-    }
-
-    private async Task ScanBarcodeAsync(CancellationToken cancellationToken)
-    {
-        var barcode = BarcodeText.Trim();
-        if (string.IsNullOrEmpty(barcode))
-        {
-            return;
-        }
-
-        var found = await ProcessBarcodeAsync(barcode, cancellationToken);
-        if (found)
-        {
-            BarcodeText = string.Empty;
-        }
     }
 
     public async Task<bool> ProcessBarcodeAsync(

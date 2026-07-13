@@ -150,4 +150,7 @@ public sealed record CartLineViewModel(
     string ProductName,
     decimal UnitPrice,
     int Quantity,
-    decimal LineTotal);
+    decimal LineTotal)
+{
+    public string DiscountText => "-";
+}

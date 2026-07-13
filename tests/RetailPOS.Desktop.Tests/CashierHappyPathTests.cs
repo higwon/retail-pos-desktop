@@ -52,15 +52,13 @@ public sealed class CashierHappyPathTests
         var checkoutSession = new CheckoutSession();
         var productGrid = new ProductGridViewModel(
             services.GetRequiredService<IProductRepository>(),
-            checkoutSession)
-        {
-            BarcodeText = "8801000000011"
-        };
+            checkoutSession);
 
-        await productGrid.ScanBarcodeCommand.ExecuteAsync(null);
+        await productGrid.ProcessBarcodeAsync("8801000000011");
         productGrid.SearchText = "Sunscreen";
         await productGrid.SearchCommand.ExecuteAsync(null);
-        productGrid.AddProductCommand.Execute(Assert.Single(productGrid.Products));
+        productGrid.SelectedProduct = Assert.Single(productGrid.Products);
+        productGrid.AddSelectedProductCommand.Execute(null);
 
         Assert.Equal(2, checkoutSession.Snapshot.ItemCount);
         Assert.Equal(30000m, checkoutSession.Snapshot.Subtotal);

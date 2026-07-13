@@ -2,6 +2,7 @@ using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Desktop.ViewModels;
 using RetailPOS.Domain.Products;
+using RetailPOS.Desktop.Workflow;
 using System.Diagnostics;
 
 namespace RetailPOS.Desktop.Tests;
@@ -40,6 +41,24 @@ public sealed class ProductGridViewModelTests
     }
 
     [Fact]
+    public async Task SearchCommand_ByBarcodeFindsMatchingProduct()
+    {
+        var expected = Product("Cola", barcode: "8801000000011");
+        var repository = new StubProductRepository
+        {
+            ActiveProducts = [Product("Water", barcode: "8801000000028"), expected]
+        };
+        var viewModel = new ProductGridViewModel(repository, new CheckoutSession())
+        {
+            SearchText = "8801000000011"
+        };
+
+        await viewModel.SearchCommand.ExecuteAsync(null);
+
+        Assert.Equal(expected.Id, Assert.Single(viewModel.Products).Id);
+    }
+
+    [Fact]
     public async Task CategoryAndSearch_ComposeFromSharedCategorySource()
     {
         var cola = Product("Cola", category: "Drinks");
@@ -63,7 +82,7 @@ public sealed class ProductGridViewModelTests
     }
 
     [Fact]
-    public async Task ProductTileCommand_RepeatedActivationAddsExactlyOneUnitEachTime()
+    public async Task AddToCartCommand_RepeatedActivationAddsExactlyOneUnitEachTime()
     {
         var product = Product("Cola");
         var session = new CheckoutSession();
@@ -71,9 +90,10 @@ public sealed class ProductGridViewModelTests
             new StubProductRepository { ActiveProducts = [product] }, session);
         await viewModel.LoadAsync();
 
-        viewModel.AddProductCommand.Execute(product);
-        viewModel.AddProductCommand.Execute(product);
-        viewModel.AddProductCommand.Execute(product);
+        viewModel.SelectedProduct = product;
+        viewModel.AddSelectedProductCommand.Execute(null);
+        viewModel.AddSelectedProductCommand.Execute(null);
+        viewModel.AddSelectedProductCommand.Execute(null);
 
         Assert.Equal(3, Assert.Single(session.Snapshot.Lines).Quantity);
     }
@@ -111,57 +131,17 @@ public sealed class ProductGridViewModelTests
     }
 
     [Fact]
-    public async Task ScanBarcodeCommand_WhenBarcodeIsKnown_AddsProductToCart()
-    {
-        var expected = Product("Cola", barcode: "8801000000011");
-        var session = new CheckoutSession();
-        var repository = new StubProductRepository { BarcodeProduct = expected };
-        var viewModel = new ProductGridViewModel(repository, session) { BarcodeText = "  8801000000011  " };
-
-        await viewModel.ScanBarcodeCommand.ExecuteAsync(null);
-
-        var line = Assert.Single(session.Snapshot.Lines);
-        Assert.Equal(expected.Id, line.ProductId);
-        Assert.Equal("8801000000011", repository.LastBarcode);
-        Assert.Same(expected, viewModel.SelectedProduct);
-        Assert.Equal(string.Empty, viewModel.BarcodeText);
-        Assert.False(viewModel.HasBarcodeMessage);
-    }
-
-    [Fact]
-    public async Task ScanBarcodeCommand_WhenBarcodeIsUnknown_ShowsSafeMessageWithoutChangingCart()
-    {
-        var existing = Product("Water");
-        var session = new CheckoutSession();
-        session.AddProduct(existing);
-        var repository = new StubProductRepository();
-        var viewModel = new ProductGridViewModel(repository, session) { BarcodeText = "  missing-code  " };
-
-        await viewModel.ScanBarcodeCommand.ExecuteAsync(null);
-
-        var line = Assert.Single(session.Snapshot.Lines);
-        Assert.Equal(existing.Id, line.ProductId);
-        Assert.Equal("missing-code", repository.LastBarcode);
-        Assert.True(viewModel.HasBarcodeMessage);
-        Assert.DoesNotContain("Exception", viewModel.BarcodeMessage);
-    }
-
-    [Fact]
-    public async Task ProcessBarcodeAsync_ForScannerDoesNotMutateManualBarcodeText()
+    public async Task ProcessBarcodeAsync_ForScannerAddsProduct()
     {
         var expected = Product("Cola", barcode: "known");
         var session = new CheckoutSession();
         var viewModel = new ProductGridViewModel(
             new StubProductRepository { BarcodeProduct = expected },
-            session)
-        {
-            BarcodeText = "manual-fallback"
-        };
+            session);
 
         var found = await viewModel.ProcessBarcodeAsync(" known ");
 
         Assert.True(found);
-        Assert.Equal("manual-fallback", viewModel.BarcodeText);
         Assert.Single(session.Snapshot.Lines);
     }
 
@@ -178,6 +158,115 @@ public sealed class ProductGridViewModelTests
         Assert.False(viewModel.IsLoading);
         Assert.Empty(viewModel.Products);
         Assert.DoesNotContain("InvalidOperationException", viewModel.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task SelectProduct_FromSearchOnlyUpdatesSelection()
+    {
+        var product = Product("Cola");
+        var session = new CheckoutSession();
+        var navigator = CreateNavigator();
+        navigator.Reset(CashierWorkflowScreen.Register);
+        navigator.Navigate(CashierWorkflowScreen.ProductSearch);
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository { ActiveProducts = [product] },
+            session,
+            navigator);
+        await viewModel.LoadAsync();
+
+        viewModel.SelectedProduct = Assert.Single(viewModel.Products);
+
+        Assert.True(session.Snapshot.IsEmpty);
+        Assert.Equal(product.Id, viewModel.SelectedProduct.Id);
+        Assert.Equal(1, viewModel.SelectedQuantity);
+        Assert.Equal(CashierWorkflowScreen.ProductSearch, navigator.Current);
+    }
+
+    [Fact]
+    public async Task AddSelectedProduct_AddsChosenQuantityAndReturnsToRegister()
+    {
+        var product = Product("Cola");
+        var session = new CheckoutSession();
+        var navigator = CreateNavigator();
+        navigator.Reset(CashierWorkflowScreen.Register);
+        navigator.Navigate(CashierWorkflowScreen.ProductSearch);
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository { ActiveProducts = [product] },
+            session,
+            navigator);
+        await viewModel.LoadAsync();
+        viewModel.SelectedProduct = Assert.Single(viewModel.Products);
+        viewModel.IncreaseSelectedQuantityCommand.Execute(null);
+        viewModel.IncreaseSelectedQuantityCommand.Execute(null);
+
+        viewModel.AddSelectedProductCommand.Execute(null);
+
+        Assert.Equal(3, Assert.Single(session.Snapshot.Lines).Quantity);
+        Assert.Equal(CashierWorkflowScreen.Register, navigator.Current);
+    }
+
+    [Fact]
+    public void SelectedQuantity_StaysWithinSupportedRange()
+    {
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository(),
+            new CheckoutSession());
+        viewModel.SelectedProduct = Product("Cola");
+
+        viewModel.DecreaseSelectedQuantityCommand.Execute(null);
+        for (var attempt = 0; attempt < 120; attempt++)
+        {
+            viewModel.IncreaseSelectedQuantityCommand.Execute(null);
+        }
+
+        Assert.Equal(99, viewModel.SelectedQuantity);
+    }
+
+    [Fact]
+    public void CancelSearch_ReturnsWithoutChangingCurrentSale()
+    {
+        var existing = Product("Water");
+        var session = new CheckoutSession();
+        session.AddProduct(existing);
+        var navigator = CreateNavigator();
+        navigator.Reset(CashierWorkflowScreen.Register);
+        navigator.Navigate(CashierWorkflowScreen.ProductSearch);
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository(),
+            session,
+            navigator);
+
+        viewModel.CancelCommand.Execute(null);
+
+        Assert.Equal(existing.Id, Assert.Single(session.Snapshot.Lines).ProductId);
+        Assert.Equal(CashierWorkflowScreen.Register, navigator.Current);
+    }
+
+    [Fact]
+    public async Task ScannerCallbacks_WhileSearchIsVisibleKeepAddingWithoutNavigating()
+    {
+        var scanned = Product("Water", barcode: "known");
+        var session = new CheckoutSession();
+        var navigator = CreateNavigator();
+        navigator.Reset(CashierWorkflowScreen.Register);
+        navigator.Navigate(CashierWorkflowScreen.ProductSearch);
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository { BarcodeProduct = scanned },
+            session,
+            navigator);
+
+        Assert.True(await viewModel.ProcessBarcodeAsync("known"));
+        Assert.True(await viewModel.ProcessBarcodeAsync("known"));
+
+        Assert.Equal(2, Assert.Single(session.Snapshot.Lines).Quantity);
+        Assert.Equal(CashierWorkflowScreen.ProductSearch, navigator.Current);
+    }
+
+    private static CashierWorkflowNavigator CreateNavigator()
+    {
+        var registry = new CashierWorkflowScreenRegistry();
+        registry.Register(Enum.GetValues<CashierWorkflowScreen>());
+        return new CashierWorkflowNavigator(registry);
     }
 
     private static Product Product(string name, string? barcode = null, string category = "Beverages") => new(
