@@ -32,7 +32,8 @@ public sealed class SessionSignOutCoordinator(
     ISessionWorkflowLifecycle workflowLifecycle,
     CheckoutSession checkoutSession,
     ReceiptPreviewState receiptPreviewState,
-    ICurrentSessionContext sessionContext)
+    ICurrentSessionContext sessionContext,
+    CashierWorkflowNavigator workflowNavigator)
 {
     public void SignOut()
     {
@@ -43,5 +44,6 @@ public sealed class SessionSignOutCoordinator(
         workflowLifecycle.StopScanner();
         checkoutSession.Clear();
         sessionContext.Clear();
+        workflowNavigator.Reset(CashierWorkflowScreen.Login);
     }
 }

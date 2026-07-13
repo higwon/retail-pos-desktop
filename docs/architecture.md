@@ -73,6 +73,26 @@ Executable projects own DI registration. Infrastructure must not own application
 - Keep message payloads small and application-safe.
 - Do not use messenger messages to hide core application flow. Important use cases still belong in Application services.
 
+## Desktop Workflow Navigation
+
+Cashier workflow navigation is a Desktop-owned, typed state transition. The scoped
+`CashierWorkflowNavigator` owns the current screen and back stack; `NavigationHost`
+maps supported screen states to WPF views. ViewModels do not reference views, windows,
+or WPF controls to request navigation. The WPF bridge marshals background notifications
+to its dispatcher and applies the navigator's latest state so an older callback cannot
+overwrite a newer screen.
+
+The screen contract includes Login, Register, Product Search, Card Payment, Cash
+Payment, Receipt History, Receipt Detail, Recovery, Dashboard, and Status. Root
+navigation resets history only to an approved root screen. Nested workflows use push,
+replace, and back transitions so cancel and completion behavior remain explicit.
+
+POS-901 introduces this navigation foundation while retaining the existing Payment and
+Receipt windows during migration. Later EPIC-10 tasks add in-window views before the
+legacy workflow windows and hosts are removed. Device Simulator remains a separate
+modeless developer utility, and Customer Display remains a dedicated device-output
+window rather than a cashier workflow screen.
+
 ## Error Handling
 
 - Domain errors should be explicit domain validations or exceptions.

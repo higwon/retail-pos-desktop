@@ -51,11 +51,14 @@ public sealed class SessionSignOutCoordinatorTests
             scannerCoordinator,
             new SessionWorkflowWindows(paymentHost, receiptHost),
             displayHost);
+        var navigator = new CashierWorkflowNavigator();
+        navigator.Reset(CashierWorkflowScreen.Register);
         var coordinator = new SessionSignOutCoordinator(
             workflow,
             checkout,
             receiptState,
-            session);
+            session,
+            navigator);
 
         coordinator.SignOut();
 
@@ -68,6 +71,8 @@ public sealed class SessionSignOutCoordinatorTests
         Assert.True(checkout.Snapshot.IsEmpty);
         Assert.False(receiptState.HasReceipt);
         Assert.False(session.IsSignedIn);
+        Assert.Equal(CashierWorkflowScreen.Login, navigator.Current);
+        Assert.False(navigator.CanGoBack);
 
         await scanner.EmitAsync(product.Barcode);
         await Task.Delay(50);
@@ -91,11 +96,14 @@ public sealed class SessionSignOutCoordinatorTests
         var session = new CurrentSessionContext();
         session.SignIn(Cashier("100001", "First Cashier"));
         var lifecycle = new OrderingLifecycle(checkout, receiptState, session);
+        var navigator = new CashierWorkflowNavigator();
+        navigator.Reset(CashierWorkflowScreen.Register);
         var coordinator = new SessionSignOutCoordinator(
             lifecycle,
             checkout,
             receiptState,
-            session);
+            session,
+            navigator);
 
         coordinator.SignOut();
 
@@ -107,6 +115,7 @@ public sealed class SessionSignOutCoordinatorTests
         Assert.All(lifecycle.SessionWasPresent, Assert.True);
         Assert.True(checkout.Snapshot.IsEmpty);
         Assert.False(session.IsSignedIn);
+        Assert.Equal(CashierWorkflowScreen.Login, navigator.Current);
     }
 
     private static Product Product() => new(
