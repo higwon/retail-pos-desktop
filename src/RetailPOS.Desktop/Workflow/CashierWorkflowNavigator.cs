@@ -5,8 +5,6 @@ public enum CashierWorkflowScreen
     Login,
     Register,
     ProductSearch,
-    CardPayment,
-    CashPayment,
     ReceiptHistory,
     ReceiptDetail,
     Recovery,
@@ -226,20 +224,11 @@ public sealed class CashierWorkflowNavigator(
         CashierWorkflowScreen.Login => destination == CashierWorkflowScreen.Register,
         CashierWorkflowScreen.Register => destination is
             CashierWorkflowScreen.ProductSearch or
-            CashierWorkflowScreen.CardPayment or
-            CashierWorkflowScreen.CashPayment or
             CashierWorkflowScreen.ReceiptHistory or
             CashierWorkflowScreen.Recovery or
             CashierWorkflowScreen.Dashboard or
             CashierWorkflowScreen.Status,
         CashierWorkflowScreen.ProductSearch => destination == CashierWorkflowScreen.Register,
-        CashierWorkflowScreen.CardPayment => destination is
-            CashierWorkflowScreen.Register or
-            CashierWorkflowScreen.ReceiptDetail or
-            CashierWorkflowScreen.Recovery,
-        CashierWorkflowScreen.CashPayment => destination is
-            CashierWorkflowScreen.Register or
-            CashierWorkflowScreen.ReceiptDetail,
         CashierWorkflowScreen.ReceiptHistory => destination is
             CashierWorkflowScreen.Register or
             CashierWorkflowScreen.ReceiptDetail,

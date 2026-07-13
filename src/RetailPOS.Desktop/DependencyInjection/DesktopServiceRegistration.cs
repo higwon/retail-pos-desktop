@@ -63,12 +63,12 @@ public static class DesktopServiceRegistration
         services.AddScoped<IOrderCompletionService, OrderCompletionService>();
         services.AddScoped<ICheckoutRecoveryService, CheckoutRecoveryService>();
         services.AddScoped<IReceiptService, ReceiptService>();
+        services.AddScoped<ICheckoutPaymentCoordinator, CheckoutPaymentCoordinator>();
         services.AddTransient<LoginView>();
         services.AddTransient<PosMainView>();
         services.AddTransient<ProductGridView>();
         services.AddTransient<CartPanelView>();
         services.AddTransient<CustomerDisplayWindow>();
-        services.AddTransient<PaymentDialog>();
         services.AddTransient<ReceiptDialog>();
         services.AddTransient<DeviceSimulatorWindow>();
         services.AddTransient<CheckoutRecoveryView>();
@@ -79,7 +79,6 @@ public static class DesktopServiceRegistration
         services.AddScoped<ProductGridViewModel>();
         services.AddTransient<CartPanelViewModel>();
         services.AddTransient<CustomerDisplayViewModel>();
-        services.AddTransient<PaymentDialogViewModel>();
         services.AddTransient<ReceiptViewModel>();
         services.AddTransient<DeviceSimulatorViewModel>();
         services.AddTransient<ReceiptPrinterSimulatorViewModel>();
@@ -96,14 +95,10 @@ public static class DesktopServiceRegistration
         services.AddTransient<Func<ICustomerDisplayWindow>>(provider =>
             () => provider.GetRequiredService<CustomerDisplayWindow>());
         services.AddScoped<CustomerDisplayHost>();
-        services.AddTransient<Func<PaymentDialog>>(provider =>
-            () => provider.GetRequiredService<PaymentDialog>());
         services.AddTransient<Func<ReceiptDialog>>(provider =>
             () => provider.GetRequiredService<ReceiptDialog>());
-        services.AddScoped<WorkflowWindowHost<PaymentDialog>>();
         services.AddScoped<WorkflowWindowHost<ReceiptDialog>>();
         services.AddScoped(provider => new SessionWorkflowWindows(
-            provider.GetRequiredService<WorkflowWindowHost<PaymentDialog>>(),
             provider.GetRequiredService<WorkflowWindowHost<ReceiptDialog>>()));
         services.AddScoped<ISessionWorkflowLifecycle, SessionWorkflowLifecycle>();
         services.AddScoped<SessionSignOutCoordinator>();

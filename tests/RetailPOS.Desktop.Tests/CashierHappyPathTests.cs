@@ -10,6 +10,7 @@ using RetailPOS.Application.Payments;
 using RetailPOS.Application.Persistence;
 using RetailPOS.Application.Receipts;
 using RetailPOS.Desktop.ViewModels;
+using RetailPOS.Desktop.Workflow;
 using RetailPOS.Domain.Payments;
 using RetailPOS.Infrastructure.DependencyInjection;
 using RetailPOS.Infrastructure.Devices;
@@ -63,20 +64,6 @@ public sealed class CashierHappyPathTests
         Assert.Equal(2, checkoutSession.Snapshot.ItemCount);
         Assert.Equal(30000m, checkoutSession.Snapshot.Subtotal);
 
-        using var cartPanel = new CartPanelViewModel(checkoutSession)
-        {
-            DiscountInput = "3000"
-        };
-        var checkoutRequested = false;
-        cartPanel.CheckoutRequested += (_, _) => checkoutRequested = true;
-
-        cartPanel.ApplyFixedDiscountCommand.Execute(null);
-        cartPanel.CheckoutCommand.Execute(null);
-
-        Assert.True(checkoutRequested);
-        Assert.Equal(3000m, cartPanel.DiscountAmount);
-        Assert.Equal(27000m, cartPanel.Total);
-
         var clock = new StubCheckoutClock(Now);
         var idGenerator = new SequenceCheckoutIdGenerator(
             CheckoutId,
@@ -105,15 +92,23 @@ public sealed class CashierHappyPathTests
             orderRepository,
             new DemoReceiptContextProvider(),
             clock);
-        using var payment = new PaymentDialogViewModel(
+        var paymentCoordinator = new CheckoutPaymentCoordinator(
             checkoutSession,
             paymentStart,
             orderCompletion,
             receiptService,
             receiptState,
             new CheckoutDisplayState());
+        using var cartPanel = new CartPanelViewModel(checkoutSession, paymentCoordinator)
+        {
+            DiscountInput = "3000"
+        };
+        cartPanel.ApplySelectedDiscountCommand.Execute(null);
 
-        var paymentExecution = payment.ApproveCardPaymentCommand.ExecuteAsync(null);
+        Assert.Equal(3000m, cartPanel.DiscountAmount);
+        Assert.Equal(27000m, cartPanel.Total);
+
+        var paymentExecution = cartPanel.StartCardPaymentCommand.ExecuteAsync(null);
         for (var attempt = 0; paymentTerminal.PendingRequest is null && attempt < 100; attempt++)
         {
             await Task.Delay(10);
@@ -126,9 +121,8 @@ public sealed class CashierHappyPathTests
             $"TX-{terminalRequest.Payload.PaymentAttemptId:N}"));
         await paymentExecution;
 
-        Assert.True(payment.IsApproved);
-        Assert.Equal(PaymentMethod.Card, payment.Method);
-        Assert.Equal(27000m, payment.ApprovedAmount);
+        Assert.True(cartPanel.IsCardApproved);
+        Assert.Equal("APP-HAPPY-PATH", cartPanel.CardApprovalCode);
         Assert.True(checkoutSession.Snapshot.IsEmpty);
 
         var receipt = receiptState.Current;

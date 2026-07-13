@@ -88,8 +88,8 @@ state, so a planned screen cannot become current until its view is included in t
 change. `ScreenChanged` is a post-commit notification; a subscriber exception does not
 roll back an accepted transition.
 
-The screen contract includes Login, Register, Product Search, Card Payment, Cash
-Payment, Receipt History, Receipt Detail, Recovery, Dashboard, and Status. Root
+The screen contract includes Login, Register, Product Search, Receipt History,
+Receipt Detail, Recovery, Dashboard, and Status. Root
 navigation resets history only to an approved root screen. Nested workflows use push,
 replace, and back transitions so cancel and completion behavior remain explicit.
 
@@ -97,9 +97,9 @@ The navigator is not an authentication or authorization boundary. Authentication
 belongs to `ICurrentSessionContext`, while NavigationHost controls which root actions are
 available before and after sign-in. Root reset expresses navigation history policy only.
 
-POS-901 introduces this navigation foundation while retaining the existing Payment and
-Receipt windows during migration. Later EPIC-10 tasks add in-window views before the
-legacy workflow windows and hosts are removed. Device Simulator remains a separate
+POS-901 introduces this navigation foundation while retaining the existing receipt
+presentation during migration. Cash tender and card authorization stay inside Register;
+the bottom panel changes state without replacing the sale workspace. Device Simulator remains a separate
 modeless developer utility, and Customer Display remains a dedicated device-output
 window rather than a cashier workflow screen.
 
@@ -149,8 +149,8 @@ device-specific. Do not introduce a generic `IDevice<T>` framework until repeate
 implementation demonstrates a useful shared contract.
 
 Barcode scanning uses an event-producing device boundary for simulator and future
-adapter integration. Existing TextBox and keyboard-wedge entry remains available as
-manual input and fallback.
+adapter integration. Manual barcode lookup belongs in Product Search rather than a
+duplicate Register input.
 
 Customer display data continues to come from checkout and display state. Desktop owns
 the display host, available-monitor discovery, single-window lifetime, target

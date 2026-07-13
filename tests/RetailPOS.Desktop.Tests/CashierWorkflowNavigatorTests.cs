@@ -29,11 +29,11 @@ public sealed class CashierWorkflowNavigatorTests
     }
 
     [Fact]
-    public void ReplaceKeepsThePrePaymentReturnScreen()
+    public void ReplaceKeepsTheReceiptHistoryReturnScreen()
     {
         var navigator = CreateNavigator();
         navigator.Reset(CashierWorkflowScreen.Register);
-        navigator.Navigate(CashierWorkflowScreen.CardPayment);
+        navigator.Navigate(CashierWorkflowScreen.ReceiptHistory);
 
         navigator.Navigate(
             CashierWorkflowScreen.ReceiptDetail,
@@ -81,7 +81,7 @@ public sealed class CashierWorkflowNavigatorTests
         var navigator = CreateNavigator();
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            navigator.Navigate(CashierWorkflowScreen.CardPayment));
+            navigator.Navigate(CashierWorkflowScreen.ReceiptHistory));
 
         Assert.Contains("Login", exception.Message, StringComparison.Ordinal);
         Assert.Equal(CashierWorkflowScreen.Login, navigator.Current);
@@ -99,12 +99,12 @@ public sealed class CashierWorkflowNavigatorTests
     }
 
     [Fact]
-    public void ResetCannotBypassEntryPolicyForPaymentScreens()
+    public void ResetCannotBypassEntryPolicyForReceiptDetail()
     {
         var navigator = CreateNavigator();
 
         Assert.Throws<InvalidOperationException>(() =>
-            navigator.Reset(CashierWorkflowScreen.CardPayment));
+            navigator.Reset(CashierWorkflowScreen.ReceiptDetail));
         Assert.Equal(CashierWorkflowScreen.Login, navigator.Current);
     }
 

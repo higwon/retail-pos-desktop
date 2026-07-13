@@ -8,22 +8,21 @@ namespace RetailPOS.Desktop.Workflow;
 public interface ISessionWorkflowLifecycle
 {
     void StopScanner();
-    void ClosePayment();
+    void CancelPayment();
     void CloseReceipt();
     void CloseCustomerDisplay();
 }
 
-public sealed record SessionWorkflowWindows(
-    IWorkflowWindowCloser Payment,
-    IWorkflowWindowCloser Receipt);
+public sealed record SessionWorkflowWindows(IWorkflowWindowCloser Receipt);
 
 public sealed class SessionWorkflowLifecycle(
     BarcodeScannerCoordinator scannerCoordinator,
+    ICheckoutPaymentCoordinator paymentCoordinator,
     SessionWorkflowWindows windows,
     CustomerDisplayHost customerDisplayHost) : ISessionWorkflowLifecycle
 {
     public void StopScanner() => scannerCoordinator.Stop();
-    public void ClosePayment() => windows.Payment.Close();
+    public void CancelPayment() => paymentCoordinator.CancelActivePayment();
     public void CloseReceipt() => windows.Receipt.Close();
     public void CloseCustomerDisplay() => customerDisplayHost.Close();
 }
@@ -38,7 +37,7 @@ public sealed class SessionSignOutCoordinator(
     public void SignOut()
     {
         receiptPreviewState.Clear();
-        workflowLifecycle.ClosePayment();
+        workflowLifecycle.CancelPayment();
         workflowLifecycle.CloseReceipt();
         workflowLifecycle.CloseCustomerDisplay();
         workflowLifecycle.StopScanner();

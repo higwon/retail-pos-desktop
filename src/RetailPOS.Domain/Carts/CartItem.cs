@@ -9,12 +9,14 @@ public sealed class CartItem
     {
         ProductId = product.Id;
         ProductName = product.Name;
+        CategoryName = product.CategoryName;
         UnitPrice = product.UnitPrice;
         SetQuantity(quantity);
     }
 
     public Guid ProductId { get; }
     public string ProductName { get; }
+    public string CategoryName { get; }
     public decimal UnitPrice { get; }
     public int Quantity { get; private set; }
     public decimal LineTotal => UnitPrice * Quantity;

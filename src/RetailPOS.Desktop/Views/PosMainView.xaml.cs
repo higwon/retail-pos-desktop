@@ -9,12 +9,10 @@ public partial class PosMainView : UserControl
 {
     private readonly ReceiptPreviewState _receiptPreviewState;
     private readonly CustomerDisplayHost _customerDisplayHost;
-    private readonly WorkflowWindowHost<PaymentDialog> _paymentDialogHost;
     private readonly WorkflowWindowHost<ReceiptDialog> _receiptDialogHost;
     private readonly PosMainViewModel _viewModel;
     private readonly CartPanelView _cartPanel;
-    private bool _isCheckoutSubscribed;
-    private bool _isPaymentHostSubscribed;
+    private bool _arePaymentEventsSubscribed;
     private bool _loadedOnce;
 
     public PosMainView(
@@ -23,7 +21,6 @@ public partial class PosMainView : UserControl
         CartPanelView cartPanel,
         ReceiptPreviewState receiptPreviewState,
         CustomerDisplayHost customerDisplayHost,
-        WorkflowWindowHost<PaymentDialog> paymentDialogHost,
         WorkflowWindowHost<ReceiptDialog> receiptDialogHost)
     {
         InitializeComponent();
@@ -31,7 +28,6 @@ public partial class PosMainView : UserControl
         DataContext = viewModel;
         _receiptPreviewState = receiptPreviewState;
         _customerDisplayHost = customerDisplayHost;
-        _paymentDialogHost = paymentDialogHost;
         _receiptDialogHost = receiptDialogHost;
         _cartPanel = cartPanel;
         ScannerStatusText.DataContext = productGrid;
@@ -42,8 +38,7 @@ public partial class PosMainView : UserControl
 
     private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
     {
-        SubscribeCheckout();
-        SubscribePaymentHost();
+        SubscribePaymentEvents();
         if (_loadedOnce)
         {
             return;
@@ -65,51 +60,39 @@ public partial class PosMainView : UserControl
         if (target is not null) _customerDisplayHost.Open(target.Id);
     }
 
-    private void OnCheckoutRequested(object? sender, EventArgs e) => OpenPaymentFlow();
+    private void OnCardPaymentCompleted(object? sender, EventArgs e) => OpenReceiptAfterPayment();
 
-    private void SubscribeCheckout()
+    private void OnCashPaymentCompleted(object? sender, EventArgs e)
     {
-        if (_isCheckoutSubscribed)
+        OpenReceiptAfterPayment();
+    }
+
+    private void SubscribePaymentEvents()
+    {
+        if (_arePaymentEventsSubscribed)
         {
             return;
         }
 
-        _cartPanel.CheckoutRequested += OnCheckoutRequested;
-        _isCheckoutSubscribed = true;
+        _cartPanel.CardPaymentCompleted += OnCardPaymentCompleted;
+        _cartPanel.CashPaymentCompleted += OnCashPaymentCompleted;
+        _arePaymentEventsSubscribed = true;
     }
 
     private void OnUnloaded(object sender, System.Windows.RoutedEventArgs e)
     {
-        if (_isPaymentHostSubscribed)
-        {
-            _paymentDialogHost.WindowClosed -= OnPaymentWindowClosed;
-            _isPaymentHostSubscribed = false;
-        }
-        if (!_isCheckoutSubscribed)
+        if (!_arePaymentEventsSubscribed)
         {
             return;
         }
 
-        _cartPanel.CheckoutRequested -= OnCheckoutRequested;
-        _isCheckoutSubscribed = false;
+        _cartPanel.CardPaymentCompleted -= OnCardPaymentCompleted;
+        _cartPanel.CashPaymentCompleted -= OnCashPaymentCompleted;
+        _arePaymentEventsSubscribed = false;
     }
 
-    private void OpenPaymentFlow()
+    private void OpenReceiptAfterPayment()
     {
-        IsEnabled = false;
-        _paymentDialogHost.ShowOrActivate();
-    }
-
-    private void SubscribePaymentHost()
-    {
-        if (_isPaymentHostSubscribed) return;
-        _paymentDialogHost.WindowClosed += OnPaymentWindowClosed;
-        _isPaymentHostSubscribed = true;
-    }
-
-    private void OnPaymentWindowClosed(object? sender, EventArgs e)
-    {
-        IsEnabled = true;
         if (_receiptPreviewState.HasReceipt)
         {
             _receiptDialogHost.ShowOrActivate();
