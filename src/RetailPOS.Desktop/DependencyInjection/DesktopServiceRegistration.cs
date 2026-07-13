@@ -26,6 +26,7 @@ public static class DesktopServiceRegistration
         services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
         services.AddSingleton<GlobalExceptionHandler>();
         services.AddScoped<NavigationHost>();
+        services.AddScoped<CashierWorkflowScreenRegistry>();
         services.AddScoped<CashierWorkflowNavigator>();
         services.AddScoped<CheckoutSession>();
         services.AddScoped<CheckoutDisplayState>();

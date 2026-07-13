@@ -82,10 +82,20 @@ or WPF controls to request navigation. The WPF bridge marshals background notifi
 to its dispatcher and applies the navigator's latest state so an older callback cannot
 overwrite a newer screen.
 
+`NavigationHost` builds one screen-to-view map and registers those keys with the scoped
+`CashierWorkflowScreenRegistry`. The navigator checks the registry before mutating its
+state, so a planned screen cannot become current until its view is included in the same
+change. `ScreenChanged` is a post-commit notification; a subscriber exception does not
+roll back an accepted transition.
+
 The screen contract includes Login, Register, Product Search, Card Payment, Cash
 Payment, Receipt History, Receipt Detail, Recovery, Dashboard, and Status. Root
 navigation resets history only to an approved root screen. Nested workflows use push,
 replace, and back transitions so cancel and completion behavior remain explicit.
+
+The navigator is not an authentication or authorization boundary. Authentication state
+belongs to `ICurrentSessionContext`, while NavigationHost controls which root actions are
+available before and after sign-in. Root reset expresses navigation history policy only.
 
 POS-901 introduces this navigation foundation while retaining the existing Payment and
 Receipt windows during migration. Later EPIC-10 tasks add in-window views before the

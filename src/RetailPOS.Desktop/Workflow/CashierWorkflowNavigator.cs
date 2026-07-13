@@ -32,7 +32,54 @@ public sealed class CashierWorkflowChangedEventArgs(
     public CashierWorkflowNavigationKind Kind { get; } = kind;
 }
 
-public sealed class CashierWorkflowNavigator
+public sealed class CashierWorkflowScreenRegistry
+{
+    private readonly object _sync = new();
+    private HashSet<CashierWorkflowScreen>? _registered;
+
+    public void Register(IEnumerable<CashierWorkflowScreen> screens)
+    {
+        ArgumentNullException.ThrowIfNull(screens);
+        var registered = screens.ToHashSet();
+        if (registered.Count == 0)
+        {
+            throw new ArgumentException(
+                "At least one cashier workflow screen must be registered.",
+                nameof(screens));
+        }
+
+        var unsupported = registered.FirstOrDefault(screen => !Enum.IsDefined(screen));
+        if (!Enum.IsDefined(unsupported))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(screens),
+                unsupported,
+                "Unsupported cashier workflow screen.");
+        }
+
+        lock (_sync)
+        {
+            if (_registered is not null)
+            {
+                throw new InvalidOperationException(
+                    "Cashier workflow screens are already registered for this UI scope.");
+            }
+
+            _registered = registered;
+        }
+    }
+
+    public bool IsRegistered(CashierWorkflowScreen screen)
+    {
+        lock (_sync)
+        {
+            return _registered?.Contains(screen) == true;
+        }
+    }
+}
+
+public sealed class CashierWorkflowNavigator(
+    CashierWorkflowScreenRegistry screenRegistry)
 {
     private readonly object _sync = new();
     private readonly Stack<CashierWorkflowScreen> _backStack = new();
@@ -65,6 +112,11 @@ public sealed class CashierWorkflowNavigator
     public bool CanNavigateTo(CashierWorkflowScreen destination)
     {
         EnsureDefined(destination);
+        if (!screenRegistry.IsRegistered(destination))
+        {
+            return false;
+        }
+
         lock (_sync)
         {
             return destination == _current || IsAllowed(_current, destination);
@@ -76,6 +128,7 @@ public sealed class CashierWorkflowNavigator
         CashierWorkflowNavigationKind kind = CashierWorkflowNavigationKind.Push)
     {
         EnsureDefined(destination);
+        EnsureRegistered(destination);
         if (kind is not CashierWorkflowNavigationKind.Push and
             not CashierWorkflowNavigationKind.Replace)
         {
@@ -123,6 +176,8 @@ public sealed class CashierWorkflowNavigator
             }
 
             var previous = _current;
+            var destination = _backStack.Peek();
+            EnsureRegistered(destination);
             _current = _backStack.Pop();
             change = new(
                 previous,
@@ -137,6 +192,7 @@ public sealed class CashierWorkflowNavigator
     public void Reset(CashierWorkflowScreen destination)
     {
         EnsureDefined(destination);
+        EnsureRegistered(destination);
         if (!IsResetTarget(destination))
         {
             throw new InvalidOperationException(
@@ -217,6 +273,15 @@ public sealed class CashierWorkflowNavigator
                 nameof(screen),
                 screen,
                 "Unsupported cashier workflow screen.");
+        }
+    }
+
+    private void EnsureRegistered(CashierWorkflowScreen screen)
+    {
+        if (!screenRegistry.IsRegistered(screen))
+        {
+            throw new InvalidOperationException(
+                $"No cashier workflow view is registered for {screen}.");
         }
     }
 }

@@ -19,6 +19,7 @@ public partial class NavigationHost : UserControl
     private readonly DeviceSimulatorWindowHost _deviceSimulatorWindowHost;
     private readonly SessionSignOutCoordinator _signOutCoordinator;
     private readonly CashierWorkflowNavigator _workflowNavigator;
+    private readonly IReadOnlyDictionary<CashierWorkflowScreen, UserControl> _workflowViews;
     private bool _recoveryCheckedAfterSignIn;
     private bool _isLoginSubscribed;
     private bool _isWorkflowSubscribed;
@@ -29,6 +30,7 @@ public partial class NavigationHost : UserControl
         DeviceSimulatorWindowHost deviceSimulatorWindowHost,
         SessionSignOutCoordinator signOutCoordinator,
         CashierWorkflowNavigator workflowNavigator,
+        CashierWorkflowScreenRegistry workflowScreenRegistry,
         ILogger<NavigationHost> logger)
     {
         InitializeComponent();
@@ -42,6 +44,15 @@ public partial class NavigationHost : UserControl
         _deviceSimulatorWindowHost = deviceSimulatorWindowHost;
         _signOutCoordinator = signOutCoordinator;
         _workflowNavigator = workflowNavigator;
+        _workflowViews = new Dictionary<CashierWorkflowScreen, UserControl>
+        {
+            [CashierWorkflowScreen.Login] = _loginView,
+            [CashierWorkflowScreen.Register] = _posMainView,
+            [CashierWorkflowScreen.Recovery] = _checkoutRecoveryView,
+            [CashierWorkflowScreen.Dashboard] = _dashboardView,
+            [CashierWorkflowScreen.Status] = _statusView
+        };
+        workflowScreenRegistry.Register(_workflowViews.Keys);
         DeviceSimulatorButton.Visibility = deviceSimulatorWindowHost.IsEnabled
             ? System.Windows.Visibility.Visible
             : System.Windows.Visibility.Collapsed;
@@ -141,16 +152,11 @@ public partial class NavigationHost : UserControl
 
     private void ShowScreen(CashierWorkflowScreen screen)
     {
-        UserControl view = screen switch
+        if (!_workflowViews.TryGetValue(screen, out var view))
         {
-            CashierWorkflowScreen.Login => _loginView,
-            CashierWorkflowScreen.Register => _posMainView,
-            CashierWorkflowScreen.Recovery => _checkoutRecoveryView,
-            CashierWorkflowScreen.Dashboard => _dashboardView,
-            CashierWorkflowScreen.Status => _statusView,
-            _ => throw new InvalidOperationException(
-                $"Cashier workflow screen {screen} does not have a registered view yet.")
-        };
+            throw new InvalidOperationException(
+                $"Cashier workflow screen {screen} does not have a registered view.");
+        }
 
         ContentRoot.Children.Clear();
         ContentRoot.Children.Add(view);

@@ -324,10 +324,19 @@ Desktop owns a scoped typed workflow navigator with explicit screen identifiers,
 transition policy, back history, and push, replace, back, and reset semantics.
 `NavigationHost` is the thin WPF bridge that maps supported states to views.
 
+NavigationHost registers its screen-to-view map with a scoped screen registry. The
+navigator validates that a destination is registered before committing state. A new
+screen's View registration and first transition path therefore ship together. The
+post-commit `ScreenChanged` event is notification-only and does not provide rollback.
+
 Root reset is limited to Login, Register, Receipt History, Recovery, Dashboard, and
 Status. Product Search, Card Payment, Cash Payment, and Receipt Detail must be entered
 through valid workflow transitions. Invalid and undefined transitions fail without
 changing navigation state, and duplicate transitions are no-ops.
+
+The navigator does not authenticate or authorize users. Session access remains owned by
+`ICurrentSessionContext` and the signed-in shell; reset controls history and root-screen
+selection after that access decision.
 
 Device Simulator remains a modeless operator utility window. Customer Display remains
 a dedicated device-output window. Existing Payment and Receipt windows remain only

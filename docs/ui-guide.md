@@ -48,6 +48,14 @@ completion states such as payment, and reset transitions are reserved for Login,
 Register, Receipt History, Recovery, Dashboard, and Status. Duplicate navigation is a
 no-op and invalid transitions fail without changing the current screen.
 
+Every active screen must be present in NavigationHost's screen-to-view map. The map is
+registered before initial rendering, and the navigator rejects an unregistered
+destination before changing state. Add a new View, its map entry, and its first
+transition path in the same PR.
+
+Workflow navigation does not replace authentication. Login/session state controls which
+root actions are exposed; root reset only clears navigation history.
+
 POS-901 establishes the navigator and migrates existing Login, Register, Recovery,
 Dashboard, and Status transitions. Payment and Receipt continue using their current
 workflow windows until their in-window replacements are implemented. Device Simulator

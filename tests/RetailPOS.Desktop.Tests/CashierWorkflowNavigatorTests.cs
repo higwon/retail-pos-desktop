@@ -7,7 +7,7 @@ public sealed class CashierWorkflowNavigatorTests
     [Fact]
     public void InitialStateIsLoginWithoutBackHistory()
     {
-        var navigator = new CashierWorkflowNavigator();
+        var navigator = CreateNavigator();
 
         Assert.Equal(CashierWorkflowScreen.Login, navigator.Current);
         Assert.False(navigator.CanGoBack);
@@ -17,7 +17,7 @@ public sealed class CashierWorkflowNavigatorTests
     [Fact]
     public void PushAndBackRestoreTheOriginScreen()
     {
-        var navigator = new CashierWorkflowNavigator();
+        var navigator = CreateNavigator();
         navigator.Reset(CashierWorkflowScreen.Register);
 
         navigator.Navigate(CashierWorkflowScreen.ProductSearch);
@@ -31,7 +31,7 @@ public sealed class CashierWorkflowNavigatorTests
     [Fact]
     public void ReplaceKeepsThePrePaymentReturnScreen()
     {
-        var navigator = new CashierWorkflowNavigator();
+        var navigator = CreateNavigator();
         navigator.Reset(CashierWorkflowScreen.Register);
         navigator.Navigate(CashierWorkflowScreen.CardPayment);
 
@@ -47,7 +47,7 @@ public sealed class CashierWorkflowNavigatorTests
     [Fact]
     public void ResetClearsBackHistoryAndPublishesTypedChange()
     {
-        var navigator = new CashierWorkflowNavigator();
+        var navigator = CreateNavigator();
         CashierWorkflowChangedEventArgs? published = null;
         navigator.ScreenChanged += (_, change) => published = change;
         navigator.Reset(CashierWorkflowScreen.Register);
@@ -64,7 +64,7 @@ public sealed class CashierWorkflowNavigatorTests
     [Fact]
     public void DuplicateNavigationDoesNotPublishOrCreateHistory()
     {
-        var navigator = new CashierWorkflowNavigator();
+        var navigator = CreateNavigator();
         navigator.Reset(CashierWorkflowScreen.Register);
         var changes = 0;
         navigator.ScreenChanged += (_, _) => changes++;
@@ -78,7 +78,7 @@ public sealed class CashierWorkflowNavigatorTests
     [Fact]
     public void InvalidTransitionFailsWithoutChangingState()
     {
-        var navigator = new CashierWorkflowNavigator();
+        var navigator = CreateNavigator();
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
             navigator.Navigate(CashierWorkflowScreen.CardPayment));
@@ -91,7 +91,7 @@ public sealed class CashierWorkflowNavigatorTests
     [Fact]
     public void UnknownScreenFailsClosed()
     {
-        var navigator = new CashierWorkflowNavigator();
+        var navigator = CreateNavigator();
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             navigator.Reset((CashierWorkflowScreen)999));
@@ -101,10 +101,49 @@ public sealed class CashierWorkflowNavigatorTests
     [Fact]
     public void ResetCannotBypassEntryPolicyForPaymentScreens()
     {
-        var navigator = new CashierWorkflowNavigator();
+        var navigator = CreateNavigator();
 
         Assert.Throws<InvalidOperationException>(() =>
             navigator.Reset(CashierWorkflowScreen.CardPayment));
         Assert.Equal(CashierWorkflowScreen.Login, navigator.Current);
+    }
+
+    [Fact]
+    public void UnregisteredDestinationFailsBeforeStateChanges()
+    {
+        var registry = new CashierWorkflowScreenRegistry();
+        registry.Register([
+            CashierWorkflowScreen.Login,
+            CashierWorkflowScreen.Register]);
+        var navigator = new CashierWorkflowNavigator(registry);
+        navigator.Reset(CashierWorkflowScreen.Register);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            navigator.Navigate(CashierWorkflowScreen.ProductSearch));
+
+        Assert.Contains("registered", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(CashierWorkflowScreen.Register, navigator.Current);
+        Assert.False(navigator.CanGoBack);
+    }
+
+    [Fact]
+    public void SubscriberFailureDoesNotRollBackCommittedTransition()
+    {
+        var navigator = CreateNavigator();
+        navigator.Reset(CashierWorkflowScreen.Register);
+        navigator.ScreenChanged += (_, _) => throw new InvalidOperationException("subscriber failed");
+
+        Assert.Throws<InvalidOperationException>(() =>
+            navigator.Navigate(CashierWorkflowScreen.ProductSearch));
+
+        Assert.Equal(CashierWorkflowScreen.ProductSearch, navigator.Current);
+        Assert.True(navigator.CanGoBack);
+    }
+
+    private static CashierWorkflowNavigator CreateNavigator()
+    {
+        var registry = new CashierWorkflowScreenRegistry();
+        registry.Register(Enum.GetValues<CashierWorkflowScreen>());
+        return new(registry);
     }
 }
