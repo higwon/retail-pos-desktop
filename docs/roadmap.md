@@ -80,8 +80,10 @@ transitions:
 - Selected-product list as the default Register workspace.
 - Product Search as a separate on-demand screen.
 - Inline card and cash payment, including cash tender and change.
+- Persisted cash tender and change metadata through POS-907.
 - Persisted receipt history with list, detail, print, and reprint.
-- Retirement of Payment and Receipt workflow dialogs after replacement screens ship.
+- PaymentDialog retirement with inline checkout, followed by ReceiptDialog retirement
+  after receipt history/detail ships.
 
 Device Simulator remains modeless and Customer Display remains a dedicated device
 output window.

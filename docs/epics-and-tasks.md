@@ -1032,11 +1032,15 @@ and push, replace, back, and root-reset behavior. Migrate existing Login, Regist
 Recovery, Dashboard, Status, and sign-out transitions to the navigator without removing
 current payment or receipt behavior.
 
+Status: Completed.
+
 ### POS-902 Scan-First Register and Product Search Screens
 
 Make the selected-product list the default Register workspace and move dense product
 search into an on-demand in-window screen. Preserve only currently supported cart
 actions; hold/resume remains out of scope.
+
+Status: Completed.
 
 ### POS-903 Inline Credit Card Payment Workflow
 
@@ -1044,18 +1048,29 @@ Start card authorization from the Register bottom payment bar and show request/r
 state in the inline bottom panel while preserving terminal cancellation, Unknown-result
 recovery, duplicate prevention, and order completion semantics.
 
+Status: In review via PR #168.
+
 ### POS-904 Inline Cash Tender and Change Workflow
 
 Add decimal-safe cash received input, quick tender values, change calculation, and
 under-tender validation in an inline Register bottom panel.
+
+Status: In review via PR #168. Persistence of cash tendered and change remains tracked
+by POS-907.
+
+### POS-907 Persist Cash Tender and Change Metadata
+
+Persist optional cash tendered and change amounts through payment, pending checkout,
+order completion, local storage, sync payloads, and receipt projection. Keep card
+payments unchanged and migrate existing SQLite databases without data loss.
 
 ### POS-905 Receipt History List and Detail
 
 Add bounded persisted receipt summary/detail queries and in-window receipt history,
 selection, print, and reprint workflows.
 
-### POS-906 Retire Workflow Dialogs and Validate Cashier Journey
+### POS-906 Retire Remaining Workflow Dialogs and Validate Cashier Journey
 
-Remove the legacy payment-method chooser and retire receipt dialogs after replacement
-screens ship, then validate lifecycle, sign-out, accessibility, DPI, documentation, and
-end-to-end cashier paths.
+Keep the PaymentDialog retirement from POS-903/POS-904 intact, retire ReceiptDialog
+after the receipt history/detail replacement ships, then validate lifecycle, sign-out,
+accessibility, DPI, documentation, and end-to-end cashier paths.
