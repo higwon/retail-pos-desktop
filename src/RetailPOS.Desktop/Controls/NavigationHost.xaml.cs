@@ -207,7 +207,7 @@ public partial class NavigationHost : UserControl
         {
             selected.Background = (MediaBrush)FindResource("PrimaryBlueBrush");
             selected.Foreground = MediaBrushes.White;
-            selected.BorderBrush = (MediaBrush)FindResource("PrimaryBlueBrush");
+            selected.BorderBrush = MediaBrushes.White;
         }
     }
 

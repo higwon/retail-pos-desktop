@@ -1,29 +1,29 @@
 <UserControl x:Class="RetailPOS.Desktop.Views.CheckoutRecoveryView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Border Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="0,0,0,1"
-                Padding="32,24">
+        <Border Style="{StaticResource CashierPageHeaderStyle}">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                <Button Click="OnBack" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,16,0" VerticalAlignment="Top">
+                <Button Click="OnBack" Style="{StaticResource CashierPageBackButtonStyle}">
                     <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconBackGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,8,0"/><TextBlock Text="Back"/></StackPanel>
                 </Button>
-                <StackPanel Grid.Column="1">
-                    <TextBlock Text="Checkout recovery" Style="{StaticResource TitleTextBlockStyle}"/>
-                    <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,6,0,0"/>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="Checkout recovery" Style="{StaticResource CashierPageTitleTextStyle}"/>
+                    <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource CashierPageSubtitleTextStyle}" Margin="0,5,0,0"/>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1" Margin="32">
+        <Grid Grid.Row="1" Margin="24">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1.15*"/>
                 <ColumnDefinition Width="20"/>
@@ -39,10 +39,14 @@
                                FontSize="19"
                                FontWeight="SemiBold"
                                Margin="0,0,0,16"/>
+                    <Grid>
                     <ListBox ItemsSource="{Binding Items}"
                              SelectedItem="{Binding SelectedItem}"
                              BorderThickness="0"
                              Background="Transparent">
+                        <ListBox.Style>
+                            <Style TargetType="ListBox"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasItems}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style>
+                        </ListBox.Style>
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="14"/><Setter Property="Margin" Value="0,0,0,8"/><Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/><Setter Property="BorderThickness" Value="1"/>
@@ -51,8 +55,7 @@
                         </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border Padding="0"
-                                        MinWidth="260">
+                                <Border Padding="0">
                                     <StackPanel>
                                         <TextBlock Text="{Binding CheckoutLabel}" FontWeight="SemiBold"/>
                                         <TextBlock Text="{Binding CreatedAtText}"
@@ -70,6 +73,13 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16">
+                        <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding HasItems}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                        <Border Width="54" Height="54" CornerRadius="27" Background="#FFE8F1FF" HorizontalAlignment="Center"><Path Data="{StaticResource IconRecoveryGeometry}" Style="{StaticResource IconPathStyle}" Width="26" Height="26" Stroke="#FF1769FF"/></Border>
+                        <TextBlock Text="No recovery records" FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+                        <TextBlock Text="Interrupted or uncertain checkouts will appear here." Style="{StaticResource SecondaryTextBlockStyle}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                    </StackPanel>
+                    </Grid>
                 </DockPanel>
             </Border>
 
@@ -100,10 +110,17 @@
                         </Border>
                     </Grid>
 
-                    <ScrollViewer Grid.Row="1" Margin="0,28,0,20" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Row="1" Margin="0,28,0,20" VerticalScrollBarVisibility="Auto" Visibility="{Binding HasSelectedItem, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <StackPanel>
                             <Border Background="#FFFFF7ED" BorderBrush="#FFFED7AA" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,24">
-                                <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconWarningGeometry}" Style="{StaticResource IconPathStyle}" Width="28" Height="28" Stroke="#FFEA580C" Margin="0,0,14,0"/><TextBlock Text="{Binding SelectedItem.WarningMessage}" Foreground="#FFC2410C" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center"/></StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Path Data="{StaticResource IconWarningGeometry}" Style="{StaticResource IconPathStyle}" Width="28" Height="28" Stroke="#FFEA580C" Margin="0,0,14,0" VerticalAlignment="Top"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedItem.WarningMessage}" Foreground="#FFC2410C" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                </Grid>
                             </Border>
 
                             <TextBlock Text="Cart snapshot" FontWeight="SemiBold" Margin="0,0,0,14"/>
@@ -153,9 +170,18 @@
                         </StackPanel>
                     </ScrollViewer>
 
-                    <Grid Grid.Row="2">
-                        <TextBlock Text="Total" FontSize="18" FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding SelectedItem.CartTotalText}"
+                    <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding HasSelectedItem}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                        <Path Data="{StaticResource IconReceiptGeometry}" Style="{StaticResource IconPathStyle}" Width="30" Height="30" Stroke="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Select a recovery record" FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                        <TextBlock Text="Checkout details and the cart snapshot will appear here." Style="{StaticResource SecondaryTextBlockStyle}" TextAlignment="Center" Margin="0,6,0,0"/>
+                    </StackPanel>
+
+                    <Grid Grid.Row="2" Visibility="{Binding HasSelectedItem, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,14"/>
+                        <TextBlock Grid.Row="1" Text="Total" FontSize="18" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Row="1" Text="{Binding SelectedItem.CartTotalText}"
                                    FontSize="24"
                                    FontWeight="Bold"
                                    HorizontalAlignment="Right"/>

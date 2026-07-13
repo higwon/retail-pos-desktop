@@ -7,6 +7,15 @@
              d:DesignHeight="720"
              d:DesignWidth="1280">
     <UserControl.Resources>
+        <Style x:Key="NavigationRailIconStyle"
+               TargetType="Path"
+               BasedOn="{StaticResource IconPathStyle}">
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="StrokeThickness" Value="1.7"/>
+            <Setter Property="Stroke" Value="White"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
         <Style x:Key="NavigationRailButtonStyle"
                TargetType="Button"
                BasedOn="{StaticResource {x:Type Button}}">
@@ -14,9 +23,11 @@
             <Setter Property="BorderBrush" Value="#FF334155"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Setter Property="MinHeight" Value="46"/>
-            <Setter Property="Padding" Value="14,8"/>
-            <Setter Property="Margin" Value="0,0,0,5"/>
+            <Setter Property="MinHeight" Value="56"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
         </Style>
     </UserControl.Resources>
 
@@ -36,7 +47,7 @@
                 Background="{StaticResource BrandDarkBrush}"
                 BorderBrush="#FF334155"
                 BorderThickness="1,0,0,0"
-                Padding="10,14">
+                Padding="16,16">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -60,27 +71,27 @@
                     <Button x:Name="RegisterNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnShowRegister">
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconCardGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" HorizontalAlignment="Center"/><TextBlock Grid.Column="1" Text="Register" Foreground="White" Margin="10,0,0,0"/></Grid>
+                        <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconCardGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Register" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
                     <Button x:Name="ProductSearchNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnShowProductSearch">
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconSearchGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" HorizontalAlignment="Center"/><TextBlock Grid.Column="1" Text="Product Search" Foreground="White" Margin="10,0,0,0"/></Grid>
+                        <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconSearchGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Product Search" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
                     <Button x:Name="RecoveryNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnShowRecovery">
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconRecoveryGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" HorizontalAlignment="Center"/><TextBlock Grid.Column="1" Text="Recovery" Foreground="White" Margin="10,0,0,0"/></Grid>
+                        <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconRecoveryGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Recovery" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
                     <Button x:Name="DashboardNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnShowDashboard">
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconDashboardGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" HorizontalAlignment="Center"/><TextBlock Grid.Column="1" Text="Dashboard" Foreground="White" Margin="10,0,0,0"/></Grid>
+                        <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconDashboardGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Dashboard" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
                     <Button x:Name="StatusNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnShowStatus">
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconStatusGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" HorizontalAlignment="Center"/><TextBlock Grid.Column="1" Text="Status" Foreground="White" Margin="10,0,0,0"/></Grid>
+                        <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconStatusGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Status" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
                 </StackPanel>
 
@@ -88,7 +99,7 @@
                     <Button x:Name="DeviceSimulatorButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnOpenDeviceSimulator">
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconDisplayGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" HorizontalAlignment="Center"/><TextBlock Grid.Column="1" Text="Simulator" Foreground="White" Margin="10,0,0,0"/></Grid>
+                        <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconDisplayGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Simulator" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
                     <Border BorderBrush="#FF475569"
                             BorderThickness="0,1,0,0"
@@ -96,7 +107,7 @@
                     <Button
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnSignOut">
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconSignOutGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" HorizontalAlignment="Center"/><TextBlock Grid.Column="1" Text="Sign out" Foreground="White" Margin="10,0,0,0"/></Grid>
+                        <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconSignOutGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Sign out" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
                 </StackPanel>
             </Grid>

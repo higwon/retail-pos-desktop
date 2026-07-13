@@ -19,7 +19,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="14"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="288"/>
         </Grid.RowDefinitions>
 
         <Border Style="{StaticResource PanelBorderStyle}">
@@ -46,12 +46,12 @@
                 <Grid Grid.Row="1">
                     <DataGrid ItemsSource="{Binding Lines}" AutoGenerateColumns="False" IsReadOnly="True"
                               CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False"
-                              HeadersVisibility="Column" GridLinesVisibility="Horizontal" IsHitTestVisible="True"
+                              HeadersVisibility="Column" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{StaticResource BorderBrush}" IsHitTestVisible="True"
                               SelectionMode="Single" SelectionUnit="FullRow"
                               CellStyle="{StaticResource PosDataGridCellStyle}"
                               RowStyle="{StaticResource PosDataGridStaticRowStyle}"
                               ColumnHeaderStyle="{StaticResource PosDataGridColumnHeaderStyle}"
-                              RowHeaderWidth="0" RowHeight="72" ColumnHeaderHeight="38"
+                              RowHeaderWidth="0" RowHeight="78" ColumnHeaderHeight="38"
                               BorderThickness="0,1,0,0" BorderBrush="{StaticResource BorderBrush}"
                               Background="{StaticResource SurfaceBrush}" AutomationProperties.Name="Current sale items">
                         <DataGrid.Columns>
@@ -92,11 +92,11 @@
                             <DataGridTextColumn Header="Amount" Binding="{Binding LineTotal, StringFormat={}{0:N0} KRW}"
                                                 ElementStyle="{StaticResource PosDataGridNumberTextStyle}"
                                                 HeaderStyle="{StaticResource PosDataGridRightHeaderStyle}" Width="150"/>
-                            <DataGridTemplateColumn Header="" Width="90">
+                            <DataGridTemplateColumn Header="" Width="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Command="{Binding DataContext.RemoveProductCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                                CommandParameter="{Binding ProductId}" Style="{StaticResource InlineDangerButtonStyle}"
+                                                CommandParameter="{Binding ProductId}" Style="{StaticResource InlineDangerButtonStyle}" MinHeight="36" Padding="10,6"
                                                 HorizontalAlignment="Center" ToolTip="Remove line">
                                             <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconTrashGeometry}" Style="{StaticResource IconPathStyle}" Stroke="{StaticResource DangerBrush}" Margin="0,0,6,0"/><TextBlock Text="Remove"/></StackPanel>
                                         </Button>
@@ -114,7 +114,7 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="2" MinHeight="228">
+        <Grid Grid.Row="2" Height="288">
             <Grid>
                 <!-- Default checkout controls -->
                 <Grid>
@@ -129,6 +129,7 @@
                     <Border Style="{StaticResource PanelBorderStyle}" Padding="22,18">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,18"><Path Data="{StaticResource IconReceiptGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Order Summary" FontSize="16" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
+                        <Grid Margin="0,0,0,8"><TextBlock Text="Items" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding ItemCount, StringFormat={}{0:N0}}" HorizontalAlignment="Right" FontWeight="SemiBold"/></Grid>
                         <Grid Margin="0,0,0,8"><TextBlock Text="Subtotal" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding Subtotal, StringFormat={}{0:N0} KRW}" HorizontalAlignment="Right" FontWeight="SemiBold"/></Grid>
                         <Grid Margin="0,0,0,10"><TextBlock Text="Order discount" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding DiscountAmount, StringFormat={}{0:N0} KRW}" HorizontalAlignment="Right" Foreground="{StaticResource SuccessBrush}"/></Grid>
                         <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,10"/>
@@ -136,10 +137,10 @@
                     </StackPanel>
                     </Border>
 
-                    <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="22,18">
+                    <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="22,14">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12"><Path Data="{StaticResource IconTagGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Order Discount" FontSize="16" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
-                        <UniformGrid Rows="1" Columns="2" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10"><Path Data="{StaticResource IconTagGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Order Discount" FontSize="16" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
+                        <UniformGrid Rows="1" Columns="2" Margin="0,0,0,8">
                             <Button Content="Fixed amount" Command="{Binding SelectFixedDiscountCommand}" MinHeight="30">
                                 <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsFixedDiscountMode}" Value="True"><Setter Property="Background" Value="{StaticResource PrimaryBrush}"/><Setter Property="Foreground" Value="White"/></DataTrigger></Style.Triggers></Style></Button.Style>
                             </Button>
@@ -147,15 +148,15 @@
                                 <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsPercentageDiscountMode}" Value="True"><Setter Property="Background" Value="{StaticResource PrimaryBrush}"/><Setter Property="Foreground" Value="White"/></DataTrigger></Style.Triggers></Style></Button.Style>
                             </Button>
                         </UniformGrid>
-                        <Grid Margin="0,0,0,8"><TextBox Text="{Binding DiscountInput, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right" Padding="8,5,58,5"/><TextBlock Text="{Binding DiscountUnitLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0" Style="{StaticResource SecondaryTextBlockStyle}" IsHitTestVisible="False"/></Grid>
-                        <TextBlock Text="Quick select" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="12" Margin="0,0,0,5"/>
-                        <UniformGrid Rows="1" Columns="4" Margin="0,0,0,10" Visibility="{Binding IsFixedDiscountMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid Margin="0,0,0,6"><TextBox Text="{Binding DiscountInput, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right" Padding="8,5,58,5"/><TextBlock Text="{Binding DiscountUnitLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0" Style="{StaticResource SecondaryTextBlockStyle}" IsHitTestVisible="False"/></Grid>
+                        <TextBlock Text="Quick select" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="12" Margin="0,0,0,4"/>
+                        <UniformGrid Rows="1" Columns="4" Margin="0,0,0,8" Visibility="{Binding IsFixedDiscountMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Button Content="1,000" Command="{Binding SelectQuickDiscountCommand}" CommandParameter="1000" Style="{StaticResource SecondaryButtonStyle}" Padding="4,2" Margin="0,0,5,0"/>
                             <Button Content="5,000" Command="{Binding SelectQuickDiscountCommand}" CommandParameter="5000" Style="{StaticResource SecondaryButtonStyle}" Padding="4,2" Margin="0,0,5,0"/>
                             <Button Content="10,000" Command="{Binding SelectQuickDiscountCommand}" CommandParameter="10000" Style="{StaticResource SecondaryButtonStyle}" Padding="4,2" Margin="0,0,5,0"/>
                             <Button Content="20,000" Command="{Binding SelectQuickDiscountCommand}" CommandParameter="20000" Style="{StaticResource SecondaryButtonStyle}" Padding="4,2"/>
                         </UniformGrid>
-                        <UniformGrid Rows="1" Columns="4" Margin="0,0,0,10" Visibility="{Binding IsPercentageDiscountMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <UniformGrid Rows="1" Columns="4" Margin="0,0,0,8" Visibility="{Binding IsPercentageDiscountMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Button Content="5%" Command="{Binding SelectQuickDiscountCommand}" CommandParameter="5" Style="{StaticResource SecondaryButtonStyle}" Padding="4,2" Margin="0,0,5,0"/>
                             <Button Content="10%" Command="{Binding SelectQuickDiscountCommand}" CommandParameter="10" Style="{StaticResource SecondaryButtonStyle}" Padding="4,2" Margin="0,0,5,0"/>
                             <Button Content="15%" Command="{Binding SelectQuickDiscountCommand}" CommandParameter="15" Style="{StaticResource SecondaryButtonStyle}" Padding="4,2" Margin="0,0,5,0"/>
@@ -165,7 +166,7 @@
                             <Button Content="Reset" Command="{Binding ResetDiscountCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="8,3"/>
                             <Button Grid.Column="2" Content="Apply discount" Command="{Binding ApplySelectedDiscountCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" Padding="8,3"/>
                         </Grid>
-                        <TextBlock Text="{Binding DiscountErrorMessage}" Foreground="{StaticResource DangerBrush}" FontSize="11" Margin="0,5,0,0"/>
+                        <TextBlock Text="{Binding DiscountErrorMessage}" Foreground="{StaticResource DangerBrush}" FontSize="11" Margin="0,3,0,0"/>
                     </StackPanel>
                     </Border>
 
@@ -223,8 +224,6 @@
                     <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsCashTenderVisible}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Grid.Style>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="1.25*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="0.8*"/></Grid.ColumnDefinitions>
                     <Border Style="{StaticResource PanelBorderStyle}" Padding="22,18">
-                    <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,16"><Path Data="{StaticResource IconCashGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Cash payment" FontSize="17" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
                         <Grid Margin="0,0,0,10"><TextBlock Text="Amount due" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding Total, StringFormat={}{0:N0} KRW}" HorizontalAlignment="Right" FontSize="18" FontWeight="SemiBold"/></Grid>
@@ -232,10 +231,9 @@
                         <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,12"/>
                         <Grid><TextBlock Text="Change" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding ChangeDue, StringFormat={}{0:N0} KRW}" HorizontalAlignment="Right" Foreground="{StaticResource SuccessBrush}" FontSize="23" FontWeight="Bold"/></Grid>
                     </StackPanel>
-                        <Button Grid.Row="1" Content="Back" Command="{Binding CancelCashTenderCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" MinWidth="90"/>
-                    </Grid>
                     </Border>
                     <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="22,18">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <StackPanel>
                         <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCashGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Received amount" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
                         <Grid Margin="0,8,0,6"><TextBox Text="{Binding CashReceivedInput, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right" FontSize="21" FontWeight="SemiBold" Padding="8,5,66,5"/><TextBlock Text="KRW" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0" Style="{StaticResource SecondaryTextBlockStyle}" IsHitTestVisible="False"/></Grid>
@@ -246,6 +244,8 @@
                         </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                         <TextBlock Text="{Binding CashTenderErrorMessage}" Foreground="{StaticResource DangerBrush}" FontSize="11" TextWrapping="Wrap" MinHeight="16"/>
                     </StackPanel>
+                        <Button Grid.Row="1" Content="Back" Command="{Binding CancelCashTenderCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" MinWidth="90"/>
+                    </Grid>
                     </Border>
                     <Border Grid.Column="4" Style="{StaticResource PanelBorderStyle}" Padding="10,12">
                     <Grid><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>

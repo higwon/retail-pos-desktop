@@ -57,6 +57,40 @@
         <Setter Property="CornerRadius" Value="6" />
     </Style>
 
+    <Style x:Key="CashierPageHeaderStyle" TargetType="{x:Type Border}">
+        <Setter Property="Height" Value="88"/>
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Padding" Value="24,0"/>
+    </Style>
+
+    <Style x:Key="CashierPageTitleTextStyle"
+           TargetType="{x:Type TextBlock}"
+           BasedOn="{StaticResource TitleTextBlockStyle}">
+        <Setter Property="FontSize" Value="22"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextWrapping" Value="NoWrap"/>
+    </Style>
+
+    <Style x:Key="CashierPageSubtitleTextStyle"
+           TargetType="{x:Type TextBlock}"
+           BasedOn="{StaticResource SecondaryTextBlockStyle}">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextWrapping" Value="NoWrap"/>
+    </Style>
+
+    <Style x:Key="CashierPageBackButtonStyle"
+           TargetType="{x:Type Button}"
+           BasedOn="{StaticResource SecondaryButtonStyle}">
+        <Setter Property="MinHeight" Value="40"/>
+        <Setter Property="Padding" Value="14,6"/>
+        <Setter Property="Margin" Value="0,0,18,0"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
     <Style x:Key="StatusPillStyle" TargetType="{x:Type Border}">
         <Setter Property="Background" Value="{StaticResource SuccessMutedBrush}" />
         <Setter Property="CornerRadius" Value="12" />

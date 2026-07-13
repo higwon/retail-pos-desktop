@@ -86,6 +86,9 @@ public sealed partial class DashboardViewModel : ObservableObject
     [ObservableProperty]
     private string _attentionBackground = "#FFECFDF3";
 
+    [ObservableProperty]
+    private bool _hasAttention;
+
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
     public bool HasRecentOrders => RecentOrders.Count > 0;
     public bool HasNoRecentOrders => RecentOrders.Count == 0;
@@ -202,6 +205,7 @@ public sealed partial class DashboardViewModel : ObservableObject
 
         if (recoverableCount > 0)
         {
+            HasAttention = true;
             AttentionTitle = recoverableCount == 1
                 ? "1 checkout needs recovery"
                 : $"{recoverableCount:N0} checkouts need recovery";
@@ -212,6 +216,7 @@ public sealed partial class DashboardViewModel : ObservableObject
 
         if (exhaustedCount > 0)
         {
+            HasAttention = true;
             AttentionTitle = exhaustedCount == 1
                 ? "1 sync item needs review"
                 : $"{exhaustedCount:N0} sync items need review";
@@ -223,6 +228,7 @@ public sealed partial class DashboardViewModel : ObservableObject
         var pendingSyncCount = sync.PendingCount + sync.RetryCount;
         if (pendingSyncCount > 0)
         {
+            HasAttention = true;
             AttentionTitle = pendingSyncCount == 1
                 ? "1 sync item waiting"
                 : $"{pendingSyncCount:N0} sync items waiting";
@@ -233,6 +239,7 @@ public sealed partial class DashboardViewModel : ObservableObject
             return;
         }
 
+        HasAttention = false;
         AttentionTitle = "No operations need attention";
         AttentionDetail = "Orders, sync queue, and recovery records are clear.";
         AttentionBackground = "#FFECFDF3";
