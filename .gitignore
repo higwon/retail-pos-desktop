@@ -4,6 +4,7 @@ obj/
 .tmp/
 .dotnet_home/
 TestResults/
+outputs/
 *.user
 *.suo
 *.db

@@ -2,11 +2,11 @@
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
  <Grid Background="{StaticResource AppBackgroundBrush}">
-  <Grid.RowDefinitions><RowDefinition Height="64"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-  <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="24,0">
+  <Grid.RowDefinitions><RowDefinition Height="88"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+  <Border Style="{StaticResource CashierPageHeaderStyle}">
    <Grid>
     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-     <TextBlock Text="Register" FontSize="20" FontWeight="SemiBold"/>
+     <TextBlock Text="Register" Style="{StaticResource CashierPageTitleTextStyle}"/>
      <Border Background="{Binding ConnectivityBadgeBackground}" CornerRadius="12" Padding="10,4" Margin="14,0,0,0"><TextBlock Text="{Binding ConnectivityText}" Foreground="{Binding ConnectivityBadgeForeground}" FontSize="12"/></Border>
      <TextBlock Text="{Binding DeviceSummaryText}" Style="{StaticResource SecondaryTextBlockStyle}" VerticalAlignment="Center" Margin="14,0,0,0" MaxWidth="210" TextTrimming="CharacterEllipsis" ToolTip="{Binding DeviceSummaryText}"/>
      <TextBlock x:Name="ScannerStatusText"
@@ -32,8 +32,8 @@
      </TextBlock>
     </StackPanel>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-     <Button Content="Customer Display" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,10,0" Click="OnOpenCustomerDisplay"/>
-     <Button Content="Receipt" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,16,0" Click="OnOpenReceipt"/>
+      <Button Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,10,0" Click="OnOpenCustomerDisplay"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconDisplayGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,8,0"/><TextBlock Text="Customer Display"/></StackPanel></Button>
+      <Button Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,16,0" Click="OnOpenReceipt"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconReceiptGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,8,0"/><TextBlock Text="Receipt"/></StackPanel></Button>
      <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding CashierText}" MaxWidth="180" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding StoreTerminalText}" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="11" MaxWidth="180" TextTrimming="CharacterEllipsis"/></StackPanel>
     </StackPanel>
    </Grid>

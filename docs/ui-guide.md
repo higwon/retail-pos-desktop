@@ -21,8 +21,8 @@ Use the Figma file as the primary visual reference for WPF implementation.
 - Login.
 - Scan-first Register with a dominant current-sale table.
 - Full-screen Product Search with category filtering.
-- Transaction totals and action panel.
-- Payment dialog.
+- Register bottom payment bar with totals, discount, Credit Card, and Cash.
+- Inline card authorization status panel.
 - Receipt preview.
 - Checkout recovery.
 - Customer display.
@@ -36,11 +36,13 @@ map is:
 
 ```text
 Login -> Register -> Product Search -> Register
-                  -> Card Payment -> Receipt Detail
-                  -> Cash Payment -> Receipt Detail
                   -> Receipt History -> Receipt Detail
 Register <-> Recovery
 Register <-> Dashboard / Status
+
+Register bottom payment bar
+  -> Cash tender expands inline
+  -> Credit Card expands terminal status inline
 ```
 
 Push transitions retain a valid return screen, replace transitions remove intermediate
@@ -65,9 +67,13 @@ Selecting a Product Search row updates the fixed detail panel only. The cashier 
 the image and product metadata, chooses a quantity from 1 to 99, and uses `Add to cart`
 to update the sale and return to Register.
 
-Payment and Receipt continue using their current
-workflow windows until their in-window replacements are implemented. Device Simulator
-and Customer Display keep their separate-window responsibilities.
+POS-903 and POS-904 place totals, manual discount, and payment method actions in a
+full-width Register bottom band. Cash expands in that band with received amount, change,
+quick tender, and a numeric keypad. Credit Card replaces the bottom band with an inline
+status panel that starts authorization immediately and shows the terminal result; it is
+not a dialog, payment-method chooser, or workflow navigation screen. Receipt presentation continues using
+its current window until POS-905 adds history/detail. Device Simulator and Customer
+Display keep their separate-window responsibilities.
 
 ## UX Rules
 

@@ -39,17 +39,14 @@ public sealed class SessionSignOutCoordinatorTests
             () => displayWindow);
         displayHost.Open("secondary");
 
-        var pendingPayment = new PendingOperation();
         var receiptOperation = new PendingOperation();
-        using var paymentHost = new WorkflowWindowHost<TestWorkflowWindow>(
-            () => new TestWorkflowWindow(pendingPayment));
         using var receiptHost = new WorkflowWindowHost<TestWorkflowWindow>(
             () => new TestWorkflowWindow(receiptOperation));
-        paymentHost.ShowOrActivate();
         receiptHost.ShowOrActivate();
         var workflow = new SessionWorkflowLifecycle(
             scannerCoordinator,
-            new SessionWorkflowWindows(paymentHost, receiptHost),
+            new NoopPaymentCoordinator(),
+            new SessionWorkflowWindows(receiptHost),
             displayHost);
         var navigator = CreateNavigator();
         navigator.Reset(CashierWorkflowScreen.Register);
@@ -62,9 +59,7 @@ public sealed class SessionSignOutCoordinatorTests
 
         coordinator.SignOut();
 
-        Assert.True(pendingPayment.IsCancellationRequested);
         Assert.True(receiptOperation.IsCancellationRequested);
-        Assert.False(paymentHost.IsOpen);
         Assert.False(receiptHost.IsOpen);
         Assert.False(displayHost.IsOpen);
         Assert.True(displayWindow.WasClosed);
@@ -169,7 +164,7 @@ public sealed class SessionSignOutCoordinatorTests
         public List<bool> CheckoutWasPresent { get; } = [];
         public List<bool> SessionWasPresent { get; } = [];
 
-        public void ClosePayment() => Record("payment");
+        public void CancelPayment() => Record("payment");
         public void CloseReceipt() => Record("receipt");
         public void CloseCustomerDisplay() => Record("display");
         public void StopScanner() => Record("scanner");
@@ -180,6 +175,18 @@ public sealed class SessionSignOutCoordinatorTests
             ReceiptWasCleared.Add(!receipt.HasReceipt);
             CheckoutWasPresent.Add(!checkout.Snapshot.IsEmpty);
             SessionWasPresent.Add(session.IsSignedIn);
+        }
+    }
+
+    private sealed class NoopPaymentCoordinator : ICheckoutPaymentCoordinator
+    {
+        public Task<CheckoutPaymentExecutionResult> ExecuteAsync(
+            RetailPOS.Domain.Payments.PaymentMethod method,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public void CancelActivePayment()
+        {
         }
     }
 

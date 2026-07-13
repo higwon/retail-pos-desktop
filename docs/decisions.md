@@ -271,8 +271,8 @@ Shared connection vocabulary is limited to `Disconnected`, `Connecting`,
 `Connected`, and `Faulted`. Operational states remain device-specific until real
 duplication justifies another abstraction.
 
-Barcode simulation uses an event-producing scanner boundary while preserving
-keyboard-wedge/manual input as a fallback. Customer-display data remains separate from
+Barcode simulation uses an event-producing scanner boundary. Manual barcode lookup is
+available through Product Search rather than a duplicate Register field. Customer-display data remains separate from
 the Desktop host that discovers monitors and owns the display window.
 
 Payment outcomes are fail-closed:
@@ -330,8 +330,9 @@ screen's View registration and first transition path therefore ship together. Th
 post-commit `ScreenChanged` event is notification-only and does not provide rollback.
 
 Root reset is limited to Login, Register, Receipt History, Recovery, Dashboard, and
-Status. Product Search, Card Payment, Cash Payment, and Receipt Detail must be entered
-through valid workflow transitions. Invalid and undefined transitions fail without
+Status. Product Search and Receipt Detail must be entered through valid workflow
+transitions. Cash tender and card authorization are inline Register states and do not
+become navigation screens. Invalid and undefined transitions fail without
 changing navigation state, and duplicate transitions are no-ops.
 
 The navigator does not authenticate or authorize users. Session access remains owned by
@@ -339,8 +340,9 @@ The navigator does not authenticate or authorize users. Session access remains o
 selection after that access decision.
 
 Device Simulator remains a modeless operator utility window. Customer Display remains
-a dedicated device-output window. Existing Payment and Receipt windows remain only
-until their in-window replacements are complete.
+a dedicated device-output window. The payment-method chooser and card dialog are removed;
+the Register bottom panel is the terminal-progress surface. Receipt presentation
+remains until receipt history/detail replaces it.
 
 ### Reason
 

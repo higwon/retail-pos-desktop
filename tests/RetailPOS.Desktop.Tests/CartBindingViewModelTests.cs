@@ -1,6 +1,8 @@
 using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Persistence;
+using RetailPOS.Desktop.Workflow;
 using RetailPOS.Desktop.ViewModels;
+using RetailPOS.Domain.Payments;
 using RetailPOS.Domain.Products;
 
 namespace RetailPOS.Desktop.Tests;
@@ -126,39 +128,183 @@ public sealed class CartBindingViewModelTests
     }
 
     [Fact]
-    public void CheckoutCommand_IsDisabledUntilCartHasPositiveTotal()
+    public void PaymentCommands_AreDisabledUntilCartHasPositiveTotal()
     {
         var session = new CheckoutSession();
         var viewModel = new CartPanelViewModel(session);
 
         Assert.False(viewModel.CanCheckout);
-        Assert.False(viewModel.CheckoutCommand.CanExecute(null));
+        Assert.False(viewModel.StartCardPaymentCommand.CanExecute(null));
+        Assert.False(viewModel.OpenCashTenderCommand.CanExecute(null));
 
         session.AddProduct(Product("Water", 1000m));
 
         Assert.True(viewModel.CanCheckout);
-        Assert.True(viewModel.CheckoutCommand.CanExecute(null));
+        Assert.True(viewModel.StartCardPaymentCommand.CanExecute(null));
+        Assert.True(viewModel.OpenCashTenderCommand.CanExecute(null));
 
         viewModel.DiscountInput = "5000";
         viewModel.ApplyFixedDiscountCommand.Execute(null);
 
         Assert.Equal(0m, viewModel.Total);
         Assert.False(viewModel.CanCheckout);
-        Assert.False(viewModel.CheckoutCommand.CanExecute(null));
+        Assert.False(viewModel.StartCardPaymentCommand.CanExecute(null));
+        Assert.False(viewModel.OpenCashTenderCommand.CanExecute(null));
     }
 
     [Fact]
-    public void CheckoutCommand_RaisesCheckoutRequestedForPayableCart()
+    public async Task CardPayment_IsInlineAndRequiresExplicitCompletionAfterApproval()
+    {
+        var session = new CheckoutSession();
+        var coordinator = new RecordingPaymentCoordinator(session);
+        var viewModel = new CartPanelViewModel(session, coordinator);
+        var completionCount = 0;
+        viewModel.CardPaymentCompleted += (_, _) => completionCount++;
+        session.AddProduct(Product("Water", 1000m));
+
+        await viewModel.StartCardPaymentCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsCardPaymentVisible);
+        Assert.True(viewModel.IsCardApproved);
+        Assert.Equal(1000m, viewModel.CardAmountDue);
+        Assert.Equal(PaymentMethod.Card, coordinator.Method);
+        Assert.Equal(0, completionCount);
+        Assert.True(viewModel.CompleteCardPaymentCommand.CanExecute(null));
+
+        viewModel.CompleteCardPaymentCommand.Execute(null);
+
+        Assert.Equal(1, completionCount);
+        Assert.False(viewModel.IsCardPaymentVisible);
+    }
+
+    [Fact]
+    public void DiscountMode_UsesOneApplyCommandAndSupportsQuickSelectAndReset()
     {
         var session = new CheckoutSession();
         var viewModel = new CartPanelViewModel(session);
-        var requestCount = 0;
-        viewModel.CheckoutRequested += (_, _) => requestCount++;
+        session.AddProduct(Product("Water", 10000m));
+
+        viewModel.SelectPercentageDiscountCommand.Execute(null);
+        viewModel.SelectQuickDiscountCommand.Execute("10");
+        viewModel.ApplySelectedDiscountCommand.Execute(null);
+
+        Assert.True(viewModel.IsPercentageDiscountMode);
+        Assert.Equal(1000m, viewModel.DiscountAmount);
+
+        viewModel.ResetDiscountCommand.Execute(null);
+
+        Assert.Equal("0", viewModel.DiscountInput);
+        Assert.Equal(0m, viewModel.DiscountAmount);
+    }
+
+    [Fact]
+    public void DiscountInput_DefaultsToZero()
+    {
+        var viewModel = new CartPanelViewModel(new CheckoutSession());
+
+        Assert.Equal("0", viewModel.DiscountInput);
+    }
+
+    [Theory]
+    [InlineData("1000", 0)]
+    [InlineData("1500", 500)]
+    public void CashTender_CalculatesChangeAndBlocksUnderpayment(string received, decimal expectedChange)
+    {
+        var session = new CheckoutSession();
         session.AddProduct(Product("Water", 1000m));
+        var viewModel = new CartPanelViewModel(session);
+        viewModel.OpenCashTenderCommand.Execute(null);
 
-        viewModel.CheckoutCommand.Execute(null);
+        viewModel.CashReceivedInput = received;
 
-        Assert.Equal(1, requestCount);
+        Assert.Equal(expectedChange, viewModel.ChangeDue);
+        Assert.Equal(received == "1000" || received == "1500", viewModel.CompleteCashPaymentCommand.CanExecute(null));
+
+        viewModel.CashReceivedInput = "999";
+        Assert.False(viewModel.CompleteCashPaymentCommand.CanExecute(null));
+        Assert.True(viewModel.HasCashTenderError);
+    }
+
+    [Theory]
+    [InlineData("-1")]
+    [InlineData("1.5")]
+    [InlineData("not-cash")]
+    [InlineData("999999999999999999999999999999999999999999")]
+    public void CashTender_RejectsInvalidInput(string input)
+    {
+        var session = new CheckoutSession();
+        session.AddProduct(Product("Water", 1000m));
+        var viewModel = new CartPanelViewModel(session);
+        viewModel.OpenCashTenderCommand.Execute(null);
+
+        viewModel.CashReceivedInput = input;
+
+        Assert.True(viewModel.HasCashTenderError);
+        Assert.False(viewModel.CompleteCashPaymentCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void CashTender_KeypadQuickTenderAndCancelPreserveSale()
+    {
+        var session = new CheckoutSession();
+        session.AddProduct(Product("Water", 3600m));
+        var viewModel = new CartPanelViewModel(session);
+        viewModel.OpenCashTenderCommand.Execute(null);
+
+        Assert.Contains(viewModel.QuickTenderOptions, option => option.Amount == 4000m);
+        viewModel.AppendCashDigitCommand.Execute("5");
+        viewModel.AppendCashDigitCommand.Execute("00");
+        Assert.Equal("500", viewModel.CashReceivedInput);
+        viewModel.SelectQuickTenderCommand.Execute(4000m);
+        Assert.Equal(400m, viewModel.ChangeDue);
+
+        viewModel.CancelCashTenderCommand.Execute(null);
+
+        Assert.False(viewModel.IsCashTenderVisible);
+        Assert.Equal(3600m, viewModel.Total);
+        Assert.Single(viewModel.Lines);
+    }
+
+    [Fact]
+    public async Task CompleteCashPayment_RunsOnceAndRaisesCompletion()
+    {
+        var session = new CheckoutSession();
+        session.AddProduct(Product("Water", 1000m));
+        var coordinator = new RecordingPaymentCoordinator(session);
+        var viewModel = new CartPanelViewModel(session, coordinator);
+        var completions = 0;
+        viewModel.CashPaymentCompleted += (_, _) => completions++;
+        viewModel.OpenCashTenderCommand.Execute(null);
+        viewModel.CashReceivedInput = "2000";
+
+        await viewModel.CompleteCashPaymentCommand.ExecuteAsync(null);
+        await viewModel.CompleteCashPaymentCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, coordinator.ExecutionCount);
+        Assert.Equal(PaymentMethod.Cash, coordinator.Method);
+        Assert.Equal(1, completions);
+        Assert.Equal(0m, session.Snapshot.Total);
+    }
+
+    [Fact]
+    public async Task CompleteCashPayment_CompletionEventFailureDoesNotBecomePaymentFailure()
+    {
+        var session = new CheckoutSession();
+        session.AddProduct(Product("Water", 1000m));
+        var coordinator = new RecordingPaymentCoordinator(session);
+        var viewModel = new CartPanelViewModel(session, coordinator);
+        viewModel.CashPaymentCompleted += (_, _) =>
+            throw new InvalidOperationException("Receipt window failure.");
+        viewModel.OpenCashTenderCommand.Execute(null);
+        viewModel.CashReceivedInput = "1000";
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            viewModel.CompleteCashPaymentCommand.ExecuteAsync(null));
+
+        Assert.Equal("Cash payment approved.", viewModel.CashPaymentMessage);
+        Assert.Null(viewModel.CashTenderErrorMessage);
+        Assert.False(viewModel.IsPaymentInProgress);
+        Assert.True(session.Snapshot.IsEmpty);
     }
 
     [Fact]
@@ -191,5 +337,39 @@ public sealed class CartBindingViewModelTests
 
         public Task<Product?> GetByBarcodeAsync(string barcode, CancellationToken cancellationToken = default) =>
             Task.FromResult<Product?>(null);
+    }
+
+    private sealed class RecordingPaymentCoordinator(CheckoutSession session)
+        : ICheckoutPaymentCoordinator
+    {
+        public int ExecutionCount { get; private set; }
+        public PaymentMethod? Method { get; private set; }
+
+        public Task<CheckoutPaymentExecutionResult> ExecuteAsync(
+            PaymentMethod method,
+            CancellationToken cancellationToken = default)
+        {
+            ExecutionCount++;
+            Method = method;
+            var amount = session.Snapshot.Total;
+            session.Clear();
+            var payment = new RecoverablePaymentStartResult(
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                PendingCheckoutStatus.Completed,
+                PaymentStatus.Approved,
+                method,
+                amount,
+                amount,
+                "APP-CASH",
+                "CASH-TX",
+                DateTimeOffset.UtcNow,
+                null);
+            return Task.FromResult(new CheckoutPaymentExecutionResult(payment, $"{method} payment approved."));
+        }
+
+        public void CancelActivePayment()
+        {
+        }
     }
 }

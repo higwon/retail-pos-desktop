@@ -14,6 +14,7 @@ public sealed class CheckoutSession
         _cart.Items.Select(item => new CartLineSnapshot(
             item.ProductId,
             item.ProductName,
+            item.CategoryName,
             item.UnitPrice,
             item.Quantity,
             item.LineTotal)).ToArray(),
@@ -115,6 +116,7 @@ public sealed record CartSnapshot(
 public sealed record CartLineSnapshot(
     Guid ProductId,
     string ProductName,
+    string CategoryName,
     decimal UnitPrice,
     int Quantity,
     decimal LineTotal);

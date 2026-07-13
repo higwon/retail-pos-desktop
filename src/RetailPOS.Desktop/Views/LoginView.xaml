@@ -3,76 +3,76 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d"
-             d:DesignHeight="900" d:DesignWidth="1440">
+             mc:Ignorable="d" d:DesignHeight="900" d:DesignWidth="1440">
     <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <LinearGradientBrush x:Key="LoginHeroBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#FF071A37" Offset="0"/><GradientStop Color="#FF06152D" Offset="1"/>
+        </LinearGradientBrush>
     </UserControl.Resources>
-
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
 
-        <Grid Grid.Column="0" Background="{StaticResource BrandDarkBrush}">
-            <Grid Margin="72,64">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <StackPanel>
-                    <TextBlock Text="Retail POS" Foreground="White" FontSize="30" FontWeight="SemiBold" />
-                    <TextBlock Text="Offline-first Windows POS system" Foreground="#FFAAB4C3" Margin="0,6,0,0" />
+        <Grid Background="{StaticResource LoginHeroBrush}">
+            <Path Data="M0,210 C190,60 350,250 620,30" Stroke="#1F3B82F6" StrokeThickness="2" Stretch="Fill" Margin="40,430,-20,0"/>
+            <Grid Width="520" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="34"/><RowDefinition Height="Auto"/><RowDefinition Height="34"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <Border Width="70" Height="70" HorizontalAlignment="Left" BorderBrush="#FF2879FF" BorderThickness="1" CornerRadius="9">
+                    <Path Data="{StaticResource IconCartGeometry}" Style="{StaticResource IconPathStyle}" Width="36" Height="36" Stroke="#FF3484FF" StrokeThickness="2.2"/>
+                </Border>
+                <StackPanel Grid.Row="2">
+                    <TextBlock Text="Retail POS" Foreground="White" FontSize="46" FontWeight="Bold"/>
+                    <TextBlock Text="Offline-first Windows POS system" Foreground="#FF93B4E8" FontSize="19" Margin="0,8,0,0"/>
                 </StackPanel>
-
-                <Border Grid.Row="1" Width="440" Padding="32" HorizontalAlignment="Center"
-                        VerticalAlignment="Center" Background="{StaticResource BrandPanelBrush}"
-                        CornerRadius="8">
-                    <StackPanel>
-                        <TextBlock Text="Reliable checkout even when the network is unavailable."
-                                   Foreground="White" FontSize="20" FontWeight="SemiBold" />
-                        <TextBlock Text="Local persistence, recoverable checkout, and background synchronization."
-                                   Foreground="#FFCBD5E1" Margin="0,18,0,30" />
-                        <StackPanel Orientation="Horizontal">
-                            <Border Background="#FFDCFCE7" CornerRadius="12" Padding="12,6" Margin="0,0,10,0">
-                                <TextBlock Text="Offline Ready" Foreground="#FF166534" FontSize="12" />
-                            </Border>
-                            <Border Background="#FFE0E7FF" CornerRadius="12" Padding="12,6">
-                                <TextBlock Text="Sync Queue" Foreground="#FF3730A3" FontSize="12" />
-                            </Border>
+                <Border Grid.Row="4" Background="#451C3B68" BorderBrush="#FF27518A" BorderThickness="1" CornerRadius="10" Padding="24">
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="82"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Border Width="64" Height="64" CornerRadius="32" Background="#FF173E77" VerticalAlignment="Top">
+                            <Path Data="{StaticResource IconShieldGeometry}" Style="{StaticResource IconPathStyle}" Width="34" Height="34" Stroke="#FF67A6FF"/>
+                        </Border>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Reliable checkout even when&#x0a;the network is unavailable." Foreground="White" FontSize="18" FontWeight="SemiBold" LineHeight="28"/>
+                            <TextBlock Text="Local persistence, recoverable checkout,&#x0a;and background synchronization." Foreground="#FFB8C9E2" FontSize="14" LineHeight="22" Margin="0,12,0,18"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Background="#4934D399" CornerRadius="14" Padding="12,6" Margin="0,0,12,0"><TextBlock Text="●  Offline Ready" Foreground="#FF7EE7AC"/></Border>
+                                <Border Background="#493B5CCC" CornerRadius="14" Padding="12,6"><TextBlock Text="↻  Sync Queue" Foreground="#FFB7C5FF"/></Border>
+                            </StackPanel>
                         </StackPanel>
-                    </StackPanel>
+                    </Grid>
                 </Border>
             </Grid>
         </Grid>
 
         <Grid Grid.Column="1" Background="#FFF8FAFD">
-            <Border Width="410" Padding="40" Style="{StaticResource PanelBorderStyle}"
-                    HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Border Width="468" Padding="36,30" Style="{StaticResource PanelBorderStyle}" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel>
-                    <TextBlock Text="Welcome back" FontSize="28" FontWeight="SemiBold" />
-                    <TextBlock Text="Sign in to start a sales session." Style="{StaticResource SecondaryTextBlockStyle}"
-                               Margin="0,8,0,30" />
-                    <TextBlock Text="Employee Code" Margin="0,0,0,8" FontWeight="SemiBold" />
-                    <TextBox Text="{Binding EmployeeCode, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,20" />
-                    <TextBlock Text="Password" Margin="0,0,0,8" FontWeight="SemiBold" />
-                    <PasswordBox MinHeight="44" Padding="12,8" Margin="0,0,0,28"
-                                 BorderBrush="{StaticResource BorderBrush}"
-                                 PasswordChanged="OnPasswordChanged" />
-                    <Button Content="Sign in" Style="{StaticResource PrimaryBlueButtonStyle}"
-                            Command="{Binding SignInCommand}" />
-                    <TextBlock Text="{Binding ErrorMessage}"
-                               Style="{StaticResource SecondaryTextBlockStyle}"
-                               Foreground="#FFB91C1C"
-                               TextWrapping="Wrap"
-                               TextAlignment="Center"
-                               HorizontalAlignment="Center"
-                               Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}"
-                               Margin="0,14,0,0" />
-                    <TextBlock Text="Offline sign-in uses the last verified access profile."
-                               Style="{StaticResource SecondaryTextBlockStyle}" FontSize="12"
-                               HorizontalAlignment="Center" Margin="0,18,0,0" />
+                    <Path Data="{StaticResource IconShieldGeometry}" Style="{StaticResource IconPathStyle}" Width="42" Height="42" Stroke="#FFAAC8FF" StrokeThickness="1.7" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Welcome back" FontSize="27" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+                    <TextBlock Text="Sign in to start a sales session." Style="{StaticResource SecondaryTextBlockStyle}" HorizontalAlignment="Center" Margin="0,7,0,24"/>
+                    <Separator Margin="0,0,0,24"/>
+                    <TextBlock Text="Employee Code" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,20">
+                        <TextBox Text="{Binding EmployeeCode, UpdateSourceTrigger=PropertyChanged}" Padding="14,8,44,8"/>
+                        <Path Data="{StaticResource IconUserGeometry}" Style="{StaticResource IconPathStyle}" HorizontalAlignment="Right" Margin="0,0,14,0"/>
+                    </Grid>
+                    <TextBlock Text="Password" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <Grid>
+                        <PasswordBox MinHeight="44" Padding="12,8,44,8" BorderBrush="{StaticResource BorderBrush}" PasswordChanged="OnPasswordChanged"/>
+                        <Path Data="{StaticResource IconEyeGeometry}" Style="{StaticResource IconPathStyle}" HorizontalAlignment="Right" Margin="0,0,14,0"/>
+                    </Grid>
+                    <Grid Margin="0,20,0,24">
+                        <CheckBox Content="Remember this terminal" IsChecked="True" VerticalAlignment="Center"/>
+                        <Border HorizontalAlignment="Right" Background="{StaticResource SuccessMutedBrush}" CornerRadius="12" Padding="10,4"><TextBlock Text="●  Offline Ready" Foreground="{StaticResource SuccessBrush}" FontSize="12"/></Border>
+                    </Grid>
+                    <Button Command="{Binding SignInCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" MinHeight="50">
+                        <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconLockGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" Margin="0,0,10,0"/><TextBlock Text="Sign in" Foreground="White" FontSize="16"/></StackPanel>
+                    </Button>
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" TextAlignment="Center" Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,12,0,0"/>
+                    <Separator Margin="0,22,0,18"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Path Data="{StaticResource IconInfoGeometry}" Style="{StaticResource IconPathStyle}" Stroke="{StaticResource TextSecondaryBrush}" Margin="0,0,8,0"/>
+                        <TextBlock Text="Offline sign-in uses the last verified access profile." Style="{StaticResource SecondaryTextBlockStyle}" FontSize="12"/>
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </Grid>

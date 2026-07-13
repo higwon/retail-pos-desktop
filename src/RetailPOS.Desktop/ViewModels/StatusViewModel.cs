@@ -63,6 +63,7 @@ public sealed partial class StatusViewModel : ObservableObject, IDisposable
     private string _statusMessage = "Sync status has not been loaded yet.";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasError))]
     private string? _errorMessage;
 
     [ObservableProperty]
@@ -82,6 +83,7 @@ public sealed partial class StatusViewModel : ObservableObject, IDisposable
 
     public bool HasItems => Items.Count > 0;
     public bool HasSelectedItem => SelectedItem is not null;
+    public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
     public string PendingCountText => $"{PendingCount:N0} items";
     public string RetryCountText => $"{RetryCount:N0} retrying";
     public string ReviewCountText => $"{ReviewCount:N0} review";

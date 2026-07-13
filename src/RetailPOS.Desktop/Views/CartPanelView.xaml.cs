@@ -6,7 +6,7 @@ namespace RetailPOS.Desktop.Views;
 public partial class CartPanelView : UserControl
 {
     private readonly CartPanelViewModel _viewModel;
-    private bool _isCheckoutSubscribed;
+    private bool _arePaymentEventsSubscribed;
 
     public CartPanelView(CartPanelViewModel viewModel)
     {
@@ -17,30 +17,36 @@ public partial class CartPanelView : UserControl
         Unloaded += OnUnloaded;
     }
 
-    public event EventHandler? CheckoutRequested;
+    public event EventHandler? CardPaymentCompleted;
+    public event EventHandler? CashPaymentCompleted;
 
-    private void OnViewModelCheckoutRequested(object? sender, EventArgs e) =>
-        CheckoutRequested?.Invoke(this, EventArgs.Empty);
+    private void OnViewModelCardPaymentCompleted(object? sender, EventArgs e) =>
+        CardPaymentCompleted?.Invoke(this, EventArgs.Empty);
+
+    private void OnViewModelCashPaymentCompleted(object? sender, EventArgs e) =>
+        CashPaymentCompleted?.Invoke(this, EventArgs.Empty);
 
     private void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
     {
-        if (_isCheckoutSubscribed)
+        if (_arePaymentEventsSubscribed)
         {
             return;
         }
 
-        _viewModel.CheckoutRequested += OnViewModelCheckoutRequested;
-        _isCheckoutSubscribed = true;
+        _viewModel.CardPaymentCompleted += OnViewModelCardPaymentCompleted;
+        _viewModel.CashPaymentCompleted += OnViewModelCashPaymentCompleted;
+        _arePaymentEventsSubscribed = true;
     }
 
     private void OnUnloaded(object sender, System.Windows.RoutedEventArgs e)
     {
-        if (!_isCheckoutSubscribed)
+        if (!_arePaymentEventsSubscribed)
         {
             return;
         }
 
-        _viewModel.CheckoutRequested -= OnViewModelCheckoutRequested;
-        _isCheckoutSubscribed = false;
+        _viewModel.CardPaymentCompleted -= OnViewModelCardPaymentCompleted;
+        _viewModel.CashPaymentCompleted -= OnViewModelCashPaymentCompleted;
+        _arePaymentEventsSubscribed = false;
     }
 }
