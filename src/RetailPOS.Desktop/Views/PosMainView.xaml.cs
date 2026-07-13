@@ -34,7 +34,7 @@ public partial class PosMainView : UserControl
         _paymentDialogHost = paymentDialogHost;
         _receiptDialogHost = receiptDialogHost;
         _cartPanel = cartPanel;
-        BarcodeRegion.DataContext = productGrid;
+        ScannerStatusText.DataContext = productGrid;
         CartRegion.Content = cartPanel;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;

@@ -11,16 +11,13 @@ namespace RetailPOS.Desktop.Tests;
 public sealed class BarcodeScannerCoordinatorTests
 {
     [Fact]
-    public async Task BackgroundScanUsesDispatcherAndSharedLookupWithoutChangingBarcodeText()
+    public async Task BackgroundScanUsesDispatcherAndSharedLookup()
     {
         var product = Product("Cola", "8801000000011");
         var session = new CheckoutSession();
         var viewModel = new ProductGridViewModel(
             new StubProductRepository(product),
-            session)
-        {
-            BarcodeText = "manual-entry-stays"
-        };
+            session);
         using var scanner = new SimulatedBarcodeScanner
         {
             EmitOnBackgroundThread = true
@@ -37,7 +34,6 @@ public sealed class BarcodeScannerCoordinatorTests
         await WaitUntilAsync(() => session.Snapshot.Lines.Count == 1);
 
         Assert.Equal(1, dispatcher.InvocationCount);
-        Assert.Equal("manual-entry-stays", viewModel.BarcodeText);
         Assert.Equal(product.Id, Assert.Single(session.Snapshot.Lines).ProductId);
     }
 

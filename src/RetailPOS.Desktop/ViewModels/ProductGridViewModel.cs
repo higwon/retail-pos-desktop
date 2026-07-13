@@ -18,7 +18,6 @@ public sealed partial class ProductGridViewModel : ObservableObject
     private readonly CheckoutSession _checkoutSession;
     private readonly CashierWorkflowNavigator? _workflowNavigator;
     private readonly AsyncRelayCommand _searchCommand;
-    private readonly AsyncRelayCommand _scanBarcodeCommand;
     private bool _isLoaded;
     private readonly List<Product> _allProducts = [];
     private readonly List<Product> _filteredProducts = [];
@@ -33,7 +32,6 @@ public sealed partial class ProductGridViewModel : ObservableObject
         _checkoutSession = checkoutSession;
         _workflowNavigator = workflowNavigator;
         _searchCommand = new AsyncRelayCommand(SearchAsync);
-        _scanBarcodeCommand = new AsyncRelayCommand(ScanBarcodeAsync);
         AddSelectedProductCommand = new RelayCommand(AddSelectedProduct, CanAddSelectedProduct);
         IncreaseSelectedQuantityCommand = new RelayCommand(IncreaseSelectedQuantity, CanIncreaseSelectedQuantity);
         DecreaseSelectedQuantityCommand = new RelayCommand(DecreaseSelectedQuantity, CanDecreaseSelectedQuantity);
@@ -49,7 +47,6 @@ public sealed partial class ProductGridViewModel : ObservableObject
     public IRelayCommand DecreaseSelectedQuantityCommand { get; }
     public IRelayCommand CancelCommand { get; }
     public IRelayCommand LoadMoreProductsCommand { get; }
-    public IAsyncRelayCommand ScanBarcodeCommand => _scanBarcodeCommand;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasProducts))]
@@ -62,9 +59,6 @@ public sealed partial class ProductGridViewModel : ObservableObject
 
     [ObservableProperty]
     private string _searchText = string.Empty;
-
-    [ObservableProperty]
-    private string _barcodeText = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasBarcodeMessage))]
@@ -234,21 +228,6 @@ public sealed partial class ProductGridViewModel : ObservableObject
         OnPropertyChanged(nameof(HasMoreProducts));
         OnPropertyChanged(nameof(ProductResultsText));
         LoadMoreProductsCommand.NotifyCanExecuteChanged();
-    }
-
-    private async Task ScanBarcodeAsync(CancellationToken cancellationToken)
-    {
-        var barcode = BarcodeText.Trim();
-        if (string.IsNullOrEmpty(barcode))
-        {
-            return;
-        }
-
-        var found = await ProcessBarcodeAsync(barcode, cancellationToken);
-        if (found)
-        {
-            BarcodeText = string.Empty;
-        }
     }
 
     public async Task<bool> ProcessBarcodeAsync(

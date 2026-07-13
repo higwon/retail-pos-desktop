@@ -29,13 +29,64 @@
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
-        <Setter Property="Padding" Value="5,0"/>
+        <Setter Property="Padding" Value="12,0"/>
         <Style.Triggers>
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <Style x:Key="PosDataGridColumnHeaderStyle" TargetType="{x:Type DataGridColumnHeader}">
+        <Setter Property="Background" Value="{StaticResource AppBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="12,0"/>
+    </Style>
+
+    <Style x:Key="PosDataGridRightHeaderStyle"
+           TargetType="{x:Type DataGridColumnHeader}"
+           BasedOn="{StaticResource PosDataGridColumnHeaderStyle}">
+        <Setter Property="HorizontalContentAlignment" Value="Right"/>
+    </Style>
+
+    <Style x:Key="PosDataGridCenterHeaderStyle"
+           TargetType="{x:Type DataGridColumnHeader}"
+           BasedOn="{StaticResource PosDataGridColumnHeaderStyle}">
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="PosDataGridTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="TextWrapping" Value="NoWrap"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
+
+    <Style x:Key="PosDataGridPrimaryTextStyle"
+           TargetType="{x:Type TextBlock}"
+           BasedOn="{StaticResource PosDataGridTextStyle}">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style x:Key="PosDataGridNumberTextStyle"
+           TargetType="{x:Type TextBlock}"
+           BasedOn="{StaticResource PosDataGridTextStyle}">
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="TextAlignment" Value="Right"/>
+    </Style>
+
+    <Style x:Key="PosDataGridCenterTextStyle"
+           TargetType="{x:Type TextBlock}"
+           BasedOn="{StaticResource PosDataGridTextStyle}">
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="TextAlignment" Value="Center"/>
     </Style>
 
     <Style x:Key="PosDataGridRowStyle" TargetType="{x:Type DataGridRow}">
@@ -50,6 +101,16 @@
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="{StaticResource SelectionBrush}"/>
                 <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="PosDataGridStaticRowStyle"
+           TargetType="{x:Type DataGridRow}"
+           BasedOn="{StaticResource PosDataGridRowStyle}">
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
             </Trigger>
         </Style.Triggers>
     </Style>

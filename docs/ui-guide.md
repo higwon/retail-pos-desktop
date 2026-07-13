@@ -57,8 +57,9 @@ Workflow navigation does not replace authentication. Login/session state control
 root actions are exposed; root reset only clears navigation history.
 
 POS-901 establishes the navigator and migrates existing Login, Register, Recovery,
-Dashboard, and Status transitions. POS-902 makes Register barcode-first and adds Product
-Search as a full in-window screen. Signed-in root navigation uses a fixed right-side
+Dashboard, and Status transitions. POS-902 makes Register hardware-scanner-first and
+adds Product Search as a full in-window screen. Manual barcode lookup belongs in Product
+Search rather than a duplicate Register input. Signed-in root navigation uses a fixed right-side
 task rail with the active screen highlighted; Product Search is available from that rail.
 Selecting a Product Search row updates the fixed detail panel only. The cashier reviews
 the image and product metadata, chooses a quantity from 1 to 99, and uses `Add to cart`
@@ -124,8 +125,8 @@ that use different scaling values.
 ### Supported sizes and dense data
 
 - Main window at 1440x900 and the supported minimum 1180x720: header actions remain
-  reachable, status/cashier text does not overlap, and the sale table, barcode entry, totals,
-  and transaction actions remain usable.
+  reachable, status/cashier text does not overlap, and the sale table, scanner feedback,
+  totals, and transaction actions remain usable.
 - Payment at 520x600 and Receipt at 700x700 minimum: status, long approval codes,
   transaction references, line totals, and action buttons remain readable or expose the
   complete value through a tooltip.

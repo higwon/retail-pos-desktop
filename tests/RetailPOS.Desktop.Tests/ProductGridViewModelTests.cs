@@ -41,6 +41,24 @@ public sealed class ProductGridViewModelTests
     }
 
     [Fact]
+    public async Task SearchCommand_ByBarcodeFindsMatchingProduct()
+    {
+        var expected = Product("Cola", barcode: "8801000000011");
+        var repository = new StubProductRepository
+        {
+            ActiveProducts = [Product("Water", barcode: "8801000000028"), expected]
+        };
+        var viewModel = new ProductGridViewModel(repository, new CheckoutSession())
+        {
+            SearchText = "8801000000011"
+        };
+
+        await viewModel.SearchCommand.ExecuteAsync(null);
+
+        Assert.Equal(expected.Id, Assert.Single(viewModel.Products).Id);
+    }
+
+    [Fact]
     public async Task CategoryAndSearch_ComposeFromSharedCategorySource()
     {
         var cola = Product("Cola", category: "Drinks");
@@ -113,57 +131,17 @@ public sealed class ProductGridViewModelTests
     }
 
     [Fact]
-    public async Task ScanBarcodeCommand_WhenBarcodeIsKnown_AddsProductToCart()
-    {
-        var expected = Product("Cola", barcode: "8801000000011");
-        var session = new CheckoutSession();
-        var repository = new StubProductRepository { BarcodeProduct = expected };
-        var viewModel = new ProductGridViewModel(repository, session) { BarcodeText = "  8801000000011  " };
-
-        await viewModel.ScanBarcodeCommand.ExecuteAsync(null);
-
-        var line = Assert.Single(session.Snapshot.Lines);
-        Assert.Equal(expected.Id, line.ProductId);
-        Assert.Equal("8801000000011", repository.LastBarcode);
-        Assert.Same(expected, viewModel.SelectedProduct);
-        Assert.Equal(string.Empty, viewModel.BarcodeText);
-        Assert.False(viewModel.HasBarcodeMessage);
-    }
-
-    [Fact]
-    public async Task ScanBarcodeCommand_WhenBarcodeIsUnknown_ShowsSafeMessageWithoutChangingCart()
-    {
-        var existing = Product("Water");
-        var session = new CheckoutSession();
-        session.AddProduct(existing);
-        var repository = new StubProductRepository();
-        var viewModel = new ProductGridViewModel(repository, session) { BarcodeText = "  missing-code  " };
-
-        await viewModel.ScanBarcodeCommand.ExecuteAsync(null);
-
-        var line = Assert.Single(session.Snapshot.Lines);
-        Assert.Equal(existing.Id, line.ProductId);
-        Assert.Equal("missing-code", repository.LastBarcode);
-        Assert.True(viewModel.HasBarcodeMessage);
-        Assert.DoesNotContain("Exception", viewModel.BarcodeMessage);
-    }
-
-    [Fact]
-    public async Task ProcessBarcodeAsync_ForScannerDoesNotMutateManualBarcodeText()
+    public async Task ProcessBarcodeAsync_ForScannerAddsProduct()
     {
         var expected = Product("Cola", barcode: "known");
         var session = new CheckoutSession();
         var viewModel = new ProductGridViewModel(
             new StubProductRepository { BarcodeProduct = expected },
-            session)
-        {
-            BarcodeText = "manual-fallback"
-        };
+            session);
 
         var found = await viewModel.ProcessBarcodeAsync(" known ");
 
         Assert.True(found);
-        Assert.Equal("manual-fallback", viewModel.BarcodeText);
         Assert.Single(session.Snapshot.Lines);
     }
 
