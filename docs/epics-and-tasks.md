@@ -1007,3 +1007,52 @@ Scope:
 - Log sync run start/completion/failure, exhausted queue items, idempotency conflicts,
   and connectivity changes with structured properties.
 - Do not log sensitive payment, auth, token, or secret data.
+
+## EPIC-10 Register Workflow Redesign
+
+Objective: Redesign the cashier experience around barcode-first selling, a dominant
+selected-product list, in-window payment, and persisted receipt history.
+
+Status: Active.
+
+Window policy:
+
+- Register, Product Search, Card Payment, Cash Payment, Receipt History, Receipt Detail,
+  Recovery, Dashboard, and Status are MainWindow screens.
+- Device Simulator remains a separate modeless operator utility window.
+- Customer Display remains a dedicated device-output window.
+- Payment and Receipt workflow windows are removed only after their replacement screens
+  are complete.
+
+### POS-901 In-Window Workflow Navigation Foundation
+
+Add a scoped typed workflow navigator with explicit transition policy, back history,
+and push, replace, back, and root-reset behavior. Migrate existing Login, Register,
+Recovery, Dashboard, Status, and sign-out transitions to the navigator without removing
+current payment or receipt behavior.
+
+### POS-902 Scan-First Register and Product Search Screens
+
+Make the selected-product list the default Register workspace and move dense product
+search into an on-demand in-window screen. Preserve only currently supported cart
+actions; hold/resume remains out of scope.
+
+### POS-903 Inline Credit Card Payment Workflow
+
+Move card authorization into MainWindow while preserving terminal cancellation,
+Unknown-result recovery, duplicate prevention, and order completion semantics.
+
+### POS-904 Inline Cash Tender and Change Workflow
+
+Add decimal-safe cash received input, quick tender values, change calculation, and
+under-tender validation in an in-window cash payment screen.
+
+### POS-905 Receipt History List and Detail
+
+Add bounded persisted receipt summary/detail queries and in-window receipt history,
+selection, print, and reprint workflows.
+
+### POS-906 Retire Workflow Dialogs and Validate Cashier Journey
+
+Remove Payment and Receipt dialogs after replacement screens ship, then validate
+lifecycle, sign-out, accessibility, DPI, documentation, and end-to-end cashier paths.

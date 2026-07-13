@@ -71,7 +71,22 @@ production authentication, or Phase 2 retail features:
 The repeatable operator walkthrough, engineering narrative, evidence links, and explicit
 non-production boundaries are maintained in the [Demo Guide and Portfolio Summary](demo-and-portfolio.md).
 
-## Next Planned Area: Phase 2 Product Ideas
+## Active Register Workflow Redesign
+
+EPIC-10 redesigns the cashier flow around barcode-first selling and MainWindow screen
+transitions:
+
+- Typed in-window workflow navigation with deterministic back and cancel behavior.
+- Selected-product list as the default Register workspace.
+- Product Search as a separate on-demand screen.
+- Inline card and cash payment, including cash tender and change.
+- Persisted receipt history with list, detail, print, and reprint.
+- Retirement of Payment and Receipt workflow dialogs after replacement screens ship.
+
+Device Simulator remains modeless and Customer Display remains a dedicated device
+output window.
+
+## Later Phase 2 Product Ideas
 
 - Refunds.
 - Order cancellation.

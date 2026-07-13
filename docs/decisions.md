@@ -306,3 +306,49 @@ EPIC-08 implementations must keep scenario selection out of cashier business com
 propagate cancellation, define device lifetime explicitly, and preserve Unknown
 payment outcomes for review. A generic device framework is deferred until concrete
 implementations demonstrate a stable shared shape.
+
+## DEC-012 Use Typed In-Window Navigation for Cashier Workflows
+
+Status: Accepted
+
+### Context
+
+Payment and receipt are currently separate workflow windows, while product search,
+recovery, and operational screens use a mixture of direct view replacement and window
+hosts. EPIC-10 needs deterministic screen transitions without coupling ViewModels to
+WPF views or creating more View event bridges.
+
+### Decision
+
+Desktop owns a scoped typed workflow navigator with explicit screen identifiers,
+transition policy, back history, and push, replace, back, and reset semantics.
+`NavigationHost` is the thin WPF bridge that maps supported states to views.
+
+NavigationHost registers its screen-to-view map with a scoped screen registry. The
+navigator validates that a destination is registered before committing state. A new
+screen's View registration and first transition path therefore ship together. The
+post-commit `ScreenChanged` event is notification-only and does not provide rollback.
+
+Root reset is limited to Login, Register, Receipt History, Recovery, Dashboard, and
+Status. Product Search, Card Payment, Cash Payment, and Receipt Detail must be entered
+through valid workflow transitions. Invalid and undefined transitions fail without
+changing navigation state, and duplicate transitions are no-ops.
+
+The navigator does not authenticate or authorize users. Session access remains owned by
+`ICurrentSessionContext` and the signed-in shell; reset controls history and root-screen
+selection after that access decision.
+
+Device Simulator remains a modeless operator utility window. Customer Display remains
+a dedicated device-output window. Existing Payment and Receipt windows remain only
+until their in-window replacements are complete.
+
+### Reason
+
+One typed navigation path makes back, cancel, completion, recovery, and sign-out
+behavior testable without ViewModel-to-View references. It also allows the UI migration
+to ship in focused PRs while preserving current checkout behavior.
+
+### Trade-offs
+
+The navigator initially contains screen states whose views arrive in later tasks, and
+`NavigationHost` must be updated whenever a new screen implementation becomes active.

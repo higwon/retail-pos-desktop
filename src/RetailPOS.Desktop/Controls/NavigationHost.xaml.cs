@@ -18,14 +18,19 @@ public partial class NavigationHost : UserControl
     private readonly StatusView _statusView;
     private readonly DeviceSimulatorWindowHost _deviceSimulatorWindowHost;
     private readonly SessionSignOutCoordinator _signOutCoordinator;
+    private readonly CashierWorkflowNavigator _workflowNavigator;
+    private readonly IReadOnlyDictionary<CashierWorkflowScreen, UserControl> _workflowViews;
     private bool _recoveryCheckedAfterSignIn;
     private bool _isLoginSubscribed;
+    private bool _isWorkflowSubscribed;
 
     public NavigationHost(LoginView loginView, PosMainView posMainView,
         CheckoutRecoveryView checkoutRecoveryView, DashboardView dashboardView, StatusView statusView,
         ICheckoutRecoveryService checkoutRecoveryService,
         DeviceSimulatorWindowHost deviceSimulatorWindowHost,
         SessionSignOutCoordinator signOutCoordinator,
+        CashierWorkflowNavigator workflowNavigator,
+        CashierWorkflowScreenRegistry workflowScreenRegistry,
         ILogger<NavigationHost> logger)
     {
         InitializeComponent();
@@ -38,10 +43,20 @@ public partial class NavigationHost : UserControl
         _statusView = statusView;
         _deviceSimulatorWindowHost = deviceSimulatorWindowHost;
         _signOutCoordinator = signOutCoordinator;
+        _workflowNavigator = workflowNavigator;
+        _workflowViews = new Dictionary<CashierWorkflowScreen, UserControl>
+        {
+            [CashierWorkflowScreen.Login] = _loginView,
+            [CashierWorkflowScreen.Register] = _posMainView,
+            [CashierWorkflowScreen.Recovery] = _checkoutRecoveryView,
+            [CashierWorkflowScreen.Dashboard] = _dashboardView,
+            [CashierWorkflowScreen.Status] = _statusView
+        };
+        workflowScreenRegistry.Register(_workflowViews.Keys);
         DeviceSimulatorButton.Visibility = deviceSimulatorWindowHost.IsEnabled
             ? System.Windows.Visibility.Visible
             : System.Windows.Visibility.Collapsed;
-        ContentRoot.Children.Add(_loginView);
+        ShowScreen(workflowNavigator.Current);
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
@@ -49,6 +64,7 @@ public partial class NavigationHost : UserControl
     private void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
     {
         SubscribeLogin();
+        SubscribeWorkflow();
     }
 
     private async Task ShowRecoveryAfterSignInAsync()
@@ -71,7 +87,7 @@ public partial class NavigationHost : UserControl
             return;
         }
 
-        Show(_checkoutRecoveryView);
+        _workflowNavigator.Navigate(CashierWorkflowScreen.Recovery);
     }
 
     private void SubscribeLogin()
@@ -87,13 +103,17 @@ public partial class NavigationHost : UserControl
 
     private void OnUnloaded(object sender, System.Windows.RoutedEventArgs e)
     {
-        if (!_isLoginSubscribed)
+        if (_isLoginSubscribed)
         {
-            return;
+            _loginView.ContinueRequested -= ShowPosMain;
+            _isLoginSubscribed = false;
         }
 
-        _loginView.ContinueRequested -= ShowPosMain;
-        _isLoginSubscribed = false;
+        if (_isWorkflowSubscribed)
+        {
+            _workflowNavigator.ScreenChanged -= OnWorkflowScreenChanged;
+            _isWorkflowSubscribed = false;
+        }
     }
 
     private async void ShowPosMain(object? sender, System.Windows.RoutedEventArgs e)
@@ -101,20 +121,55 @@ public partial class NavigationHost : UserControl
         DemoNavigation.Visibility = System.Windows.Visibility.Visible;
         Grid.SetRow(ContentRoot, 1);
         Grid.SetRowSpan(ContentRoot, 1);
-        Show(_posMainView);
+        _workflowNavigator.Reset(CashierWorkflowScreen.Register);
         await ShowRecoveryAfterSignInAsync();
     }
 
-    private void Show(UserControl view)
+    private void SubscribeWorkflow()
     {
+        if (_isWorkflowSubscribed)
+        {
+            return;
+        }
+
+        _workflowNavigator.ScreenChanged += OnWorkflowScreenChanged;
+        _isWorkflowSubscribed = true;
+        ShowScreen(_workflowNavigator.Current);
+    }
+
+    private void OnWorkflowScreenChanged(
+        object? sender,
+        CashierWorkflowChangedEventArgs e)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            _ = Dispatcher.BeginInvoke(() => ShowScreen(_workflowNavigator.Current));
+            return;
+        }
+
+        ShowScreen(e.Current);
+    }
+
+    private void ShowScreen(CashierWorkflowScreen screen)
+    {
+        if (!_workflowViews.TryGetValue(screen, out var view))
+        {
+            throw new InvalidOperationException(
+                $"Cashier workflow screen {screen} does not have a registered view.");
+        }
+
         ContentRoot.Children.Clear();
         ContentRoot.Children.Add(view);
     }
 
-    private void OnShowRegister(object sender, System.Windows.RoutedEventArgs e) => Show(_posMainView);
-    private void OnShowRecovery(object sender, System.Windows.RoutedEventArgs e) => Show(_checkoutRecoveryView);
-    private void OnShowDashboard(object sender, System.Windows.RoutedEventArgs e) => Show(_dashboardView);
-    private void OnShowStatus(object sender, System.Windows.RoutedEventArgs e) => Show(_statusView);
+    private void OnShowRegister(object sender, System.Windows.RoutedEventArgs e) =>
+        _workflowNavigator.Reset(CashierWorkflowScreen.Register);
+    private void OnShowRecovery(object sender, System.Windows.RoutedEventArgs e) =>
+        _workflowNavigator.Reset(CashierWorkflowScreen.Recovery);
+    private void OnShowDashboard(object sender, System.Windows.RoutedEventArgs e) =>
+        _workflowNavigator.Reset(CashierWorkflowScreen.Dashboard);
+    private void OnShowStatus(object sender, System.Windows.RoutedEventArgs e) =>
+        _workflowNavigator.Reset(CashierWorkflowScreen.Status);
     private void OnOpenDeviceSimulator(object sender, System.Windows.RoutedEventArgs e) =>
         _deviceSimulatorWindowHost.ShowOrActivate();
 
@@ -125,6 +180,5 @@ public partial class NavigationHost : UserControl
         DemoNavigation.Visibility = System.Windows.Visibility.Collapsed;
         Grid.SetRow(ContentRoot, 0);
         Grid.SetRowSpan(ContentRoot, 2);
-        Show(_loginView);
     }
 }
