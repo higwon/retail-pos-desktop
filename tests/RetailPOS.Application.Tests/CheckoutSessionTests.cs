@@ -29,6 +29,18 @@ public sealed class CheckoutSessionTests
     }
 
     [Fact]
+    public void AddProduct_WithQuantityNotifiesOnce()
+    {
+        var session = new CheckoutSession();
+        var notifications = 0;
+        session.Changed += (_, _) => notifications++;
+
+        session.AddProduct(Product("Cola", 1800m), 3);
+
+        Assert.Equal(3, Assert.Single(session.Snapshot.Lines).Quantity);
+        Assert.Equal(1, notifications);
+    }
+    [Fact]
     public void RemoveAndClear_NotifyOnlyWhenStateChanges()
     {
         var session = new CheckoutSession();

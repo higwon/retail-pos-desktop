@@ -23,9 +23,9 @@ public sealed class CheckoutSession
         _cart.DiscountAmount,
         _cart.Total);
 
-    public void AddProduct(Product product)
+    public void AddProduct(Product product, int quantity = 1)
     {
-        _cart.Add(product);
+        _cart.Add(product, quantity);
         NotifyChanged();
     }
 

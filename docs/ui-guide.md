@@ -60,6 +60,10 @@ POS-901 establishes the navigator and migrates existing Login, Register, Recover
 Dashboard, and Status transitions. POS-902 makes Register barcode-first and adds Product
 Search as a full in-window screen. Signed-in root navigation uses a fixed right-side
 task rail with the active screen highlighted; Product Search is available from that rail.
+Selecting a Product Search row updates the fixed detail panel only. The cashier reviews
+the image and product metadata, chooses a quantity from 1 to 99, and uses `Add to cart`
+to update the sale and return to Register.
+
 Payment and Receipt continue using their current
 workflow windows until their in-window replacements are implemented. Device Simulator
 and Customer Display keep their separate-window responsibilities.
@@ -131,7 +135,8 @@ that use different scaling values.
 - Dashboard and Status at minimum size: summary cards, recent order rows, device badges,
   sync queue details, and refresh actions remain reachable without horizontal clipping.
 - Load the 5,000-product reference dataset: Product Search initially presents 50 table rows,
-  `Load more` adds the next 50, and category/search changes reset the page.
+  `Load more` adds the next 50, category/search changes reset the page, and row selection
+  updates the detail panel without changing the current sale.
 
 ### Keyboard and assistive behavior
 

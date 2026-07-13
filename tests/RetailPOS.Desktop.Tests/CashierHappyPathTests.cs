@@ -60,7 +60,8 @@ public sealed class CashierHappyPathTests
         await productGrid.ScanBarcodeCommand.ExecuteAsync(null);
         productGrid.SearchText = "Sunscreen";
         await productGrid.SearchCommand.ExecuteAsync(null);
-        productGrid.AddProductCommand.Execute(Assert.Single(productGrid.Products));
+        productGrid.SelectedProduct = Assert.Single(productGrid.Products);
+        productGrid.AddSelectedProductCommand.Execute(null);
 
         Assert.Equal(2, checkoutSession.Snapshot.ItemCount);
         Assert.Equal(30000m, checkoutSession.Snapshot.Subtotal);

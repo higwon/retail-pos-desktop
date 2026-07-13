@@ -12,6 +12,7 @@ namespace RetailPOS.Desktop.ViewModels;
 public sealed partial class ProductGridViewModel : ObservableObject
 {
     private const int ProductPageSize = 50;
+    private const int MaxSelectedQuantity = 99;
 
     private readonly IProductRepository _productRepository;
     private readonly CheckoutSession _checkoutSession;
@@ -33,7 +34,9 @@ public sealed partial class ProductGridViewModel : ObservableObject
         _workflowNavigator = workflowNavigator;
         _searchCommand = new AsyncRelayCommand(SearchAsync);
         _scanBarcodeCommand = new AsyncRelayCommand(ScanBarcodeAsync);
-        AddProductCommand = new RelayCommand<Product>(AddProduct);
+        AddSelectedProductCommand = new RelayCommand(AddSelectedProduct, CanAddSelectedProduct);
+        IncreaseSelectedQuantityCommand = new RelayCommand(IncreaseSelectedQuantity, CanIncreaseSelectedQuantity);
+        DecreaseSelectedQuantityCommand = new RelayCommand(DecreaseSelectedQuantity, CanDecreaseSelectedQuantity);
         CancelCommand = new RelayCommand(ReturnToRegister);
         LoadMoreProductsCommand = new RelayCommand(LoadMoreProducts, () => HasMoreProducts);
     }
@@ -41,7 +44,9 @@ public sealed partial class ProductGridViewModel : ObservableObject
     public ObservableCollection<Product> Products { get; } = [];
     public ObservableCollection<string> Categories { get; } = [];
     public IAsyncRelayCommand SearchCommand => _searchCommand;
-    public IRelayCommand<Product> AddProductCommand { get; }
+    public IRelayCommand AddSelectedProductCommand { get; }
+    public IRelayCommand IncreaseSelectedQuantityCommand { get; }
+    public IRelayCommand DecreaseSelectedQuantityCommand { get; }
     public IRelayCommand CancelCommand { get; }
     public IRelayCommand LoadMoreProductsCommand { get; }
     public IAsyncRelayCommand ScanBarcodeCommand => _scanBarcodeCommand;
@@ -66,14 +71,31 @@ public sealed partial class ProductGridViewModel : ObservableObject
     private string? _barcodeMessage;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSelectedProduct))]
     private Product? _selectedProduct;
+
+    [ObservableProperty]
+    private int _selectedQuantity = 1;
 
     [ObservableProperty]
     private string _selectedCategory = ProductCatalogCategories.All;
 
-    partial void OnSelectedCategoryChanged(string value) => ApplyFilters();
+    partial void OnSelectedCategoryChanged(string value)
+    {
+        SelectedProduct = null;
+        ApplyFilters();
+    }
+
+    partial void OnSelectedProductChanged(Product? value)
+    {
+        SelectedQuantity = 1;
+        NotifySelectionCommandState();
+    }
+
+    partial void OnSelectedQuantityChanged(int value) => NotifySelectionCommandState();
 
     public bool HasProducts => !IsLoading && Products.Count > 0;
+    public bool HasSelectedProduct => SelectedProduct is not null;
     public bool IsEmpty => !IsLoading && !HasError && Products.Count == 0;
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
     public bool HasBarcodeMessage => !string.IsNullOrEmpty(BarcodeMessage);
@@ -82,16 +104,47 @@ public sealed partial class ProductGridViewModel : ObservableObject
         ? "No products"
         : $"Showing {Products.Count:N0} of {_filteredProducts.Count:N0} products";
 
-    private void AddProduct(Product? product)
+    private void AddSelectedProduct()
     {
-        if (product is null)
+        if (SelectedProduct is null)
         {
             return;
         }
 
-        SelectedProduct = product;
-        _checkoutSession.AddProduct(product);
+        _checkoutSession.AddProduct(SelectedProduct, SelectedQuantity);
+
         ReturnToRegister();
+    }
+
+    private bool CanAddSelectedProduct() => SelectedProduct is not null;
+
+    private void IncreaseSelectedQuantity()
+    {
+        if (SelectedQuantity < MaxSelectedQuantity)
+        {
+            SelectedQuantity++;
+        }
+    }
+
+    private bool CanIncreaseSelectedQuantity() =>
+        SelectedProduct is not null && SelectedQuantity < MaxSelectedQuantity;
+
+    private void DecreaseSelectedQuantity()
+    {
+        if (SelectedQuantity > 1)
+        {
+            SelectedQuantity--;
+        }
+    }
+
+    private bool CanDecreaseSelectedQuantity() =>
+        SelectedProduct is not null && SelectedQuantity > 1;
+
+    private void NotifySelectionCommandState()
+    {
+        AddSelectedProductCommand.NotifyCanExecuteChanged();
+        IncreaseSelectedQuantityCommand.NotifyCanExecuteChanged();
+        DecreaseSelectedQuantityCommand.NotifyCanExecuteChanged();
     }
 
     private void ReturnToRegister()

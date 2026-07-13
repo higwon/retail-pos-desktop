@@ -64,7 +64,7 @@ public sealed class ProductGridViewModelTests
     }
 
     [Fact]
-    public async Task ProductTileCommand_RepeatedActivationAddsExactlyOneUnitEachTime()
+    public async Task AddToCartCommand_RepeatedActivationAddsExactlyOneUnitEachTime()
     {
         var product = Product("Cola");
         var session = new CheckoutSession();
@@ -72,9 +72,10 @@ public sealed class ProductGridViewModelTests
             new StubProductRepository { ActiveProducts = [product] }, session);
         await viewModel.LoadAsync();
 
-        viewModel.AddProductCommand.Execute(product);
-        viewModel.AddProductCommand.Execute(product);
-        viewModel.AddProductCommand.Execute(product);
+        viewModel.SelectedProduct = product;
+        viewModel.AddSelectedProductCommand.Execute(null);
+        viewModel.AddSelectedProductCommand.Execute(null);
+        viewModel.AddSelectedProductCommand.Execute(null);
 
         Assert.Equal(3, Assert.Single(session.Snapshot.Lines).Quantity);
     }
@@ -182,7 +183,7 @@ public sealed class ProductGridViewModelTests
     }
 
     [Fact]
-    public async Task SelectProduct_FromSearchAddsProductAndReturnsToRegister()
+    public async Task SelectProduct_FromSearchOnlyUpdatesSelection()
     {
         var product = Product("Cola");
         var session = new CheckoutSession();
@@ -195,10 +196,52 @@ public sealed class ProductGridViewModelTests
             navigator);
         await viewModel.LoadAsync();
 
-        viewModel.AddProductCommand.Execute(product);
+        viewModel.SelectedProduct = Assert.Single(viewModel.Products);
 
-        Assert.Equal(product.Id, Assert.Single(session.Snapshot.Lines).ProductId);
+        Assert.True(session.Snapshot.IsEmpty);
+        Assert.Equal(product.Id, viewModel.SelectedProduct.Id);
+        Assert.Equal(1, viewModel.SelectedQuantity);
+        Assert.Equal(CashierWorkflowScreen.ProductSearch, navigator.Current);
+    }
+
+    [Fact]
+    public async Task AddSelectedProduct_AddsChosenQuantityAndReturnsToRegister()
+    {
+        var product = Product("Cola");
+        var session = new CheckoutSession();
+        var navigator = CreateNavigator();
+        navigator.Reset(CashierWorkflowScreen.Register);
+        navigator.Navigate(CashierWorkflowScreen.ProductSearch);
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository { ActiveProducts = [product] },
+            session,
+            navigator);
+        await viewModel.LoadAsync();
+        viewModel.SelectedProduct = Assert.Single(viewModel.Products);
+        viewModel.IncreaseSelectedQuantityCommand.Execute(null);
+        viewModel.IncreaseSelectedQuantityCommand.Execute(null);
+
+        viewModel.AddSelectedProductCommand.Execute(null);
+
+        Assert.Equal(3, Assert.Single(session.Snapshot.Lines).Quantity);
         Assert.Equal(CashierWorkflowScreen.Register, navigator.Current);
+    }
+
+    [Fact]
+    public void SelectedQuantity_StaysWithinSupportedRange()
+    {
+        var viewModel = new ProductGridViewModel(
+            new StubProductRepository(),
+            new CheckoutSession());
+        viewModel.SelectedProduct = Product("Cola");
+
+        viewModel.DecreaseSelectedQuantityCommand.Execute(null);
+        for (var attempt = 0; attempt < 120; attempt++)
+        {
+            viewModel.IncreaseSelectedQuantityCommand.Execute(null);
+        }
+
+        Assert.Equal(99, viewModel.SelectedQuantity);
     }
 
     [Fact]
@@ -247,6 +290,7 @@ public sealed class ProductGridViewModelTests
         registry.Register(Enum.GetValues<CashierWorkflowScreen>());
         return new CashierWorkflowNavigator(registry);
     }
+
     private static Product Product(string name, string? barcode = null, string category = "Beverages") => new(
         Guid.NewGuid(),
         $"SKU-{name}",
