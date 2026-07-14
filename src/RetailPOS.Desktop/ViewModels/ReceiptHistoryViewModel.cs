@@ -128,16 +128,21 @@ public sealed partial class ReceiptHistoryViewModel : ObservableObject, IDisposa
             return;
         }
 
-        if (_detail?.LocalOrderId != completedReceipt.LocalOrderId)
-        {
-            SetDetail(completedReceipt);
-        }
+        var resolvedDetail = _detail?.LocalOrderId == completedReceipt.LocalOrderId
+            ? _detail
+            : completedReceipt;
 
         await LoadPageAsync(
             reset: true,
             CancellationToken.None,
             completedReceipt.LocalOrderId,
             preserveDetailWhenSelectionMissing: true);
+
+        if (!_disposed &&
+            _workflowNavigator.Current == CashierWorkflowScreen.ReceiptDetail)
+        {
+            SetDetail(resolvedDetail);
+        }
     }
 
     public void Deactivate()
@@ -244,6 +249,14 @@ public sealed partial class ReceiptHistoryViewModel : ObservableObject, IDisposa
 
     partial void OnSelectedReceiptChanged(ReceiptHistoryItemViewModel? value)
     {
+        var completedReceipt = _receiptPreviewState.GetCurrent();
+        if (value is null &&
+            _workflowNavigator.Current == CashierWorkflowScreen.ReceiptDetail &&
+            completedReceipt?.LocalOrderId == _detail?.LocalOrderId)
+        {
+            return;
+        }
+
         if (!_disposed && !_suppressSelectionLoad)
         {
             PrintCommand.Cancel();

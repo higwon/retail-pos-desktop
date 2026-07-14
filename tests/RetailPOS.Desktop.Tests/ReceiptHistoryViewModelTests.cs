@@ -56,6 +56,30 @@ public sealed class ReceiptHistoryViewModelTests
     }
 
     [Fact]
+    public async Task CompletedPayment_RestoresDetailAfterListSelectionIsClearedDuringRefresh()
+    {
+        var state = new ReceiptPreviewState();
+        state.Set(Receipt(SecondOrderId, "ORDER-NEW"));
+        var navigator = Navigator();
+        navigator.Navigate(CashierWorkflowScreen.ReceiptDetail);
+        ReceiptHistoryViewModel? viewModel = null;
+        var query = new StubReceiptHistoryQuery(
+            Page(SecondOrderId),
+            id => Task.FromResult<ReceiptPreview?>(Receipt(id, "ORDER-NEW")))
+        {
+            OnSearch = () => viewModel!.SelectedReceipt = null
+        };
+        using var createdViewModel = ViewModel(query, state: state, navigator: navigator);
+        viewModel = createdViewModel;
+
+        await createdViewModel.ActivateAsync();
+        createdViewModel.SelectedReceipt = null;
+
+        Assert.True(createdViewModel.HasDetail);
+        Assert.Equal("ORDER-NEW", createdViewModel.OrderNumber);
+    }
+
+    [Fact]
     public async Task SelectingReceipt_IgnoresLateDetailFromOlderSelection()
     {
         var firstDetail = new TaskCompletionSource<ReceiptPreview?>(
@@ -164,12 +188,14 @@ public sealed class ReceiptHistoryViewModelTests
     {
         public ReceiptHistoryRequest? LastRequest { get; private set; }
         public List<Guid> DetailRequests { get; } = [];
+        public Action? OnSearch { get; init; }
 
         public Task<ReceiptHistoryPage> SearchAsync(
             ReceiptHistoryRequest request,
             CancellationToken cancellationToken = default)
         {
             LastRequest = request;
+            OnSearch?.Invoke();
             return Task.FromResult(page);
         }
 
