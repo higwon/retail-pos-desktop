@@ -99,6 +99,4 @@ public partial class PosMainView : UserControl
         }
     }
 
-    private void OnOpenReceipt(object sender, System.Windows.RoutedEventArgs e) =>
-        _workflowNavigator.Navigate(CashierWorkflowScreen.ReceiptHistory);
 }
