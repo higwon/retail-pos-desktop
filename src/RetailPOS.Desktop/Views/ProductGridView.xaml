@@ -146,11 +146,12 @@
                             <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconFilterGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,8,0"/><TextBlock Text="Filter"/></StackPanel>
                         </Button>
                         <Button Grid.Column="2"
-                                Content="Search"
                                 Command="{Binding SearchCommand}"
                                 Style="{StaticResource PrimaryBlueButtonStyle}"
                                 MinWidth="96"
-                                Margin="10,0,0,0"/>
+                                Margin="10,0,0,0">
+                            <TextBlock Text="Search" Style="{StaticResource PrimaryButtonLabelTextStyle}"/>
+                        </Button>
                     </Grid>
 
                     <Grid Grid.Row="1" Margin="16,0,16,10">
@@ -315,7 +316,7 @@
                                             Style="{StaticResource PrimaryBlueButtonStyle}"
                                             Margin="0,16,0,0"
                                             AutomationProperties.HelpText="Adds the selected quantity and returns to Register">
-                                        <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCartGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" Margin="0,0,9,0"/><TextBlock Text="Add to Cart" Foreground="White"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCartGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" Margin="0,0,9,0"/><TextBlock Text="Add to Cart" Style="{StaticResource PrimaryButtonLabelTextStyle}"/></StackPanel>
                                     </Button>
                                 </StackPanel>
                             </Grid>

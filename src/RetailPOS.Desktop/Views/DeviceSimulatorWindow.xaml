@@ -95,11 +95,11 @@
                                            Margin="0,6,0,0"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button Content="Connect"
+                                <Button
                                         Command="{Binding ConnectCommand}"
                                         Style="{StaticResource PrimaryBlueButtonStyle}"
                                         MinWidth="96"
-                                        Margin="0,0,8,0"/>
+                                        Margin="0,0,8,0"><TextBlock Text="Connect" Style="{StaticResource PrimaryButtonLabelTextStyle}"/></Button>
                                 <Button Content="Disconnect"
                                         Command="{Binding DisconnectCommand}"
                                         Style="{StaticResource SecondaryButtonStyle}"
@@ -140,7 +140,7 @@
                                 </ListBox>
                                 <Grid Grid.Row="2" Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <StackPanel><TextBlock Text="Selected barcode" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding SelectedBarcodePreview}" FontSize="18" FontWeight="SemiBold"/></StackPanel>
-                                    <Button Grid.Column="1" Content="Emit Scan" Command="{Binding EmitScanCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" MinWidth="120"/>
+                                    <Button Grid.Column="1" Command="{Binding EmitScanCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" MinWidth="120"><TextBlock Text="Emit Scan" Style="{StaticResource PrimaryButtonLabelTextStyle}"/></Button>
                                 </Grid>
                             </Grid>
                         </Border>
@@ -150,7 +150,7 @@
                                 <TextBlock Text="Manual barcode" FontSize="18" FontWeight="SemiBold"/>
                                 <TextBlock Text="Use this mode for unknown or error-path testing." Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,5,0,16"/>
                                 <TextBox Text="{Binding Barcode, UpdateSourceTrigger=PropertyChanged}"/>
-                                <Grid Margin="0,14,0,0"><TextBlock Text="{Binding SelectedBarcodePreview}" FontWeight="SemiBold" VerticalAlignment="Center"/><Button Content="Emit Scan" Command="{Binding EmitScanCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" HorizontalAlignment="Right" MinWidth="120"/></Grid>
+                                <Grid Margin="0,14,0,0"><TextBlock Text="{Binding SelectedBarcodePreview}" FontWeight="SemiBold" VerticalAlignment="Center"/><Button Command="{Binding EmitScanCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" HorizontalAlignment="Right" MinWidth="120"><TextBlock Text="Emit Scan" Style="{StaticResource PrimaryButtonLabelTextStyle}"/></Button></Grid>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -196,11 +196,11 @@
                                            Margin="0,6,0,0"/>
                             </StackPanel>
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button Content="Connect"
+                                <Button
                                         Command="{Binding ConnectCommand}"
                                         Style="{StaticResource PrimaryBlueButtonStyle}"
                                         MinWidth="96"
-                                        Margin="0,0,8,0"/>
+                                        Margin="0,0,8,0"><TextBlock Text="Connect" Style="{StaticResource PrimaryButtonLabelTextStyle}"/></Button>
                                 <Button Content="Disconnect"
                                         Command="{Binding DisconnectCommand}"
                                         Style="{StaticResource SecondaryButtonStyle}"
@@ -243,8 +243,8 @@
                                                   DisplayMemberPath="Label" MinWidth="220" MinHeight="44"
                                                   VerticalContentAlignment="Center" Padding="10,4"
                                                   AutomationProperties.Name="Receipt printer response"/>
-                                        <Button Grid.Column="1" Content="Send response" Command="{Binding RespondCommand}"
-                                                Style="{StaticResource PrimaryBlueButtonStyle}" MinWidth="138" Margin="12,0,0,0"/>
+                                        <Button Grid.Column="1" Command="{Binding RespondCommand}"
+                                                Style="{StaticResource PrimaryBlueButtonStyle}" MinWidth="138" Margin="12,0,0,0"><TextBlock Text="Send response" Style="{StaticResource PrimaryButtonLabelTextStyle}"/></Button>
                                     </Grid>
                                 </StackPanel>
                             </Grid>
@@ -316,7 +316,7 @@
                             <StackPanel><TextBlock Text="Connection" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding ConnectionState}" Style="{StaticResource SimulatorStateTextStyle}"/></StackPanel>
                             <StackPanel Grid.Column="1"><TextBlock Text="Current state" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding OperationalState}" Style="{StaticResource SimulatorStateTextStyle}"/></StackPanel>
                             <StackPanel Grid.Column="2"><TextBlock Text="Last outcome" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBlock Text="{Binding LastOutcome}" Style="{StaticResource SimulatorStateTextStyle}"/></StackPanel>
-                            <StackPanel Grid.Column="3" Orientation="Horizontal"><Button Content="Connect" Command="{Binding ConnectCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" Margin="0,0,8,0"/><Button Content="Disconnect" Command="{Binding DisconnectCommand}" Style="{StaticResource SecondaryButtonStyle}"/></StackPanel>
+                            <StackPanel Grid.Column="3" Orientation="Horizontal"><Button Command="{Binding ConnectCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" Margin="0,0,8,0"><TextBlock Text="Connect" Style="{StaticResource PrimaryButtonLabelTextStyle}"/></Button><Button Content="Disconnect" Command="{Binding DisconnectCommand}" Style="{StaticResource SecondaryButtonStyle}"/></StackPanel>
                         </Grid>
                     </Border>
                     <Grid Grid.Row="1" Margin="0,18,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="5*"/><ColumnDefinition Width="18"/><ColumnDefinition Width="3*"/></Grid.ColumnDefinitions>
@@ -333,7 +333,7 @@
                                         <StackPanel><TextBlock Text="Approval code" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBox Text="{Binding ApprovalCode, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
                                         <StackPanel Grid.Column="2"><TextBlock Text="Transaction reference" Style="{StaticResource SecondaryTextBlockStyle}"/><TextBox Text="{Binding TransactionReference, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
                                     </Grid>
-                                    <Button Content="Send response" Command="{Binding RespondCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" HorizontalAlignment="Right" MinWidth="138" Height="44" Margin="0,10,0,0"/>
+                                    <Button Command="{Binding RespondCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" HorizontalAlignment="Right" MinWidth="138" Height="44" Margin="0,10,0,0"><TextBlock Text="Send response" Style="{StaticResource PrimaryButtonLabelTextStyle}"/></Button>
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -358,7 +358,7 @@
                             <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource SecondaryTextBlockStyle}" TextWrapping="Wrap"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
                                 <Button Content="Close" Command="{Binding CloseCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,10,0"/>
-                                <Button Content="Open" Command="{Binding OpenCommand}" Style="{StaticResource PrimaryBlueButtonStyle}"/>
+                                <Button Command="{Binding OpenCommand}" Style="{StaticResource PrimaryBlueButtonStyle}"><TextBlock Text="Open" Style="{StaticResource PrimaryButtonLabelTextStyle}"/></Button>
                             </StackPanel>
                         </StackPanel>
                     </Border>
