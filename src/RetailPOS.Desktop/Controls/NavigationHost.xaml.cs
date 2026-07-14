@@ -207,14 +207,14 @@ public partial class NavigationHost : UserControl
         {
             button.Background = MediaBrushes.Transparent;
             button.Foreground = MediaBrushes.White;
-            button.BorderBrush = (MediaBrush)FindResource("BorderBrush");
+            button.BorderBrush = (MediaBrush)FindResource("NavigationRailBorderBrush");
         }
 
         if (_navigationButtons.TryGetValue(screen, out var selected))
         {
             selected.Background = (MediaBrush)FindResource("PrimaryBlueBrush");
             selected.Foreground = MediaBrushes.White;
-            selected.BorderBrush = MediaBrushes.White;
+            selected.BorderBrush = (MediaBrush)FindResource("PrimaryBlueBrush");
         }
     }
 
