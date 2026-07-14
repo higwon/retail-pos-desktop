@@ -141,11 +141,13 @@
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10"><Path Data="{StaticResource IconTagGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Order Discount" FontSize="16" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
                         <UniformGrid Rows="1" Columns="2" Margin="0,0,0,8">
-                            <Button Content="Fixed amount" Command="{Binding SelectFixedDiscountCommand}" MinHeight="30">
+                            <Button Command="{Binding SelectFixedDiscountCommand}" MinHeight="30">
                                 <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsFixedDiscountMode}" Value="True"><Setter Property="Background" Value="{StaticResource PrimaryBrush}"/><Setter Property="Foreground" Value="White"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                <TextBlock Text="Fixed amount" Style="{StaticResource ButtonLabelTextStyle}"/>
                             </Button>
-                            <Button Content="Percentage" Command="{Binding SelectPercentageDiscountCommand}" MinHeight="30">
+                            <Button Command="{Binding SelectPercentageDiscountCommand}" MinHeight="30">
                                 <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsPercentageDiscountMode}" Value="True"><Setter Property="Background" Value="{StaticResource PrimaryBrush}"/><Setter Property="Foreground" Value="White"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                <TextBlock Text="Percentage" Style="{StaticResource ButtonLabelTextStyle}"/>
                             </Button>
                         </UniformGrid>
                         <Grid Margin="0,0,0,6"><TextBox Text="{Binding DiscountInput, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right" Padding="8,5,58,5"/><TextBlock Text="{Binding DiscountUnitLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0" Style="{StaticResource SecondaryTextBlockStyle}" IsHitTestVisible="False"/></Grid>
@@ -164,7 +166,7 @@
                         </UniformGrid>
                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <Button Content="Reset" Command="{Binding ResetDiscountCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="8,3"/>
-                            <Button Grid.Column="2" Content="Apply discount" Command="{Binding ApplySelectedDiscountCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" Padding="8,3"/>
+                            <Button Grid.Column="2" Command="{Binding ApplySelectedDiscountCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" Padding="8,3"><TextBlock Text="Apply discount" Style="{StaticResource ButtonLabelTextStyle}"/></Button>
                         </Grid>
                         <TextBlock Text="{Binding DiscountErrorMessage}" Foreground="{StaticResource DangerBrush}" FontSize="11" Margin="0,3,0,0"/>
                     </StackPanel>
@@ -174,7 +176,7 @@
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,18"><Path Data="{StaticResource IconCardGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Payment Method" FontSize="16" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
                         <Button Command="{Binding StartCardPaymentCommand}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="54" Margin="0,0,0,10"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCardGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,10,0"/><TextBlock Text="Credit Card"/></StackPanel></Button>
-                        <Button Command="{Binding OpenCashTenderCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" MinHeight="54"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCashGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" Margin="0,0,10,0"/><TextBlock Text="Cash" Foreground="White"/></StackPanel></Button>
+                        <Button Command="{Binding OpenCashTenderCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" MinHeight="54"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCashGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" Margin="0,0,10,0"/><TextBlock Text="Cash" Style="{StaticResource ButtonLabelTextStyle}"/></StackPanel></Button>
                     </StackPanel>
                     </Border>
                 </Grid>
