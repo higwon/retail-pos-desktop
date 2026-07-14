@@ -80,14 +80,34 @@ public sealed class RecoverablePaymentStartServiceTests
     {
         var repository = new RecordingPendingCheckoutRepository();
         var terminal = new StubPaymentTerminal(Approved());
-        var cash = new StubCashPaymentProcessor(Approved());
+        var cash = new StubCashPaymentProcessor(ApprovedCash(5000m, 1400m));
 
         var result = await Service(repository, terminal, cash)
-            .StartAsync(Cart(), PaymentMethod.Cash);
+            .StartCashAsync(Cart(), 5000m);
 
         Assert.Null(terminal.Request);
         Assert.Equal(PendingCheckoutId, cash.Request?.PaymentAttemptId);
+        Assert.Equal(5000m, cash.Request?.TenderedAmount);
         Assert.True(result.IsApproved);
+        Assert.Equal(5000m, result.CashTenderedAmount);
+        Assert.Equal(1400m, result.ChangeAmount);
+        Assert.Equal(5000m, repository.Saved[0].CashTenderedAmount);
+        Assert.Equal(1400m, repository.Saved[0].ChangeAmount);
+        Assert.Contains("\"cashTenderedAmount\":5000", repository.Saved[0].PaymentSnapshotJson);
+        Assert.Equal(5000m, repository.Saved[1].CashTenderedAmount);
+        Assert.Equal(1400m, repository.Saved[1].ChangeAmount);
+    }
+
+    [Fact]
+    public async Task StartCashAsync_RejectsInvalidTenderBeforePersistingAttempt()
+    {
+        var repository = new RecordingPendingCheckoutRepository();
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            Service(repository, new StubPaymentTerminal(Approved()))
+                .StartCashAsync(Cart(), 3599m));
+
+        Assert.Empty(repository.Saved);
     }
 
     [Fact]
@@ -200,6 +220,10 @@ public sealed class RecoverablePaymentStartServiceTests
 
     private static PaymentAuthorizationResult Approved() => new(
         PaymentStatus.Approved, 3600m, 3600m, "APP-1", "TERM-1", ApprovedAtUtc, null);
+
+    private static PaymentAuthorizationResult ApprovedCash(decimal tenderedAmount, decimal changeAmount) => new(
+        PaymentStatus.Approved, 3600m, 3600m, "APP-1", "CASH-1", ApprovedAtUtc, null,
+        tenderedAmount, changeAmount);
 
     private static PaymentAuthorizationResult Failed() => new(
         PaymentStatus.Failed, 3600m, null, null, null, null, "Payment was declined.");

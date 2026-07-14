@@ -470,8 +470,8 @@ public sealed partial class CartPanelViewModel : ObservableObject, IDisposable
 
         try
         {
-            var execution = await _paymentCoordinator.ExecuteAsync(
-                PaymentMethod.Cash,
+            var execution = await _paymentCoordinator.ExecuteCashAsync(
+                CashReceivedAmount,
                 cancellationToken);
             if (cancellationToken.IsCancellationRequested || _disposed)
             {

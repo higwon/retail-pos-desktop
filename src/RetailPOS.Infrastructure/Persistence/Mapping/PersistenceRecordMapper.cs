@@ -19,6 +19,8 @@ internal static class PersistenceRecordMapper
         PaymentStatus = (int)record.PaymentStatus,
         ApprovalCode = record.ApprovalCode,
         ApprovedAmount = record.ApprovedAmount,
+        CashTenderedAmount = record.CashTenderedAmount,
+        ChangeAmount = record.ChangeAmount,
         TransactionReference = record.TransactionReference,
         PaymentApprovedAtUtc = UtcTime.ToStorage(record.PaymentApprovedAtUtc, nameof(record.PaymentApprovedAtUtc)),
         OrderId = record.OrderId,
@@ -42,7 +44,9 @@ internal static class PersistenceRecordMapper
         UtcTime.FromStorage(entity.PaymentApprovedAtUtc),
         entity.OrderId,
         UtcTime.FromStorage(entity.CompletedAtUtc),
-        UtcTime.FromStorage(entity.LastUpdatedAtUtc));
+        UtcTime.FromStorage(entity.LastUpdatedAtUtc),
+        entity.CashTenderedAmount,
+        entity.ChangeAmount);
 
     public static SyncQueueEntity ToEntity(this SyncQueueRecord record) => new()
     {

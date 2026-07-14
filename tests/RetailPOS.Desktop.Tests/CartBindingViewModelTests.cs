@@ -282,6 +282,7 @@ public sealed class CartBindingViewModelTests
 
         Assert.Equal(1, coordinator.ExecutionCount);
         Assert.Equal(PaymentMethod.Cash, coordinator.Method);
+        Assert.Equal(2000m, coordinator.CashTenderedAmount);
         Assert.Equal(1, completions);
         Assert.Equal(0m, session.Snapshot.Total);
     }
@@ -344,6 +345,7 @@ public sealed class CartBindingViewModelTests
     {
         public int ExecutionCount { get; private set; }
         public PaymentMethod? Method { get; private set; }
+        public decimal? CashTenderedAmount { get; private set; }
 
         public Task<CheckoutPaymentExecutionResult> ExecuteAsync(
             PaymentMethod method,
@@ -366,6 +368,14 @@ public sealed class CartBindingViewModelTests
                 DateTimeOffset.UtcNow,
                 null);
             return Task.FromResult(new CheckoutPaymentExecutionResult(payment, $"{method} payment approved."));
+        }
+
+        public Task<CheckoutPaymentExecutionResult> ExecuteCashAsync(
+            decimal tenderedAmount,
+            CancellationToken cancellationToken = default)
+        {
+            CashTenderedAmount = tenderedAmount;
+            return ExecuteAsync(PaymentMethod.Cash, cancellationToken);
         }
 
         public void CancelActivePayment()

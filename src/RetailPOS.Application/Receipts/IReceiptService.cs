@@ -39,7 +39,9 @@ public sealed record ReceiptPreviewLine(
 public sealed record ReceiptPreviewPayment(
     PaymentMethod Method,
     decimal Amount,
-    string? ApprovalCode);
+    string? ApprovalCode,
+    decimal? CashTenderedAmount = null,
+    decimal? ChangeAmount = null);
 
 public sealed class ReceiptService(
     IOrderRepository orderRepository,
@@ -82,7 +84,9 @@ public sealed class ReceiptService(
             approvedPayments.Select(payment => new ReceiptPaymentSummary(
                 payment.Method,
                 payment.ApprovedAmount!.Value,
-                payment.ApprovalCode)));
+                payment.ApprovalCode,
+                payment.CashTenderedAmount,
+                payment.ChangeAmount)));
 
         return ToPreview(receipt, order.BusinessDate);
     }
@@ -99,7 +103,9 @@ public sealed class ReceiptService(
         var payments = receipt.Payments.Select(payment => new ReceiptPreviewPayment(
             payment.Method,
             payment.Amount,
-            payment.ApprovalCode)).ToArray();
+            payment.ApprovalCode,
+            payment.CashTenderedAmount,
+            payment.ChangeAmount)).ToArray();
 
         return new ReceiptPreview(
             receipt.StoreName,
@@ -185,6 +191,11 @@ internal static class ReceiptTextFormatter
         {
             var approval = payment.ApprovalCode is null ? string.Empty : $" ({payment.ApprovalCode})";
             lines.Add($"{payment.Method} {payment.Amount:N0}{approval}");
+            if (payment.CashTenderedAmount is not null)
+            {
+                lines.Add($"  Tendered {payment.CashTenderedAmount:N0}");
+                lines.Add($"  Change {payment.ChangeAmount:N0}");
+            }
         }
 
         lines.Add("Thank you for shopping with us.");

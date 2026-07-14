@@ -9,6 +9,8 @@ public sealed class PaymentEntity
     public int Status { get; set; }
     public decimal RequestedAmount { get; set; }
     public decimal? ApprovedAmount { get; set; }
+    public decimal? CashTenderedAmount { get; set; }
+    public decimal? ChangeAmount { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? ApprovedAtUtc { get; set; }
     public string? ApprovalCode { get; set; }

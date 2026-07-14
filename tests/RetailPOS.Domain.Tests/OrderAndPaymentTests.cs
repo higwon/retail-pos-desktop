@@ -43,6 +43,8 @@ public sealed class OrderAndPaymentTests
         Assert.Equal(PaymentStatus.Approved, payment.Status);
         Assert.Equal(9_000m, payment.ApprovedAmount);
         Assert.Equal("APPROVED-001", payment.ApprovalCode);
+        Assert.Null(payment.CashTenderedAmount);
+        Assert.Null(payment.ChangeAmount);
         Assert.Throws<InvalidOperationException>(() => payment.Cancel());
     }
 
@@ -53,6 +55,31 @@ public sealed class OrderAndPaymentTests
 
         Assert.Throws<ArgumentException>(() => payment.Fail(" "));
         Assert.Equal(PaymentStatus.Pending, payment.Status);
+    }
+
+    [Fact]
+    public void CashPayment_CapturesTenderAndChange()
+    {
+        var payment = new Payment(Guid.NewGuid(), PaymentMethod.Cash, 9_000m, DateTimeOffset.UtcNow);
+
+        payment.Approve(9_000m, DateTimeOffset.UtcNow, cashTenderedAmount: 10_000m, changeAmount: 1_000m);
+
+        Assert.Equal(10_000m, payment.CashTenderedAmount);
+        Assert.Equal(1_000m, payment.ChangeAmount);
+    }
+
+    [Fact]
+    public void Payment_RejectsInvalidCashMetadata()
+    {
+        var cash = new Payment(Guid.NewGuid(), PaymentMethod.Cash, 9_000m, DateTimeOffset.UtcNow);
+        var card = new Payment(Guid.NewGuid(), PaymentMethod.Card, 9_000m, DateTimeOffset.UtcNow);
+
+        Assert.Throws<ArgumentException>(() =>
+            cash.Approve(9_000m, DateTimeOffset.UtcNow, cashTenderedAmount: 10_000m, changeAmount: 500m));
+        Assert.Throws<ArgumentException>(() =>
+            card.Approve(9_000m, DateTimeOffset.UtcNow, cashTenderedAmount: 9_000m, changeAmount: 0m));
+        Assert.Equal(PaymentStatus.Pending, cash.Status);
+        Assert.Equal(PaymentStatus.Pending, card.Status);
     }
 
     [Fact]

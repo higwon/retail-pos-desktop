@@ -134,6 +134,66 @@ public sealed class OrderUploadRequestTests
     }
 
     [Fact]
+    public void Validate_AcceptsConsistentCashTenderMetadata()
+    {
+        var request = ValidRequest() with
+        {
+            Payments =
+            [
+                new OrderUploadPaymentRequest(
+                    "Cash", 9000m, "APP-CASH", "CASH-001",
+                    new DateTimeOffset(2026, 7, 8, 1, 1, 0, TimeSpan.Zero),
+                    10000m, 1000m)
+            ]
+        };
+
+        var result = request.Validate();
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData("Cash", 10000, 500)]
+    [InlineData("Cash", 8000, 0)]
+    [InlineData("Card", 9000, 0)]
+    public void Validate_RejectsInvalidCashTenderMetadata(
+        string method,
+        decimal tenderedAmount,
+        decimal changeAmount)
+    {
+        var request = ValidRequest() with
+        {
+            Payments =
+            [
+                new OrderUploadPaymentRequest(
+                    method, 9000m, "APP-001", "TX-001",
+                    new DateTimeOffset(2026, 7, 8, 1, 1, 0, TimeSpan.Zero),
+                    tenderedAmount, changeAmount)
+            ]
+        };
+
+        var result = request.Validate();
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_AcceptsLegacyCashPayloadWithoutTenderMetadata()
+    {
+        var request = ValidRequest() with
+        {
+            Payments =
+            [
+                new OrderUploadPaymentRequest(
+                    "Cash", 9000m, "APP-CASH", "CASH-001",
+                    new DateTimeOffset(2026, 7, 8, 1, 1, 0, TimeSpan.Zero))
+            ]
+        };
+
+        Assert.True(request.Validate().Succeeded);
+    }
+
+    [Fact]
     public async Task IdempotentOrderUploadHandler_ReturnsExistingResponseForDuplicateOrder()
     {
         var request = ValidRequest();

@@ -11,6 +11,11 @@ public interface ICheckoutPaymentCoordinator
         PaymentMethod method,
         CancellationToken cancellationToken = default);
 
+    Task<CheckoutPaymentExecutionResult> ExecuteCashAsync(
+        decimal tenderedAmount,
+        CancellationToken cancellationToken = default) =>
+        ExecuteAsync(PaymentMethod.Cash, cancellationToken);
+
     void CancelActivePayment();
 }
 
@@ -26,9 +31,20 @@ public sealed class CheckoutPaymentCoordinator(
     private readonly object _cancellationSync = new();
     private CancellationTokenSource? _activeCancellation;
 
-    public async Task<CheckoutPaymentExecutionResult> ExecuteAsync(
+    public Task<CheckoutPaymentExecutionResult> ExecuteAsync(
         PaymentMethod method,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        ExecuteCoreAsync(method, null, cancellationToken);
+
+    public Task<CheckoutPaymentExecutionResult> ExecuteCashAsync(
+        decimal tenderedAmount,
+        CancellationToken cancellationToken = default) =>
+        ExecuteCoreAsync(PaymentMethod.Cash, tenderedAmount, cancellationToken);
+
+    private async Task<CheckoutPaymentExecutionResult> ExecuteCoreAsync(
+        PaymentMethod method,
+        decimal? cashTenderedAmount,
+        CancellationToken cancellationToken)
     {
         if (Interlocked.CompareExchange(ref _isExecuting, 1, 0) != 0)
         {
@@ -47,10 +63,15 @@ public sealed class CheckoutPaymentCoordinator(
             var activeToken = linkedCancellation.Token;
             var amountDue = checkoutSession.Snapshot.Total;
             displayState.ShowPaymentWaiting(method, amountDue);
-            var result = await paymentStartService.StartAsync(
-                checkoutSession.Snapshot,
-                method,
-                activeToken);
+            var result = method == PaymentMethod.Cash && cashTenderedAmount is not null
+                ? await paymentStartService.StartCashAsync(
+                    checkoutSession.Snapshot,
+                    cashTenderedAmount.Value,
+                    activeToken)
+                : await paymentStartService.StartAsync(
+                    checkoutSession.Snapshot,
+                    method,
+                    activeToken);
             activeToken.ThrowIfCancellationRequested();
 
             string? successMessage = null;

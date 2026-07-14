@@ -150,7 +150,9 @@ public sealed class OrderCompletionService(
             checkout.ApprovedAmount!.Value,
             checkout.PaymentApprovedAtUtc!.Value,
             checkout.ApprovalCode,
-            checkout.TransactionReference);
+            checkout.TransactionReference,
+            checkout.CashTenderedAmount,
+            checkout.ChangeAmount);
 
         return new Order(
             checkout.OrderId!.Value,
@@ -242,7 +244,9 @@ public sealed class OrderCompletionService(
         string? ApprovalCode,
         string? TransactionReference,
         DateTimeOffset? ApprovedAtUtc,
-        string? FailureMessage);
+        string? FailureMessage,
+        decimal? CashTenderedAmount = null,
+        decimal? ChangeAmount = null);
 
 }
 

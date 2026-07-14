@@ -25,4 +25,17 @@ public sealed class ReceiptTests
             "Cashier A", "Register 01", DateTimeOffset.UtcNow,
             [new ReceiptLine("Product", 10_000m, 1)],
             [new ReceiptPaymentSummary(PaymentMethod.Cash, 9_000m)]));
+
+    [Fact]
+    public void CashPaymentSummary_CapturesTenderAndChange()
+    {
+        var payment = new ReceiptPaymentSummary(
+            PaymentMethod.Cash,
+            9_000m,
+            cashTenderedAmount: 10_000m,
+            changeAmount: 1_000m);
+
+        Assert.Equal(10_000m, payment.CashTenderedAmount);
+        Assert.Equal(1_000m, payment.ChangeAmount);
+    }
 }

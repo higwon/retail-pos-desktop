@@ -182,4 +182,7 @@ public sealed class ReceiptPaymentViewModel(ReceiptPreviewPayment payment)
     public string MethodText => payment.Method.ToString();
     public string AmountText => $"{payment.Amount:N0} KRW";
     public string ApprovalCodeText => payment.ApprovalCode ?? "-";
+    public bool HasCashTenderDetails => payment.CashTenderedAmount is not null;
+    public string CashTenderedText => $"Tendered {payment.CashTenderedAmount:N0} KRW";
+    public string ChangeText => $"Change {payment.ChangeAmount:N0} KRW";
 }

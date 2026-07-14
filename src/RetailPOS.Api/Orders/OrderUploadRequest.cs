@@ -135,6 +135,7 @@ public sealed record OrderUploadRequest(
             RequireText(errors, payment.PaymentMethod, $"{prefix}.{nameof(payment.PaymentMethod)}");
             ValidateMoney(errors, payment.ApprovedAmount, $"{prefix}.{nameof(payment.ApprovedAmount)}");
             RequireText(errors, payment.ApprovalCode, $"{prefix}.{nameof(payment.ApprovalCode)}");
+            ValidateCashMetadata(errors, payment, prefix);
 
             if (payment.ApprovedAtUtc == default)
             {
@@ -153,6 +154,52 @@ public sealed record OrderUploadRequest(
         if (paymentTotal != TotalAmount)
         {
             errors[nameof(Payments)] = ["approved payment total must equal totalAmount."];
+        }
+    }
+
+    private static void ValidateCashMetadata(
+        IDictionary<string, string[]> errors,
+        OrderUploadPaymentRequest payment,
+        string prefix)
+    {
+        var isCash = string.Equals(payment.PaymentMethod, "Cash", StringComparison.OrdinalIgnoreCase);
+        if (!isCash)
+        {
+            if (payment.CashTenderedAmount is not null || payment.ChangeAmount is not null)
+            {
+                errors[$"{prefix}.{nameof(payment.CashTenderedAmount)}"] =
+                    ["cash tender metadata is only valid for cash payments."];
+            }
+
+            return;
+        }
+
+        // Both null accepts queued payloads created before schema v1 gained optional cash metadata.
+        if (payment.CashTenderedAmount is null && payment.ChangeAmount is null)
+        {
+            return;
+        }
+
+        if (payment.CashTenderedAmount is null || payment.ChangeAmount is null)
+        {
+            errors[$"{prefix}.{nameof(payment.CashTenderedAmount)}"] =
+                ["cashTenderedAmount and changeAmount must be provided together."];
+            return;
+        }
+
+        ValidateMoney(
+            errors,
+            payment.CashTenderedAmount.Value,
+            $"{prefix}.{nameof(payment.CashTenderedAmount)}");
+        ValidateMoney(
+            errors,
+            payment.ChangeAmount.Value,
+            $"{prefix}.{nameof(payment.ChangeAmount)}");
+        if (payment.CashTenderedAmount < payment.ApprovedAmount ||
+            payment.ChangeAmount != payment.CashTenderedAmount - payment.ApprovedAmount)
+        {
+            errors[$"{prefix}.{nameof(payment.ChangeAmount)}"] =
+                ["changeAmount must equal cashTenderedAmount minus approvedAmount."];
         }
     }
 
@@ -206,7 +253,9 @@ public sealed record OrderUploadPaymentRequest(
     decimal ApprovedAmount,
     string ApprovalCode,
     string? TransactionReference,
-    DateTimeOffset ApprovedAtUtc);
+    DateTimeOffset ApprovedAtUtc,
+    decimal? CashTenderedAmount = null,
+    decimal? ChangeAmount = null);
 
 public sealed class OrderUploadValidationResult
 {

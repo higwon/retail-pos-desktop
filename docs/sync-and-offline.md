@@ -32,6 +32,10 @@ Local SQLite stores:
 - Sync queue items.
 - Product sync metadata.
 
+Cash payment rows and recoverable pending checkouts store optional tendered and change
+amounts. New cash sales persist both values before order completion; rows created before
+the POS-907 migration retain `null` for both fields and remain readable.
+
 ## Checkout Recovery
 
 `PendingCheckout` is persisted before payment approval.
