@@ -232,6 +232,12 @@ RetailPOS
 - [UI Guide](docs/ui-guide.md)
 - [Roadmap](docs/roadmap.md)
 
+## UI Reference
+
+The [Figma design](https://www.figma.com/design/G71mpke3GSKytIXRqsjD8D/Retail-POS-UI)
+remains the primary visual reference for WPF implementation. See the
+[UI Guide](docs/ui-guide.md) for repository-specific mapping rules.
+
 ## Scope and Limitations
 
 This is a production-shaped portfolio demonstration, not production retail software.
