@@ -110,10 +110,10 @@ public sealed partial class PosMainViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            HasSyncReview = snapshot.ReviewCount > 0;
+            HasSyncReview = snapshot.ReviewRequiredCount > 0;
             var pendingSyncCount = snapshot.PendingCount + snapshot.RetryCount;
-            SyncSummaryText = snapshot.ReviewCount > 0
-                ? SyncReviewText(snapshot.ReviewCount)
+            SyncSummaryText = snapshot.ReviewRequiredCount > 0
+                ? SyncReviewText(snapshot.ReviewRequiredCount)
                 : pendingSyncCount > 0
                     ? $"Recent {SyncItemText(pendingSyncCount)} pending"
                     : "Recent sync queue clear";

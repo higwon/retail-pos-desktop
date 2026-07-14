@@ -154,10 +154,9 @@ public sealed partial class DashboardViewModel : ObservableObject
 
     private void ApplySync(SyncStatusSnapshot sync)
     {
-        var exhaustedCount = SyncReviewRequiredCount(sync);
         PendingSyncText = $"{sync.PendingCount:N0} pending";
         RetrySyncText = $"{sync.RetryCount:N0} retrying";
-        SyncReviewText = $"{exhaustedCount:N0} need review";
+        SyncReviewText = $"{sync.ReviewRequiredCount:N0} need review";
     }
 
     private void ApplyRecovery(int recoverableCount)
@@ -179,7 +178,7 @@ public sealed partial class DashboardViewModel : ObservableObject
 
     private void ApplyAttention(SyncStatusSnapshot sync, int recoverableCount)
     {
-        var exhaustedCount = SyncReviewRequiredCount(sync);
+        var exhaustedCount = sync.ReviewRequiredCount;
         var workCount = sync.PendingCount + sync.RetryCount + exhaustedCount + recoverableCount;
         DashboardStatusText = _connectivityStateStore.Current.Status switch
         {
@@ -244,9 +243,6 @@ public sealed partial class DashboardViewModel : ObservableObject
         AttentionDetail = "Orders, sync queue, and recovery records are clear.";
         AttentionBackground = "#FFECFDF3";
     }
-
-    private static int SyncReviewRequiredCount(SyncStatusSnapshot sync) =>
-        sync.Items.Count(item => item.Status == SyncQueueStatus.Exhausted);
 
     private DateTimeOffset UtcNow()
     {
