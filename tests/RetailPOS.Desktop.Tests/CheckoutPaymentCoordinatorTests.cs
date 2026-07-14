@@ -21,17 +21,21 @@ public sealed class CheckoutPaymentCoordinatorTests
         var receipts = new StubReceiptService();
         var receiptState = new ReceiptPreviewState();
         var display = new CheckoutDisplayState();
+        var paymentStart = new StubPaymentStartService(ApprovedCash());
         var coordinator = new CheckoutPaymentCoordinator(
             session,
-            new StubPaymentStartService(Approved(PaymentMethod.Cash)),
+            paymentStart,
             completion,
             receipts,
             receiptState,
             display);
 
-        var execution = await coordinator.ExecuteAsync(PaymentMethod.Cash);
+        var execution = await coordinator.ExecuteCashAsync(5000m);
 
         Assert.True(execution.Payment.IsApproved);
+        Assert.Equal(5000m, execution.Payment.CashTenderedAmount);
+        Assert.Equal(1400m, execution.Payment.ChangeAmount);
+        Assert.Equal(5000m, paymentStart.CashTenderedAmount);
         Assert.NotNull(completion.CompletedPendingCheckoutId);
         Assert.NotNull(receipts.GeneratedForOrderId);
         Assert.True(receiptState.HasReceipt);
@@ -165,6 +169,11 @@ public sealed class CheckoutPaymentCoordinatorTests
         PaymentStatus.Approved, method, 3600m, 3600m,
         "APP-1", "TX-1", ApprovedAtUtc, null);
 
+    private static RecoverablePaymentStartResult ApprovedCash() => new(
+        Guid.NewGuid(), Guid.NewGuid(), PendingCheckoutStatus.ApprovedButOrderNotCreated,
+        PaymentStatus.Approved, PaymentMethod.Cash, 3600m, 3600m,
+        "APP-CASH", "CASH-1", ApprovedAtUtc, null, 5000m, 1400m);
+
     private static RecoverablePaymentStartResult Failed() => new(
         Guid.NewGuid(), null, PendingCheckoutStatus.PaymentFailed,
         PaymentStatus.Failed, PaymentMethod.Card, 3600m, null,
@@ -173,11 +182,22 @@ public sealed class CheckoutPaymentCoordinatorTests
     private sealed class StubPaymentStartService(RecoverablePaymentStartResult result)
         : IRecoverablePaymentStartService
     {
+        public decimal? CashTenderedAmount { get; private set; }
+
         public Task<RecoverablePaymentStartResult> StartAsync(
             CartSnapshot cart,
             PaymentMethod method,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(result);
+
+        public Task<RecoverablePaymentStartResult> StartCashAsync(
+            CartSnapshot cart,
+            decimal tenderedAmount,
+            CancellationToken cancellationToken = default)
+        {
+            CashTenderedAmount = tenderedAmount;
+            return Task.FromResult(result);
+        }
     }
 
     private sealed class BlockingPaymentStartService : IRecoverablePaymentStartService

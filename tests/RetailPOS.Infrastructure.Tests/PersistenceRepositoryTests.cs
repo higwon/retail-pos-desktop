@@ -315,6 +315,34 @@ public sealed class PersistenceRepositoryTests
     }
 
     [Fact]
+    public async Task OrderRepository_RoundTripsCashTenderMetadata()
+    {
+        await using var harness = await PersistenceHarness.CreateAsync();
+        var repository = harness.Services.GetRequiredService<IOrderRepository>();
+        var createdAt = new DateTimeOffset(2026, 7, 14, 1, 0, 0, TimeSpan.Zero);
+        var payment = new Payment(Guid.NewGuid(), PaymentMethod.Cash, 3800m, createdAt);
+        payment.Approve(
+            3800m,
+            createdAt.AddSeconds(5),
+            "APP-CASH",
+            "CASH-001",
+            5000m,
+            1200m);
+        var order = new Order(
+            Guid.NewGuid(), "LOCAL-CASH-001", Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            new DateOnly(2026, 7, 14), createdAt,
+            [new OrderLine(Guid.NewGuid(), "Cash Product", 3800m, 1)],
+            [payment]);
+
+        await repository.SaveAsync(order);
+        var restored = await repository.GetByIdAsync(order.LocalOrderId);
+
+        var restoredPayment = Assert.Single(Assert.IsType<Order>(restored).Payments);
+        Assert.Equal(5000m, restoredPayment.CashTenderedAmount);
+        Assert.Equal(1200m, restoredPayment.ChangeAmount);
+    }
+
+    [Fact]
     public async Task PendingCheckoutRepository_SavesReadsAndCompletesRecoveryRecord()
     {
         await using var harness = await PersistenceHarness.CreateAsync();
@@ -323,8 +351,9 @@ public sealed class PersistenceRepositoryTests
         var checkout = new PendingCheckoutRecord(
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), now,
             PendingCheckoutStatus.ApprovedButOrderNotCreated,
-            "{\"items\":[]}", "{\"method\":\"Card\"}", PaymentStatus.Approved,
-            "APP-002", 5000m, "TX-002", now.AddMinutes(1), null, null, now.AddMinutes(1));
+            "{\"items\":[]}", "{\"method\":\"Cash\"}", PaymentStatus.Approved,
+            "APP-002", 5000m, "TX-002", now.AddMinutes(1), null, null, now.AddMinutes(1),
+            10000m, 5000m);
 
         await repository.SaveAsync(checkout);
         Assert.Single(await repository.GetUnresolvedAsync());
@@ -337,6 +366,8 @@ public sealed class PersistenceRepositoryTests
         Assert.Equal(PendingCheckoutStatus.Completed, completed.RecoveryStatus);
         Assert.Equal(orderId, completed.OrderId);
         Assert.Equal("TX-002", completed.TransactionReference);
+        Assert.Equal(10000m, completed.CashTenderedAmount);
+        Assert.Equal(5000m, completed.ChangeAmount);
         Assert.Empty(await repository.GetUnresolvedAsync());
     }
 

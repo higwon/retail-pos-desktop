@@ -65,6 +65,8 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<PaymentEntit
         builder.HasIndex(payment => new { payment.LocalOrderId, payment.SortOrder }).IsUnique();
         builder.Property(payment => payment.RequestedAmount).HasPrecision(18, 0);
         builder.Property(payment => payment.ApprovedAmount).HasPrecision(18, 0);
+        builder.Property(payment => payment.CashTenderedAmount).HasPrecision(18, 0);
+        builder.Property(payment => payment.ChangeAmount).HasPrecision(18, 0);
         builder.Property(payment => payment.ApprovalCode).HasMaxLength(100);
         builder.Property(payment => payment.TransactionReference).HasMaxLength(200);
         builder.Property(payment => payment.FailureReason).HasMaxLength(500);
@@ -83,6 +85,8 @@ public sealed class PendingCheckoutConfiguration : IEntityTypeConfiguration<Pend
         builder.HasKey(checkout => checkout.Id);
         builder.HasIndex(checkout => new { checkout.RecoveryStatus, checkout.CreatedAtUtc });
         builder.Property(checkout => checkout.ApprovedAmount).HasPrecision(18, 0);
+        builder.Property(checkout => checkout.CashTenderedAmount).HasPrecision(18, 0);
+        builder.Property(checkout => checkout.ChangeAmount).HasPrecision(18, 0);
         builder.Property(checkout => checkout.ApprovalCode).HasMaxLength(100);
         builder.Property(checkout => checkout.TransactionReference).HasMaxLength(200);
     }

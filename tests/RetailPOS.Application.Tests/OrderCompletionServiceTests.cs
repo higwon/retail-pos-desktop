@@ -74,6 +74,35 @@ public sealed class OrderCompletionServiceTests
     }
 
     [Fact]
+    public async Task CompleteAsync_CarriesCashTenderMetadataIntoOrderAndSyncPayload()
+    {
+        var checkout = ApprovedCheckout() with
+        {
+            PaymentSnapshotJson =
+                """{"method":"Cash","requestedAmount":3400,"status":"Approved","approvedAmount":3400,"approvalCode":"APP-CASH","transactionReference":"CASH-001","approvedAtUtc":"2026-07-07T01:00:05+00:00","failureMessage":null,"cashTenderedAmount":5000,"changeAmount":1600}""",
+            ApprovalCode = "APP-CASH",
+            TransactionReference = "CASH-001",
+            CashTenderedAmount = 5000m,
+            ChangeAmount = 1600m
+        };
+        var pending = new RecordingPendingCheckoutRepository(checkout);
+        var orders = new RecordingOrderRepository();
+        var queue = new RecordingSyncQueueRepository();
+
+        await Service(pending, orders, queue, new RecordingLocalTransaction())
+            .CompleteAsync(PendingCheckoutId);
+
+        var payment = Assert.Single(Assert.Single(orders.Saved).Payments);
+        Assert.Equal(PaymentMethod.Cash, payment.Method);
+        Assert.Equal(5000m, payment.CashTenderedAmount);
+        Assert.Equal(1600m, payment.ChangeAmount);
+        using var payload = Payload(Assert.Single(queue.Items));
+        var uploadedPayment = Assert.Single(payload.RootElement.GetProperty("payments").EnumerateArray());
+        Assert.Equal(5000m, uploadedPayment.GetProperty("cashTenderedAmount").GetDecimal());
+        Assert.Equal(1600m, uploadedPayment.GetProperty("changeAmount").GetDecimal());
+    }
+
+    [Fact]
     public async Task CompleteAsync_IsIdempotentWhenOrderAlreadyExists()
     {
         var pending = new RecordingPendingCheckoutRepository(ApprovedCheckout());

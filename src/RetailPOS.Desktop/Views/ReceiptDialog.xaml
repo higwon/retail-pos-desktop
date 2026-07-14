@@ -5,6 +5,9 @@
         WindowStartupLocation="CenterOwner" Background="{StaticResource AppBackgroundBrush}"
         KeyboardNavigation.TabNavigation="Cycle"
         AutomationProperties.Name="Receipt preview">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </Window.Resources>
     <Grid Margin="32">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -141,6 +144,11 @@
                                                    Style="{StaticResource SecondaryTextBlockStyle}"
                                                    TextWrapping="Wrap"
                                                    Margin="0,2,0,0"/>
+                                        <StackPanel Margin="0,4,0,0"
+                                                    Visibility="{Binding HasCashTenderDetails, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <TextBlock Text="{Binding CashTenderedText}" Style="{StaticResource SecondaryTextBlockStyle}"/>
+                                            <TextBlock Text="{Binding ChangeText}" Style="{StaticResource SecondaryTextBlockStyle}"/>
+                                        </StackPanel>
                                     </StackPanel>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding AmountText}"

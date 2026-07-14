@@ -11,7 +11,8 @@ public interface ICashPaymentProcessor
 
 public sealed record CashPaymentRequest(
     Guid PaymentAttemptId,
-    decimal Amount);
+    decimal AmountDue,
+    decimal TenderedAmount);
 
 public sealed class LocalCashPaymentProcessor(TimeProvider timeProvider) : ICashPaymentProcessor
 {
@@ -20,32 +21,42 @@ public sealed class LocalCashPaymentProcessor(TimeProvider timeProvider) : ICash
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        Validate(request.PaymentAttemptId, request.Amount);
+        Validate(request.PaymentAttemptId, request.AmountDue, request.TenderedAmount);
         var approvedAtUtc = timeProvider.GetUtcNow();
-        var amountCode = decimal.ToInt64(request.Amount).ToString("000000000000");
+        var amountCode = decimal.ToInt64(request.AmountDue).ToString("000000000000");
+        var changeAmount = request.TenderedAmount - request.AmountDue;
 
         return Task.FromResult(new PaymentAuthorizationResult(
             PaymentStatus.Approved,
-            request.Amount,
-            request.Amount,
+            request.AmountDue,
+            request.AmountDue,
             $"APP-CASH-{amountCode}",
             $"CASH-{request.PaymentAttemptId:N}",
             approvedAtUtc,
-            null));
+            null,
+            request.TenderedAmount,
+            changeAmount));
     }
 
-    private static void Validate(Guid paymentAttemptId, decimal amount)
+    private static void Validate(Guid paymentAttemptId, decimal amountDue, decimal tenderedAmount)
     {
         if (paymentAttemptId == Guid.Empty)
         {
             throw new ArgumentException("Payment attempt identity is required.", nameof(paymentAttemptId));
         }
 
-        if (amount <= 0m || decimal.Truncate(amount) != amount)
+        if (amountDue <= 0m || decimal.Truncate(amountDue) != amountDue)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(amount),
+                nameof(amountDue),
                 "Cash payment amount must be a positive whole-KRW value.");
+        }
+
+        if (tenderedAmount < amountDue || decimal.Truncate(tenderedAmount) != tenderedAmount)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(tenderedAmount),
+                "Cash tendered amount must be a whole-KRW value at least equal to the amount due.");
         }
     }
 }

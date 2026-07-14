@@ -12,6 +12,12 @@ public interface IRecoverablePaymentStartService
         CartSnapshot cart,
         PaymentMethod method,
         CancellationToken cancellationToken = default);
+
+    Task<RecoverablePaymentStartResult> StartCashAsync(
+        CartSnapshot cart,
+        decimal tenderedAmount,
+        CancellationToken cancellationToken = default) =>
+        StartAsync(cart, PaymentMethod.Cash, cancellationToken);
 }
 
 public sealed class RecoverablePaymentStartService(
@@ -41,7 +47,31 @@ public sealed class RecoverablePaymentStartService(
 
         try
         {
-            return await StartCoreAsync(cart, method, cancellationToken);
+            return await StartCoreAsync(
+                cart,
+                method,
+                method == PaymentMethod.Cash ? cart.Total : null,
+                cancellationToken);
+        }
+        finally
+        {
+            _startGate.Release();
+        }
+    }
+
+    public async Task<RecoverablePaymentStartResult> StartCashAsync(
+        CartSnapshot cart,
+        decimal tenderedAmount,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await _startGate.WaitAsync(0))
+        {
+            throw new InvalidOperationException("A payment attempt is already in progress.");
+        }
+
+        try
+        {
+            return await StartCoreAsync(cart, PaymentMethod.Cash, tenderedAmount, cancellationToken);
         }
         finally
         {
@@ -52,6 +82,7 @@ public sealed class RecoverablePaymentStartService(
     private async Task<RecoverablePaymentStartResult> StartCoreAsync(
         CartSnapshot cart,
         PaymentMethod method,
+        decimal? cashTenderedAmount,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(cart);
@@ -65,6 +96,16 @@ public sealed class RecoverablePaymentStartService(
             throw new ArgumentOutOfRangeException(nameof(method), method, "Unsupported payment method.");
         }
 
+        if (method == PaymentMethod.Card && cashTenderedAmount is not null)
+        {
+            throw new ArgumentException("Card payments cannot include cash tender metadata.");
+        }
+
+        if (method == PaymentMethod.Cash)
+        {
+            ValidateCashTender(cart.Total, cashTenderedAmount);
+        }
+
         var context = checkoutContextProvider.GetCurrent();
         await EnsureNoActivePaymentAsync(context, CancellationToken.None);
 
@@ -74,7 +115,9 @@ public sealed class RecoverablePaymentStartService(
             checkoutId,
             method,
             cart.Total,
-            createdAtUtc);
+            createdAtUtc,
+            cashTenderedAmount,
+            cashTenderedAmount is null ? null : cashTenderedAmount - cart.Total);
         var awaitingPayment = new PendingCheckoutRecord(
             checkoutId,
             context.StoreId,
@@ -91,7 +134,9 @@ public sealed class RecoverablePaymentStartService(
             null,
             null,
             null,
-            createdAtUtc);
+            createdAtUtc,
+            cashTenderedAmount,
+            cashTenderedAmount is null ? null : cashTenderedAmount - cart.Total);
 
         // Once created, payment-attempt state must remain durable even if the caller cancels.
         await pendingCheckoutRepository.SaveAsync(awaitingPayment, CancellationToken.None);
@@ -109,10 +154,11 @@ public sealed class RecoverablePaymentStartService(
                 checkoutId,
                 cart.Total,
                 method,
+                cashTenderedAmount,
                 cancellationToken);
         }
 
-        authorization = Normalize(authorization, cart.Total);
+        authorization = Normalize(authorization, cart.Total, method);
         var updated = authorization.Status switch
         {
             PaymentStatus.Approved => ApprovedRecord(awaitingPayment, method, authorization),
@@ -133,6 +179,7 @@ public sealed class RecoverablePaymentStartService(
         Guid paymentAttemptId,
         decimal amount,
         PaymentMethod method,
+        decimal? cashTenderedAmount,
         CancellationToken cancellationToken)
     {
         try
@@ -143,7 +190,10 @@ public sealed class RecoverablePaymentStartService(
                     new PaymentAuthorizationRequest(paymentAttemptId, amount),
                     cancellationToken),
                 PaymentMethod.Cash => await cashPaymentProcessor.AcceptAsync(
-                    new CashPaymentRequest(paymentAttemptId, amount),
+                    new CashPaymentRequest(
+                        paymentAttemptId,
+                        amount,
+                        cashTenderedAmount ?? amount),
                     cancellationToken),
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(method),
@@ -207,6 +257,8 @@ public sealed class RecoverablePaymentStartService(
             PaymentStatus = PaymentStatus.Approved,
             ApprovalCode = authorization.ApprovalCode,
             ApprovedAmount = authorization.ApprovedAmount,
+            CashTenderedAmount = authorization.CashTenderedAmount,
+            ChangeAmount = authorization.ChangeAmount,
             TransactionReference = authorization.TransactionReference,
             PaymentApprovedAtUtc = approvedAtUtc,
             OrderId = orderId,
@@ -227,6 +279,8 @@ public sealed class RecoverablePaymentStartService(
             PaymentStatus = authorization.Status,
             ApprovalCode = null,
             ApprovedAmount = null,
+            CashTenderedAmount = null,
+            ChangeAmount = null,
             TransactionReference = null,
             PaymentApprovedAtUtc = null,
             OrderId = null,
@@ -247,6 +301,8 @@ public sealed class RecoverablePaymentStartService(
             PaymentStatus = PaymentStatus.Unknown,
             ApprovalCode = null,
             ApprovedAmount = null,
+            CashTenderedAmount = null,
+            ChangeAmount = null,
             TransactionReference = null,
             PaymentApprovedAtUtc = null,
             OrderId = null,
@@ -256,7 +312,8 @@ public sealed class RecoverablePaymentStartService(
 
     private static PaymentAuthorizationResult Normalize(
         PaymentAuthorizationResult result,
-        decimal requestedAmount)
+        decimal requestedAmount,
+        PaymentMethod method)
     {
         if (result.RequestedAmount != requestedAmount)
         {
@@ -269,6 +326,23 @@ public sealed class RecoverablePaymentStartService(
              string.IsNullOrWhiteSpace(result.ApprovalCode)))
         {
             return Unknown(requestedAmount, "Payment approval details were incomplete and require review.");
+        }
+
+        if (method == PaymentMethod.Card &&
+            (result.CashTenderedAmount is not null || result.ChangeAmount is not null))
+        {
+            return Unknown(requestedAmount, "Card payment returned invalid cash tender metadata and requires review.");
+        }
+
+        if (method == PaymentMethod.Cash && result.Status == PaymentStatus.Approved &&
+            (result.CashTenderedAmount is null ||
+             result.ChangeAmount is null ||
+             result.CashTenderedAmount < requestedAmount ||
+             decimal.Truncate(result.CashTenderedAmount.Value) != result.CashTenderedAmount ||
+             decimal.Truncate(result.ChangeAmount.Value) != result.ChangeAmount ||
+             result.ChangeAmount != result.CashTenderedAmount - requestedAmount))
+        {
+            return Unknown(requestedAmount, "Cash tender details were incomplete and require review.");
         }
 
         return result.Status is
@@ -295,7 +369,9 @@ public sealed class RecoverablePaymentStartService(
             record.ApprovalCode,
             record.TransactionReference,
             record.PaymentApprovedAtUtc,
-            authorization.FailureMessage);
+            authorization.FailureMessage,
+            record.CashTenderedAmount,
+            record.ChangeAmount);
 
     private static PaymentAuthorizationResult Failed(decimal amount, string message) =>
         new(PaymentStatus.Failed, amount, null, null, null, null, message);
@@ -307,6 +383,18 @@ public sealed class RecoverablePaymentStartService(
         new(PaymentStatus.Unknown, amount, null, null, null, null, message);
 
     private static string Serialize<T>(T value) => JsonSerializer.Serialize(value, JsonOptions);
+
+    private static void ValidateCashTender(decimal amountDue, decimal? cashTenderedAmount)
+    {
+        if (cashTenderedAmount is null ||
+            cashTenderedAmount < amountDue ||
+            decimal.Truncate(cashTenderedAmount.Value) != cashTenderedAmount)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(cashTenderedAmount),
+                "Cash tendered amount must be a whole-KRW value at least equal to the amount due.");
+        }
+    }
 
     private static DateTimeOffset EnsureUtc(DateTimeOffset value, string parameterName)
     {
@@ -351,7 +439,9 @@ public sealed class RecoverablePaymentStartService(
         Guid PaymentAttemptId,
         PaymentMethod Method,
         decimal RequestedAmount,
-        DateTimeOffset RequestedAtUtc);
+        DateTimeOffset RequestedAtUtc,
+        decimal? CashTenderedAmount,
+        decimal? ChangeAmount);
 
     private sealed record PaymentResultSnapshot(
         PaymentMethod Method,
@@ -361,7 +451,9 @@ public sealed class RecoverablePaymentStartService(
         string? ApprovalCode,
         string? TransactionReference,
         DateTimeOffset? ApprovedAtUtc,
-        string? FailureMessage)
+        string? FailureMessage,
+        decimal? CashTenderedAmount,
+        decimal? ChangeAmount)
     {
         public static PaymentResultSnapshot From(
             PaymentMethod method,
@@ -374,7 +466,9 @@ public sealed class RecoverablePaymentStartService(
                 result.ApprovalCode,
                 result.TransactionReference,
                 result.ApprovedAtUtc,
-                result.FailureMessage);
+                result.FailureMessage,
+                result.CashTenderedAmount,
+                result.ChangeAmount);
     }
 }
 
@@ -389,7 +483,9 @@ public sealed record RecoverablePaymentStartResult(
     string? ApprovalCode,
     string? TransactionReference,
     DateTimeOffset? ApprovedAtUtc,
-    string? FailureMessage)
+    string? FailureMessage,
+    decimal? CashTenderedAmount = null,
+    decimal? ChangeAmount = null)
 {
     public bool IsApproved => PaymentStatus == PaymentStatus.Approved;
     public bool IsUnknown => PaymentStatus == PaymentStatus.Unknown;

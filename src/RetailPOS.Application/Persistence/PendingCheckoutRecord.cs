@@ -18,7 +18,9 @@ public sealed record PendingCheckoutRecord(
     DateTimeOffset? PaymentApprovedAtUtc,
     Guid? OrderId,
     DateTimeOffset? CompletedAtUtc,
-    DateTimeOffset LastUpdatedAtUtc);
+    DateTimeOffset LastUpdatedAtUtc,
+    decimal? CashTenderedAmount = null,
+    decimal? ChangeAmount = null);
 
 public enum PendingCheckoutStatus
 {

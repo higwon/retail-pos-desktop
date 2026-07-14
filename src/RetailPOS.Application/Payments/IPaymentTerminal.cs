@@ -20,7 +20,9 @@ public sealed record PaymentAuthorizationResult(
     string? ApprovalCode,
     string? TransactionReference,
     DateTimeOffset? ApprovedAtUtc,
-    string? FailureMessage)
+    string? FailureMessage,
+    decimal? CashTenderedAmount = null,
+    decimal? ChangeAmount = null)
 {
     public bool IsApproved => Status == PaymentStatus.Approved;
     public bool IsUnknown => Status == PaymentStatus.Unknown;

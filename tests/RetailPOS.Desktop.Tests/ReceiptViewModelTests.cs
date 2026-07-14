@@ -24,6 +24,17 @@ public sealed class ReceiptViewModelTests
     }
 
     [Fact]
+    public void CashPayment_BindsTenderAndChangeText()
+    {
+        var payment = new ReceiptPaymentViewModel(
+            new ReceiptPreviewPayment(PaymentMethod.Cash, 3400m, "APP-CASH", 5000m, 1600m));
+
+        Assert.True(payment.HasCashTenderDetails);
+        Assert.Equal("Tendered 5,000 KRW", payment.CashTenderedText);
+        Assert.Equal("Change 1,600 KRW", payment.ChangeText);
+    }
+
+    [Fact]
     public async Task PrintCommand_ShowsPrinterSuccessMessage()
     {
         var state = new ReceiptPreviewState();

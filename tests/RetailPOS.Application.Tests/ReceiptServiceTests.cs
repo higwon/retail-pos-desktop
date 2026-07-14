@@ -37,6 +37,25 @@ public sealed class ReceiptServiceTests
         await Assert.ThrowsAsync<KeyNotFoundException>(() => service.GenerateAsync(OrderId));
     }
 
+    [Fact]
+    public async Task GenerateAsync_ShowsCashTenderAndChange()
+    {
+        var payment = new Payment(Guid.NewGuid(), PaymentMethod.Cash, 3400m, CreatedAtUtc);
+        payment.Approve(3400m, CreatedAtUtc.AddSeconds(5), "APP-CASH", "CASH-001", 5000m, 1600m);
+        var order = new Order(
+            OrderId, "LOCAL-CASH-001", Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            new DateOnly(2026, 7, 8), CreatedAtUtc,
+            [new OrderLine(Guid.NewGuid(), "Cola", 3400m, 1)], [payment]);
+
+        var receipt = await Service(order).GenerateAsync(OrderId);
+
+        var receiptPayment = Assert.Single(receipt.Payments);
+        Assert.Equal(5000m, receiptPayment.CashTenderedAmount);
+        Assert.Equal(1600m, receiptPayment.ChangeAmount);
+        Assert.Contains("Tendered 5,000", receipt.PlainText);
+        Assert.Contains("Change 1,600", receipt.PlainText);
+    }
+
     private static ReceiptService Service(Order? order) => new(
         new StubOrderRepository(order),
         new StubReceiptContextProvider(),

@@ -41,6 +41,8 @@ internal static class OrderMapper
             Status = (int)payment.Status,
             RequestedAmount = payment.RequestedAmount,
             ApprovedAmount = payment.ApprovedAmount,
+            CashTenderedAmount = payment.CashTenderedAmount,
+            ChangeAmount = payment.ChangeAmount,
             CreatedAtUtc = UtcTime.ToStorage(payment.CreatedAtUtc, nameof(payment.CreatedAtUtc)),
             ApprovedAtUtc = UtcTime.ToStorage(payment.ApprovedAtUtc, nameof(payment.ApprovedAtUtc)),
             ApprovalCode = payment.ApprovalCode,
@@ -91,7 +93,9 @@ internal static class OrderMapper
                     entity.ApprovedAmount!.Value,
                     UtcTime.FromStorage(entity.ApprovedAtUtc!.Value),
                     entity.ApprovalCode,
-                    entity.TransactionReference);
+                    entity.TransactionReference,
+                    entity.CashTenderedAmount,
+                    entity.ChangeAmount);
                 break;
             case PaymentStatus.Failed:
                 payment.Fail(entity.FailureReason!);

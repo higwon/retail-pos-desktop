@@ -100,11 +100,13 @@ Request shape:
   ],
   "payments": [
     {
-      "paymentMethod": "Card",
+      "paymentMethod": "Cash",
       "approvedAmount": 9000,
-      "approvalCode": "APPROVED-001",
-      "transactionReference": "TX-001",
-      "approvedAtUtc": "2026-07-02T01:01:00Z"
+      "approvalCode": "APP-CASH-000000009000",
+      "transactionReference": "CASH-guid",
+      "approvedAtUtc": "2026-07-02T01:01:00Z",
+      "cashTenderedAmount": 10000,
+      "changeAmount": 1000
     }
   ]
 }
@@ -127,6 +129,12 @@ Rules:
 - `createdAt` and payment `approvedAtUtc` are required and must be UTC timestamps.
 - Line totals must match order total.
 - Approved payment totals must match order total.
+- `cashTenderedAmount` and `changeAmount` are optional schema v1 extensions. New cash
+  payments provide both values, and `changeAmount` equals `cashTenderedAmount` minus
+  `approvedAmount`.
+- Card payments omit both cash fields or send them as `null`.
+- Legacy queued cash payloads without either field remain valid so application upgrades
+  do not strand existing sync work. Providing only one field or inconsistent values is invalid.
 - Idempotency identity is `storeId + terminalId + localOrderId`.
 - The same idempotency key for the same identity returns the existing result.
 - Same key with a different identity returns `409 Conflict`.

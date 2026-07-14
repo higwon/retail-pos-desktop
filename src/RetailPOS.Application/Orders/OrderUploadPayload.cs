@@ -60,7 +60,9 @@ public sealed record OrderUploadPaymentPayload(
     decimal ApprovedAmount,
     string ApprovalCode,
     string? TransactionReference,
-    DateTimeOffset ApprovedAtUtc)
+    DateTimeOffset ApprovedAtUtc,
+    decimal? CashTenderedAmount = null,
+    decimal? ChangeAmount = null)
 {
     public static OrderUploadPaymentPayload From(Payment payment)
     {
@@ -76,7 +78,9 @@ public sealed record OrderUploadPaymentPayload(
             payment.ApprovedAmount.Value,
             RequiredText(payment.ApprovalCode, nameof(payment.ApprovalCode)),
             payment.TransactionReference,
-            payment.ApprovedAtUtc.Value);
+            payment.ApprovedAtUtc.Value,
+            payment.CashTenderedAmount,
+            payment.ChangeAmount);
     }
 
     private static string RequiredText(string? value, string parameterName)
