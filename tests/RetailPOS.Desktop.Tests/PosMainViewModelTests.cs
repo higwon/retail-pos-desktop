@@ -31,6 +31,7 @@ public sealed class PosMainViewModelTests
         Assert.Equal("Cashier A (E0001)", viewModel.CashierText);
         Assert.Equal("Store 10000000 | Terminal 20000000", viewModel.StoreTerminalText);
         Assert.Equal("API online", viewModel.ConnectivityText);
+        Assert.Equal("API ONLINE", viewModel.ConnectivityBadgeText);
         Assert.Equal("#FFDCFCE7", viewModel.ConnectivityBadgeBackground);
         Assert.Equal("#FF166534", viewModel.ConnectivityBadgeForeground);
         Assert.Equal("2 items | 3,600 KRW", viewModel.CartSummaryText);
@@ -97,6 +98,7 @@ public sealed class PosMainViewModelTests
             new ApiConnectivitySnapshot(ApiConnectivityStatus.Offline, NowUtc, "HttpRequestException")));
 
         Assert.Equal("API offline", viewModel.ConnectivityText);
+        Assert.Equal("API OFFLINE", viewModel.ConnectivityBadgeText);
         Assert.Equal("#FFFEE2E2", viewModel.ConnectivityBadgeBackground);
         Assert.Equal("#FFB91C1C", viewModel.ConnectivityBadgeForeground);
     }
