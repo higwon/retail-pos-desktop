@@ -64,7 +64,7 @@
                         <RowDefinition Height="64"/>
                         <RowDefinition Height="38"/>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="92"/>
+                        <RowDefinition Height="100"/>
                     </Grid.RowDefinitions>
 
                     <TextBlock Text="Your order"

@@ -58,7 +58,7 @@ Demo accounts:
 These credentials exist only in `DemoLoginService`; they are not a production identity
 store and are enabled only by the Development/Demo runtime configuration.
 
-![Retail POS demo login](images/demo-login.png)
+![Retail POS demo login](screenshots/01-login.png)
 
 ## Reset the Demo
 
@@ -86,7 +86,7 @@ seed run automatically. To preserve an offline/recovery scenario, do not delete 
 What this shows: the cashier path reads products from SQLite, supports direct and
 event-driven cart entry, and keeps simulator-only controls outside cashier ViewModels.
 
-![Modeless Device Simulator beside the register](images/demo-device-simulator.png)
+![Retail POS register](screenshots/02-register.png)
 
 ### 2. Complete an operator-driven card payment
 
@@ -102,6 +102,13 @@ What this shows: a persisted `PendingCheckout` precedes terminal authorization. 
 approved typed response creates the order; no card number, track data, or token enters the
 request/history model.
 
+<table>
+  <tr>
+    <td width="50%"><img src="screenshots/03-card-payment.png" alt="Inline card payment" /></td>
+    <td width="50%"><img src="screenshots/05-card-terminal-simulator.png" alt="Card terminal simulator" /></td>
+  </tr>
+</table>
+
 ### 3. Print the receipt through the simulator
 
 1. Choose **Print / reprint** in the selected receipt detail.
@@ -113,7 +120,12 @@ request/history model.
 What this shows: receipt generation is independent of printer availability, retries use a
 new request identity, and late/duplicate responses cannot rewrite a terminal result.
 
-![Persisted receipt history and selected receipt detail](images/demo-receipts.png)
+<table>
+  <tr>
+    <td width="50%"><img src="screenshots/07-receipts.png" alt="Receipt history and selected detail" /></td>
+    <td width="50%"><img src="screenshots/08-receipt-printer-simulator.png" alt="Receipt printer simulator" /></td>
+  </tr>
+</table>
 
 ### 4. Demonstrate offline checkout and reconnect sync
 
@@ -142,6 +154,8 @@ For the interrupted variant, close Desktop while a terminal request is pending. 
 the persisted awaiting-payment record becomes Unknown/manager review rather than being
 treated as a decline or approval.
 
+![Checkout recovery workspace](screenshots/09-checkout-recovery.png)
+
 ### 6. Show operational and session lifecycle behavior
 
 1. Open **Dashboard** to show database-computed sales aggregates, bounded recent orders,
@@ -152,6 +166,13 @@ treated as a decline or approval.
 4. Start a pending device request and choose **Sign out**. Confirm scanner input stops,
    pending payment/print work is cancelled, Simulator and Customer Display close, and login returns.
 5. Sign in again and confirm the previous cart, receipt, checkout, and cashier state is absent.
+
+<table>
+  <tr>
+    <td width="50%"><img src="screenshots/10-operations-dashboard.png" alt="Operations dashboard" /></td>
+    <td width="50%"><img src="screenshots/11-system-status.png" alt="System status" /></td>
+  </tr>
+</table>
 
 ## Architecture Narrative
 
@@ -223,15 +244,12 @@ identity and cached offline credentials, durable server storage and stock, real 
 adapters, deployment/provisioning, and advanced retail workflows such as refunds,
 cancellations, promotions, coupons, and membership pricing.
 
-## Additional Screenshot Checklist
+## Screenshot Gallery
 
-The Login, Receipts, and modeless Device Simulator screenshots above document the
-Development workflow. Capture Register from a final EPIC-10 build before
-publishing a longer portfolio case study, then capture these additional states:
+The final portfolio captures cover sign-in, register, product search, inline card payment,
+customer display, card terminal and receipt printer simulators, receipt history, checkout
+recovery, dashboard, and system status. See the
+[complete screenshot gallery](screenshots/README.md).
 
-1. Card Terminal pending authorization beside the inline Register payment panel.
-2. Receipt Printer pending request beside the in-window receipt detail.
-3. Dashboard and Status after an offline order is queued.
-4. Recovery showing an Unknown payment without sensitive terminal data.
-
-Do not use screenshots containing machine paths, logs, secrets, or real employee/payment data.
+The gallery uses synthetic demo data and excludes machine paths, logs, secrets, and real
+employee or payment information.
