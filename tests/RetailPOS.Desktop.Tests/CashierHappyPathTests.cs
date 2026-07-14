@@ -90,8 +90,7 @@ public sealed class CashierHappyPathTests
         var receiptState = new ReceiptPreviewState();
         var receiptService = new ReceiptService(
             orderRepository,
-            new DemoReceiptContextProvider(),
-            clock);
+            new DemoReceiptContextProvider());
         var paymentCoordinator = new CheckoutPaymentCoordinator(
             checkoutSession,
             paymentStart,

@@ -33,7 +33,6 @@
     </StackPanel>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
       <Button Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,10,0" Click="OnOpenCustomerDisplay"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconDisplayGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,8,0"/><TextBlock Text="Customer Display"/></StackPanel></Button>
-      <Button Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" Margin="0,0,16,0" Click="OnOpenReceipt"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconReceiptGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,8,0"/><TextBlock Text="Receipt"/></StackPanel></Button>
      <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding CashierText}" MaxWidth="180" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding StoreTerminalText}" Style="{StaticResource SecondaryTextBlockStyle}" FontSize="11" MaxWidth="180" TextTrimming="CharacterEllipsis"/></StackPanel>
     </StackPanel>
    </Grid>

@@ -19,6 +19,7 @@ public partial class NavigationHost : UserControl
     private readonly DashboardView _dashboardView;
     private readonly StatusView _statusView;
     private readonly ProductGridView _productSearchView;
+    private readonly ReceiptHistoryView _receiptHistoryView;
     private readonly BarcodeScannerCoordinator _barcodeScannerCoordinator;
     private readonly DeviceSimulatorWindowHost _deviceSimulatorWindowHost;
     private readonly SessionSignOutCoordinator _signOutCoordinator;
@@ -31,6 +32,7 @@ public partial class NavigationHost : UserControl
 
     public NavigationHost(LoginView loginView, PosMainView posMainView,
         ProductGridView productSearchView,
+        ReceiptHistoryView receiptHistoryView,
         CheckoutRecoveryView checkoutRecoveryView, DashboardView dashboardView, StatusView statusView,
         ICheckoutRecoveryService checkoutRecoveryService,
         DeviceSimulatorWindowHost deviceSimulatorWindowHost,
@@ -49,6 +51,7 @@ public partial class NavigationHost : UserControl
         _dashboardView = dashboardView;
         _statusView = statusView;
         _productSearchView = productSearchView;
+        _receiptHistoryView = receiptHistoryView;
         _barcodeScannerCoordinator = barcodeScannerCoordinator;
         _deviceSimulatorWindowHost = deviceSimulatorWindowHost;
         _signOutCoordinator = signOutCoordinator;
@@ -58,6 +61,8 @@ public partial class NavigationHost : UserControl
             [CashierWorkflowScreen.Login] = _loginView,
             [CashierWorkflowScreen.Register] = _posMainView,
             [CashierWorkflowScreen.ProductSearch] = _productSearchView,
+            [CashierWorkflowScreen.ReceiptHistory] = _receiptHistoryView,
+            [CashierWorkflowScreen.ReceiptDetail] = _receiptHistoryView,
             [CashierWorkflowScreen.Recovery] = _checkoutRecoveryView,
             [CashierWorkflowScreen.Dashboard] = _dashboardView,
             [CashierWorkflowScreen.Status] = _statusView
@@ -66,6 +71,8 @@ public partial class NavigationHost : UserControl
         {
             [CashierWorkflowScreen.Register] = RegisterNavigationButton,
             [CashierWorkflowScreen.ProductSearch] = ProductSearchNavigationButton,
+            [CashierWorkflowScreen.ReceiptHistory] = ReceiptNavigationButton,
+            [CashierWorkflowScreen.ReceiptDetail] = ReceiptNavigationButton,
             [CashierWorkflowScreen.Recovery] = RecoveryNavigationButton,
             [CashierWorkflowScreen.Dashboard] = DashboardNavigationButton,
             [CashierWorkflowScreen.Status] = StatusNavigationButton
@@ -200,14 +207,14 @@ public partial class NavigationHost : UserControl
         {
             button.Background = MediaBrushes.Transparent;
             button.Foreground = MediaBrushes.White;
-            button.BorderBrush = (MediaBrush)FindResource("BorderBrush");
+            button.BorderBrush = (MediaBrush)FindResource("NavigationRailBorderBrush");
         }
 
         if (_navigationButtons.TryGetValue(screen, out var selected))
         {
             selected.Background = (MediaBrush)FindResource("PrimaryBlueBrush");
             selected.Foreground = MediaBrushes.White;
-            selected.BorderBrush = MediaBrushes.White;
+            selected.BorderBrush = (MediaBrush)FindResource("PrimaryBlueBrush");
         }
     }
 
@@ -229,6 +236,8 @@ public partial class NavigationHost : UserControl
     }
     private void OnShowRecovery(object sender, System.Windows.RoutedEventArgs e) =>
         _workflowNavigator.Reset(CashierWorkflowScreen.Recovery);
+    private void OnShowReceipts(object sender, System.Windows.RoutedEventArgs e) =>
+        _workflowNavigator.Reset(CashierWorkflowScreen.ReceiptHistory);
     private void OnShowDashboard(object sender, System.Windows.RoutedEventArgs e) =>
         _workflowNavigator.Reset(CashierWorkflowScreen.Dashboard);
     private void OnShowStatus(object sender, System.Windows.RoutedEventArgs e) =>

@@ -97,8 +97,11 @@ The navigator is not an authentication or authorization boundary. Authentication
 belongs to `ICurrentSessionContext`, while NavigationHost controls which root actions are
 available before and after sign-in. Root reset expresses navigation history policy only.
 
-POS-901 introduces this navigation foundation while retaining the existing receipt
-presentation during migration. Cash tender and card authorization stay inside Register;
+POS-901 introduces this navigation foundation. POS-905 maps Receipt History and Receipt
+Detail to one MainWindow receipt workspace backed by an Application-owned query. SQLite
+projects bounded summary rows without loading every order aggregate; selected detail is
+generated separately from the persisted order, and latest-request guards prevent stale
+selection results from replacing newer ones. Cash tender and card authorization stay inside Register;
 the bottom panel changes state without replacing the sale workspace. Device Simulator remains a separate
 modeless developer utility, and Customer Display remains a dedicated device-output
 window rather than a cashier workflow screen.

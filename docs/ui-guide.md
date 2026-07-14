@@ -23,7 +23,7 @@ Use the Figma file as the primary visual reference for WPF implementation.
 - Full-screen Product Search with category filtering.
 - Register bottom payment bar with totals, discount, Credit Card, and Cash.
 - Inline card authorization status panel.
-- Receipt preview.
+- In-window receipt history with selected receipt detail and reprint status.
 - Checkout recovery.
 - Customer display.
 - Dashboard.
@@ -37,6 +37,7 @@ map is:
 ```text
 Login -> Register -> Product Search -> Register
                   -> Receipt History -> Receipt Detail
+Register -- completed payment --> Receipt Detail
 Register <-> Recovery
 Register <-> Dashboard / Status
 
@@ -71,9 +72,12 @@ POS-903 and POS-904 place totals, manual discount, and payment method actions in
 full-width Register bottom band. Cash expands in that band with received amount, change,
 quick tender, and a numeric keypad. Credit Card replaces the bottom band with an inline
 status panel that starts authorization immediately and shows the terminal result; it is
-not a dialog, payment-method chooser, or workflow navigation screen. Receipt presentation continues using
-its current window until POS-905 adds history/detail. Device Simulator and Customer
-Display keep their separate-window responsibilities.
+not a dialog, payment-method chooser, or workflow navigation screen. POS-905 replaces
+the cashier receipt popup path with a current-business-day history screen. The list is
+bounded and newest-first; selecting a row loads its persisted detail separately, and
+Print/Reprint creates a new printer request without changing the completed order or
+receipt identity. Device Simulator and Customer Display keep their separate-window
+responsibilities.
 
 ## UX Rules
 
@@ -133,9 +137,9 @@ that use different scaling values.
 - Main window at 1440x900 and the supported minimum 1180x720: header actions remain
   reachable, status/cashier text does not overlap, and the sale table, scanner feedback,
   totals, and transaction actions remain usable.
-- Payment at 520x600 and Receipt at 700x700 minimum: status, long approval codes,
-  transaction references, line totals, and action buttons remain readable or expose the
-  complete value through a tooltip.
+- Receipt History at the supported MainWindow minimum: the bounded list, selected
+  detail, long order numbers, cash tender/change, printer status, and reprint action
+  remain readable without horizontal clipping.
 - Device Simulator at 980x780 and the supported minimum 860x700: every tab can scroll
   its history, long request identifiers do not cover response controls, and ComboBox
   selections remain visible.
@@ -151,8 +155,8 @@ that use different scaling values.
   Receipt, Status, and every Simulator tab; focus order follows the visual workflow.
 - Every focused button and text input has a visible blue focus outline at both scaling
   values. Enter/Space activates product selection and action buttons exactly once.
-- Payment and Receipt keep Tab navigation inside the modeless workflow window until it
-  is closed; Close/Done remain keyboard reachable.
+- Receipt History participates in MainWindow focus order; date, search, result selection,
+  pagination, and Print/Reprint remain keyboard reachable.
 - Screen-reader names identify product results, sync queue, payment actions, receipt
   actions, simulator tabs, scanner filters, and printer responses.
 - Dynamic errors are announced assertively; successful or informational status changes
@@ -164,5 +168,5 @@ that use different scaling values.
   open. The existing window moves without duplication and fills the target working area.
 - Disconnect the selected monitor and confirm the host reports unavailable/closed without
   leaving an inaccessible window. Reconnect it and confirm the target list and status refresh.
-- Move Payment, Receipt, and Device Simulator between 100% and 150% monitors. Text stays
+- Move MainWindow receipt history and Device Simulator between 100% and 150% monitors. Text stays
   sharp, controls keep their minimum hit size, and no metadata overlaps after the DPI change.

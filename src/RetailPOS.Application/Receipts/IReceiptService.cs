@@ -26,7 +26,8 @@ public sealed record ReceiptPreview(
     decimal SubtotalAmount,
     decimal DiscountAmount,
     decimal TotalAmount,
-    string PlainText);
+    string PlainText,
+    Guid LocalOrderId = default);
 
 public sealed record ReceiptPreviewLine(
     string ProductName,
@@ -45,8 +46,7 @@ public sealed record ReceiptPreviewPayment(
 
 public sealed class ReceiptService(
     IOrderRepository orderRepository,
-    IReceiptContextProvider receiptContextProvider,
-    ICheckoutClock clock) : IReceiptService
+    IReceiptContextProvider receiptContextProvider) : IReceiptService
 {
     public async Task<ReceiptPreview> GenerateAsync(
         Guid localOrderId,
@@ -75,7 +75,7 @@ public sealed class ReceiptService(
             order.LocalOrderNumber,
             context.CashierName,
             context.RegisterName,
-            EnsureUtc(clock.UtcNow, nameof(clock.UtcNow)),
+            order.CreatedAtUtc,
             order.Lines.Select(line => new ReceiptLine(
                 line.ProductNameSnapshot,
                 line.UnitPrice,
@@ -88,10 +88,13 @@ public sealed class ReceiptService(
                 payment.CashTenderedAmount,
                 payment.ChangeAmount)));
 
-        return ToPreview(receipt, order.BusinessDate);
+        return ToPreview(receipt, order.LocalOrderId, order.BusinessDate);
     }
 
-    private static ReceiptPreview ToPreview(Receipt receipt, DateOnly businessDate)
+    private static ReceiptPreview ToPreview(
+        Receipt receipt,
+        Guid localOrderId,
+        DateOnly businessDate)
     {
         var lines = receipt.Lines.Select(line => new ReceiptPreviewLine(
             line.ProductName,
@@ -120,23 +123,17 @@ public sealed class ReceiptService(
             receipt.SubtotalAmount,
             receipt.DiscountAmount,
             receipt.TotalAmount,
-            ReceiptTextFormatter.Format(receipt, businessDate));
+            ReceiptTextFormatter.Format(receipt, businessDate),
+            localOrderId);
     }
 
-    private static DateTimeOffset EnsureUtc(DateTimeOffset value, string parameterName)
-    {
-        if (value.Offset != TimeSpan.Zero)
-        {
-            throw new ArgumentException("Timestamp must use UTC.", parameterName);
-        }
-
-        return value;
-    }
 }
 
 public interface IReceiptContextProvider
 {
-    ReceiptContext GetCurrent(Order order);
+    ReceiptContext GetCurrent(Guid cashierId, Guid terminalId);
+
+    ReceiptContext GetCurrent(Order order) => GetCurrent(order.CashierId, order.TerminalId);
 }
 
 public sealed record ReceiptContext(
@@ -147,11 +144,11 @@ public sealed record ReceiptContext(
 
 public sealed class DemoReceiptContextProvider : IReceiptContextProvider
 {
-    public ReceiptContext GetCurrent(Order order) => new(
+    public ReceiptContext GetCurrent(Guid cashierId, Guid terminalId) => new(
         "Retail Store",
         "Local POS Terminal",
-        $"Cashier {order.CashierId.ToString("N")[..6].ToUpperInvariant()}",
-        $"Register {order.TerminalId.ToString("N")[..6].ToUpperInvariant()}");
+        $"Cashier {cashierId.ToString("N")[..6].ToUpperInvariant()}",
+        $"Register {terminalId.ToString("N")[..6].ToUpperInvariant()}");
 }
 
 internal static class ReceiptTextFormatter

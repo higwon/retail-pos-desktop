@@ -10,7 +10,6 @@ public sealed class ReceiptServiceTests
 {
     private static readonly Guid OrderId = Guid.Parse("bbbbbbbb-0000-0000-0000-000000000001");
     private static readonly DateTimeOffset CreatedAtUtc = new(2026, 7, 8, 1, 0, 0, TimeSpan.Zero);
-    private static readonly DateTimeOffset IssuedAtUtc = new(2026, 7, 8, 1, 1, 0, TimeSpan.Zero);
 
     [Fact]
     public async Task GenerateAsync_BuildsReceiptFromCompletedOrder()
@@ -20,6 +19,8 @@ public sealed class ReceiptServiceTests
         var receipt = await service.GenerateAsync(OrderId);
 
         Assert.Equal("LOCAL-20260708-0001", receipt.OrderNumber);
+        Assert.Equal(OrderId, receipt.LocalOrderId);
+        Assert.Equal(CreatedAtUtc, receipt.IssuedAtUtc);
         Assert.Equal(new DateOnly(2026, 7, 8), receipt.BusinessDate);
         Assert.Equal(3600m, receipt.SubtotalAmount);
         Assert.Equal(200m, receipt.DiscountAmount);
@@ -58,8 +59,7 @@ public sealed class ReceiptServiceTests
 
     private static ReceiptService Service(Order? order) => new(
         new StubOrderRepository(order),
-        new StubReceiptContextProvider(),
-        new StubCheckoutClock(IssuedAtUtc));
+        new StubReceiptContextProvider());
 
     private static Order CompletedOrder()
     {
@@ -102,15 +102,11 @@ public sealed class ReceiptServiceTests
 
     private sealed class StubReceiptContextProvider : IReceiptContextProvider
     {
-        public ReceiptContext GetCurrent(Order order) => new(
+        public ReceiptContext GetCurrent(Guid cashierId, Guid terminalId) => new(
             "Retail Store",
             "Local POS Terminal",
             "Cashier A",
             "Register 01");
     }
 
-    private sealed class StubCheckoutClock(DateTimeOffset utcNow) : ICheckoutClock
-    {
-        public DateTimeOffset UtcNow => utcNow;
-    }
 }

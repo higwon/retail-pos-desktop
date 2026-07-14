@@ -7,6 +7,7 @@
              d:DesignHeight="720"
              d:DesignWidth="1280">
     <UserControl.Resources>
+        <SolidColorBrush x:Key="NavigationRailBorderBrush" Color="#FF334155"/>
         <Style x:Key="NavigationRailIconStyle"
                TargetType="Path"
                BasedOn="{StaticResource IconPathStyle}">
@@ -20,7 +21,7 @@
                TargetType="Button"
                BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="#FF334155"/>
+            <Setter Property="BorderBrush" Value="{StaticResource NavigationRailBorderBrush}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="MinHeight" Value="56"/>
@@ -77,6 +78,11 @@
                             Style="{StaticResource NavigationRailButtonStyle}"
                             Click="OnShowProductSearch">
                         <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconSearchGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Product Search" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
+                    </Button>
+                    <Button x:Name="ReceiptNavigationButton"
+                            Style="{StaticResource NavigationRailButtonStyle}"
+                            Click="OnShowReceipts">
+                        <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconReceiptGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Receipts" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
                     <Button x:Name="RecoveryNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
