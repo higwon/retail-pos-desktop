@@ -56,12 +56,8 @@
                         <Path Data="{StaticResource IconUserGeometry}" Style="{StaticResource IconPathStyle}" HorizontalAlignment="Right" Margin="0,0,14,0"/>
                     </Grid>
                     <TextBlock Text="Password" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                    <Grid>
-                        <PasswordBox MinHeight="44" Padding="12,8,44,8" BorderBrush="{StaticResource BorderBrush}" PasswordChanged="OnPasswordChanged"/>
-                        <Path Data="{StaticResource IconEyeGeometry}" Style="{StaticResource IconPathStyle}" HorizontalAlignment="Right" Margin="0,0,14,0"/>
-                    </Grid>
+                    <PasswordBox MinHeight="44" Padding="12,8" BorderBrush="{StaticResource BorderBrush}" PasswordChanged="OnPasswordChanged"/>
                     <Grid Margin="0,20,0,24">
-                        <CheckBox Content="Remember this terminal" IsChecked="True" VerticalAlignment="Center"/>
                         <Border HorizontalAlignment="Right" Background="{StaticResource SuccessMutedBrush}" CornerRadius="12" Padding="10,4"><TextBlock Text="●  Offline Ready" Foreground="{StaticResource SuccessBrush}" FontSize="12"/></Border>
                     </Grid>
                     <Button Command="{Binding SignInCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" MinHeight="50">
