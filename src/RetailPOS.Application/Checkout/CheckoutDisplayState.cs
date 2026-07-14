@@ -21,7 +21,8 @@ public sealed class CheckoutDisplayState
             CheckoutDisplayPhase.PaymentWaiting,
             "Payment in progress",
             $"{method} payment waiting",
-            amount));
+            amount,
+            method));
     }
 
     public void ShowPaymentFailed(string message)
@@ -30,7 +31,8 @@ public sealed class CheckoutDisplayState
             CheckoutDisplayPhase.PaymentFailed,
             "Payment could not be completed",
             string.IsNullOrWhiteSpace(message) ? "Please try another payment method" : message.Trim(),
-            null));
+            null,
+            _snapshot.PaymentMethod));
     }
 
     public void ShowCompleted()
@@ -39,7 +41,8 @@ public sealed class CheckoutDisplayState
             CheckoutDisplayPhase.Completed,
             "Thank you",
             "Payment complete. Please take your receipt.",
-            null));
+            null,
+            _snapshot.PaymentMethod));
     }
 
     private void Set(CheckoutDisplaySnapshot snapshot)
@@ -53,7 +56,8 @@ public sealed record CheckoutDisplaySnapshot(
     CheckoutDisplayPhase Phase,
     string StatusMessage,
     string PaymentMessage,
-    decimal? PaymentAmount)
+    decimal? PaymentAmount,
+    PaymentMethod? PaymentMethod = null)
 {
     public static CheckoutDisplaySnapshot Cart() => new(
         CheckoutDisplayPhase.Cart,

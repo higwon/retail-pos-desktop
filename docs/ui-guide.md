@@ -119,6 +119,15 @@ lifecycle wiring, and simulator controls are never injected into cashier ViewMod
 Checkout and payment data continue to bind through the existing customer-display
 ViewModel and display state.
 
+POS-908 presents the customer display as a split order-and-payment workspace. The order
+panel shows category imagery, unit prices, quantities, subtotal, the actual manual
+discount type/value, and total due. The payment panel and bottom progress strip use the
+existing checkout display phases as a truthful three-stage journey: Review order,
+Payment, and Completed. Card and Cash labels come from the active payment method;
+failed or unknown outcomes remain on the Payment stage with safe guidance. The customer
+screen does not show a hard-coded API connectivity badge because offline checkout is a
+supported operating mode rather than a customer-facing failure.
+
 EPIC-08 adds a Desktop-owned display host that:
 
 - discovers available Windows monitor targets;
