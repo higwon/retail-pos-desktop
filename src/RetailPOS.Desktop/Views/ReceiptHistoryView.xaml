@@ -53,7 +53,13 @@
                                             Background="Transparent"
                                             BorderThickness="0"
                                             Padding="0"
-                                            Focusable="False"/>
+                                            Focusable="False">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}"/>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
                                     <DatePickerTextBox x:Name="PART_TextBox"
                                                        Visibility="Collapsed"
                                                        IsReadOnly="True"

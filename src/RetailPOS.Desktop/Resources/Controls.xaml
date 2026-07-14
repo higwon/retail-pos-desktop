@@ -26,6 +26,12 @@
     <Geometry x:Key="IconChevronDownGeometry">M6,9 L12,15 18,9</Geometry>
     <Geometry x:Key="IconScannerGeometry">M5,5 H10 M5,5 V10 M19,5 H14 M19,5 V10 M5,19 H10 M5,19 V14 M19,19 H14 M19,19 V14 M9,8 V16 M12,8 V16 M15,8 V16</Geometry>
     <Geometry x:Key="IconFilterGeometry">M3,5 H21 L14,13 V20 L10,18 V13 Z</Geometry>
+    <Geometry x:Key="IconCategoryGridGeometry">M4,4 H10 V10 H4 Z M14,4 H20 V10 H14 Z M4,14 H10 V20 H4 Z M14,14 H20 V20 H14 Z</Geometry>
+    <Geometry x:Key="IconCategoryHairGeometry">M12,3 C12,3 6,10 6,14 A6,6 0 0 0 18,14 C18,10 12,3 12,3 Z</Geometry>
+    <Geometry x:Key="IconCategoryHealthGeometry">M5,19 A4,4 0 0 1 5,13 L13,5 A4,4 0 0 1 19,11 L11,19 A4,4 0 0 1 5,19 M8,10 L14,16</Geometry>
+    <Geometry x:Key="IconCategoryMakeupGeometry">M8,21 H16 M9,21 V12 H15 V21 M10,12 V7 L14,4 V12 M8,16 H16</Geometry>
+    <Geometry x:Key="IconCategorySkinGeometry">M7,7 C8,3 16,3 17,7 C20,8 20,12 18,13 C18,18 15,21 12,21 C9,21 6,18 6,13 C4,12 4,8 7,7 M9,12 H9.1 M15,12 H15.1 M9,16 C11,17 13,17 15,16</Geometry>
+    <Geometry x:Key="IconCategorySunGeometry">M12,7 A5,5 0 1 0 12,17 A5,5 0 1 0 12,7 M12,2 V4 M12,20 V22 M2,12 H4 M20,12 H22 M4.9,4.9 L6.3,6.3 M17.7,17.7 L19.1,19.1 M19.1,4.9 L17.7,6.3 M6.3,17.7 L4.9,19.1</Geometry>
 
     <Style x:Key="IconPathStyle" TargetType="{x:Type Path}">
         <Setter Property="Width" Value="16"/>
