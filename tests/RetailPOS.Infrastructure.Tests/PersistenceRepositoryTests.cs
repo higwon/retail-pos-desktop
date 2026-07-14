@@ -134,6 +134,7 @@ public sealed class PersistenceRepositoryTests
         var products = harness.Services.GetRequiredService<IProductRepository>();
         var queue = harness.Services.GetRequiredService<ISyncQueueRepository>();
         var orders = harness.Services.GetRequiredService<IOrderRepository>();
+        var receiptHistory = harness.Services.GetRequiredService<IReceiptHistoryRepository>();
         var dashboard = harness.Services.GetRequiredService<IDashboardRepository>();
         var pendingCheckouts = harness.Services.GetRequiredService<IPendingCheckoutRepository>();
         var clock = new StubCheckoutClock(new DateTimeOffset(now));
@@ -148,6 +149,10 @@ public sealed class PersistenceRepositoryTests
         var businessDayOrders = await MeasureAsync("business-day order history", () =>
             orders.GetByBusinessDateAsync(businessDate));
         var recentOrders = await MeasureAsync("recent order selection", () => orders.GetRecentAsync(5));
+        var receiptPage = await MeasureAsync("bounded receipt history", () =>
+            receiptHistory.SearchAsync(businessDate, null, 0, 50));
+        var receiptSearch = await MeasureAsync("receipt identity search", () =>
+            receiptHistory.SearchAsync(businessDate, "ORDER-00042", 0, 50));
         var recoverable = await MeasureAsync("checkout recovery history", () => recovery.GetRecoverableAsync());
         var status = await MeasureAsync("sync status history", () => syncStatus.GetSnapshotAsync(50));
         var dashboardSummary = await MeasureAsync("bounded dashboard summary", () =>
@@ -159,6 +164,10 @@ public sealed class PersistenceRepositoryTests
         Assert.Equal(100, due.Value.Count);
         Assert.Equal(2000, businessDayOrders.Value.Count);
         Assert.Equal(5, recentOrders.Value.Count);
+        Assert.Equal(50, receiptPage.Value.Items.Count);
+        Assert.True(receiptPage.Value.HasMore);
+        Assert.Equal("PERF-ORDER-00001", receiptPage.Value.Items[0].LocalOrderNumber);
+        Assert.Equal("PERF-ORDER-00042", Assert.Single(receiptSearch.Value.Items).LocalOrderNumber);
         Assert.Equal(1000, recoverable.Value.Count);
         Assert.Equal(50, status.Value.Items.Count);
         Assert.Equal(2000, dashboardSummary.Value.OrderCount);
@@ -174,11 +183,34 @@ public sealed class PersistenceRepositoryTests
             due.Elapsed,
             businessDayOrders.Elapsed,
             recentOrders.Elapsed,
+            receiptPage.Elapsed,
+            receiptSearch.Elapsed,
             recoverable.Elapsed,
             status.Elapsed,
             dashboardSummary.Elapsed
         }, elapsed =>
             Assert.True(elapsed < TimeSpan.FromSeconds(5), $"Query exceeded baseline ceiling: {elapsed}."));
+    }
+
+    [Fact]
+    public async Task ReceiptHistoryRepository_ScopesResultsToBusinessDateAndIdentitySearch()
+    {
+        await using var harness = await PersistenceHarness.CreateAsync();
+        var db = harness.Services.GetRequiredService<LocalPosDbContext>();
+        var now = new DateTime(2026, 7, 14, 2, 0, 0, DateTimeKind.Utc);
+        var selectedDate = new DateOnly(2026, 7, 14);
+        db.Orders.AddRange(
+            PerformanceOrder(1, selectedDate, now),
+            PerformanceOrder(2, selectedDate.AddDays(-1), now.AddDays(-1)),
+            PerformanceOrder(3, selectedDate, now.AddMinutes(-3)));
+        await db.SaveChangesAsync();
+        var repository = harness.Services.GetRequiredService<IReceiptHistoryRepository>();
+
+        var page = await repository.SearchAsync(selectedDate, "ORDER-00003", 0, 10);
+
+        var receipt = Assert.Single(page.Items);
+        Assert.Equal("PERF-ORDER-00003", receipt.LocalOrderNumber);
+        Assert.False(page.HasMore);
     }
 
     private async Task<(T Value, TimeSpan Elapsed)> MeasureAsync<T>(string name, Func<Task<T>> action)

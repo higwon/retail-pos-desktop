@@ -63,10 +63,12 @@ public static class DesktopServiceRegistration
         services.AddScoped<IOrderCompletionService, OrderCompletionService>();
         services.AddScoped<ICheckoutRecoveryService, CheckoutRecoveryService>();
         services.AddScoped<IReceiptService, ReceiptService>();
+        services.AddScoped<IReceiptHistoryQuery, ReceiptHistoryQuery>();
         services.AddScoped<ICheckoutPaymentCoordinator, CheckoutPaymentCoordinator>();
         services.AddTransient<LoginView>();
         services.AddTransient<PosMainView>();
         services.AddTransient<ProductGridView>();
+        services.AddTransient<ReceiptHistoryView>();
         services.AddTransient<CartPanelView>();
         services.AddTransient<CustomerDisplayWindow>();
         services.AddTransient<ReceiptDialog>();
@@ -80,6 +82,7 @@ public static class DesktopServiceRegistration
         services.AddTransient<CartPanelViewModel>();
         services.AddTransient<CustomerDisplayViewModel>();
         services.AddTransient<ReceiptViewModel>();
+        services.AddTransient<ReceiptHistoryViewModel>();
         services.AddTransient<DeviceSimulatorViewModel>();
         services.AddTransient<ReceiptPrinterSimulatorViewModel>();
         services.AddTransient<BarcodeScannerSimulatorViewModel>();

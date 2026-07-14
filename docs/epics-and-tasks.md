@@ -1064,10 +1064,19 @@ Persist optional cash tendered and change amounts through payment, pending check
 order completion, local storage, sync payloads, and receipt projection. Keep card
 payments unchanged and migrate existing SQLite databases without data loss.
 
+Status: Completed.
+
 ### POS-905 Receipt History List and Detail
 
 Add bounded persisted receipt summary/detail queries and in-window receipt history,
 selection, print, and reprint workflows.
+
+Implementation rules:
+
+- Default to the current business date and query newest-first in bounded pages.
+- Treat the local order number as the receipt identity for MVP display and reprint.
+- Load selected detail separately and apply only the latest selection result.
+- A reprint creates a new printer request without modifying the completed order.
 
 ### POS-906 Retire Remaining Workflow Dialogs and Validate Cashier Journey
 

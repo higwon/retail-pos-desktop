@@ -39,6 +39,7 @@ public static class PersistenceServiceRegistration
         services.AddScoped<IProductRepository, SqliteProductRepository>();
         services.AddScoped<IProductSyncStore, SqliteProductSyncStore>();
         services.AddScoped<IOrderRepository, SqliteOrderRepository>();
+        services.AddScoped<IReceiptHistoryRepository, SqliteReceiptHistoryRepository>();
         services.AddScoped<IDashboardRepository, SqliteDashboardRepository>();
         services.AddScoped<IPendingCheckoutRepository, SqlitePendingCheckoutRepository>();
         services.AddScoped<ISyncQueueRepository, SqliteSyncQueueRepository>();

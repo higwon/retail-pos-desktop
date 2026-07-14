@@ -9,7 +9,7 @@ public partial class PosMainView : UserControl
 {
     private readonly ReceiptPreviewState _receiptPreviewState;
     private readonly CustomerDisplayHost _customerDisplayHost;
-    private readonly WorkflowWindowHost<ReceiptDialog> _receiptDialogHost;
+    private readonly CashierWorkflowNavigator _workflowNavigator;
     private readonly PosMainViewModel _viewModel;
     private readonly CartPanelView _cartPanel;
     private bool _arePaymentEventsSubscribed;
@@ -21,14 +21,14 @@ public partial class PosMainView : UserControl
         CartPanelView cartPanel,
         ReceiptPreviewState receiptPreviewState,
         CustomerDisplayHost customerDisplayHost,
-        WorkflowWindowHost<ReceiptDialog> receiptDialogHost)
+        CashierWorkflowNavigator workflowNavigator)
     {
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
         _receiptPreviewState = receiptPreviewState;
         _customerDisplayHost = customerDisplayHost;
-        _receiptDialogHost = receiptDialogHost;
+        _workflowNavigator = workflowNavigator;
         _cartPanel = cartPanel;
         ScannerStatusText.DataContext = productGrid;
         CartRegion.Content = cartPanel;
@@ -95,10 +95,10 @@ public partial class PosMainView : UserControl
     {
         if (_receiptPreviewState.HasReceipt)
         {
-            _receiptDialogHost.ShowOrActivate();
+            _workflowNavigator.Navigate(CashierWorkflowScreen.ReceiptDetail);
         }
     }
 
     private void OnOpenReceipt(object sender, System.Windows.RoutedEventArgs e) =>
-        _receiptDialogHost.ShowOrActivate();
+        _workflowNavigator.Navigate(CashierWorkflowScreen.ReceiptHistory);
 }
