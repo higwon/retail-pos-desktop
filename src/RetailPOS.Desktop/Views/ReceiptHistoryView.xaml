@@ -9,8 +9,11 @@
                BasedOn="{StaticResource {x:Type TextBox}}">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="12,0,4,0"/>
+            <Setter Property="Padding" Value="40,0,4,0"/>
             <Setter Property="MinHeight" Value="40"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Cursor" Value="Arrow"/>
         </Style>
         <Style x:Key="ReceiptCalendarStyle" TargetType="Calendar">
             <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
@@ -137,13 +140,21 @@
                                     BorderThickness="1"
                                     FontFamily="{StaticResource AppFontFamily}"
                                     FontSize="14"
+                                    Language="en-CA"
+                                    SelectedDateFormat="Short"
                                     CalendarStyle="{StaticResource ReceiptCalendarStyle}"
+                                    PreviewMouseLeftButtonDown="OnDatePickerPreviewMouseLeftButtonDown"
                                     AutomationProperties.Name="Receipt business date">
                             <DatePicker.Resources>
                                 <Style TargetType="DatePickerTextBox"
                                        BasedOn="{StaticResource ReceiptDatePickerTextBoxStyle}"/>
                             </DatePicker.Resources>
                         </DatePicker>
+                        <Path Data="{StaticResource IconCalendarGeometry}"
+                              Style="{StaticResource IconPathStyle}"
+                              HorizontalAlignment="Left"
+                              Margin="13,0,0,0"
+                              IsHitTestVisible="False"/>
                     </Grid>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Margin="12,0">
@@ -174,9 +185,9 @@
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="440" MinWidth="360"/>
+                <ColumnDefinition Width="520" MinWidth="440"/>
                 <ColumnDefinition Width="14"/>
-                <ColumnDefinition Width="*" MinWidth="440"/>
+                <ColumnDefinition Width="*" MinWidth="360"/>
             </Grid.ColumnDefinitions>
 
             <Border Style="{StaticResource PanelBorderStyle}" Padding="0">
