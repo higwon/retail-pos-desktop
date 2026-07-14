@@ -57,8 +57,8 @@
                                 <Setter TargetName="TabSurface" Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Foreground" Value="{StaticResource PrimaryHoverBrush}"/>
-                                <Setter TargetName="TabSurface" Property="Background" Value="{StaticResource SecondaryButtonBrush}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="TabSurface" Property="Background" Value="{StaticResource PrimaryBrush}"/>
                                 <Setter TargetName="TabSurface" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -77,9 +77,9 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <Border Background="{StaticResource SurfaceBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}"
-                                    BorderThickness="1"
+                            <Border Background="{StaticResource SecondaryButtonBrush}"
+                                    BorderBrush="Transparent"
+                                    BorderThickness="0"
                                     CornerRadius="8"
                                     Padding="4">
                                 <TabPanel IsItemsHost="True" KeyboardNavigation.TabIndex="1"/>
@@ -105,7 +105,7 @@
                                 Background="{TemplateBinding Background}"
                                 CornerRadius="5"
                                 Padding="{TemplateBinding Padding}">
-                            <ContentPresenter/>
+                            <ContentPresenter ContentSource="Content"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsHighlighted" Value="True">
@@ -153,11 +153,11 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="40"/>
                                                 </Grid.ColumnDefinitions>
-                                                <ContentPresenter Margin="12,0,8,0"
-                                                                  VerticalAlignment="Center"
-                                                                  Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}"
-                                                                  ContentTemplate="{Binding SelectionBoxItemTemplate, RelativeSource={RelativeSource AncestorType=ComboBox}}"
-                                                                  ContentStringFormat="{Binding SelectionBoxItemStringFormat, RelativeSource={RelativeSource AncestorType=ComboBox}}"/>
+                                                <TextBlock Margin="12,0,8,0"
+                                                           VerticalAlignment="Center"
+                                                           Text="{Binding Text, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                           TextWrapping="NoWrap"
+                                                           TextTrimming="CharacterEllipsis"/>
                                                 <Border Grid.Column="1" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
                                                     <Path Data="{StaticResource IconChevronDownGeometry}"
                                                           Style="{StaticResource IconPathStyle}"
@@ -293,7 +293,7 @@
                         </Grid>
                     </Border>
 
-                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,16,0,0">
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="20,16,0,0">
                         <RadioButton Content="Product Picker" IsChecked="{Binding IsProductPickerMode}" FontWeight="SemiBold" Margin="0,0,22,0"/>
                         <RadioButton Content="Manual Barcode" IsChecked="{Binding IsManualBarcodeMode}" FontWeight="SemiBold"/>
                         <CheckBox Content="Background callback" IsChecked="{Binding EmitOnBackgroundThread}" Margin="28,0,0,0"/>
@@ -309,11 +309,41 @@
                                     <StackPanel Grid.Column="2"><TextBlock Text="Category" FontWeight="SemiBold"/><ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" Style="{StaticResource SimulatorComboBoxStyle}" Margin="0,7,0,0" AutomationProperties.Name="Scanner product category"/></StackPanel>
                                 </Grid>
                                 <ListBox Grid.Row="1" ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct}"
-                                         Margin="0,14,0,0" BorderThickness="0" Background="Transparent"
+                                         Margin="0,14,0,0" BorderThickness="1" BorderBrush="{StaticResource BorderBrush}" Background="{StaticResource SurfaceBrush}"
                                          ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True"
                                          VirtualizingPanel.VirtualizationMode="Recycling">
                                     <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
-                                    <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch"/></Style></ListBox.ItemContainerStyle>
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                            <Setter Property="Padding" Value="0"/>
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ListBoxItem">
+                                                        <Border x:Name="ProductRow"
+                                                                Background="{TemplateBinding Background}"
+                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                BorderThickness="{TemplateBinding BorderThickness}">
+                                                            <ContentPresenter/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="ProductRow" Property="Background" Value="{StaticResource AppBackgroundBrush}"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsSelected" Value="True">
+                                                                <Setter TargetName="ProductRow" Property="Background" Value="{StaticResource SecondaryButtonBrush}"/>
+                                                                <Setter TargetName="ProductRow" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                                                                <Setter TargetName="ProductRow" Property="BorderThickness" Value="3,0,0,1"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
                                     <ListBox.ItemTemplate><DataTemplate>
                                         <Grid Margin="6,8"><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="110"/></Grid.ColumnDefinitions>
                                             <StackPanel><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Text="{Binding Barcode}" Style="{StaticResource SecondaryTextBlockStyle}"/></StackPanel>
@@ -431,7 +461,7 @@
                                     <Grid>
                                         <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                         <ComboBox ItemsSource="{Binding Outcomes}" SelectedItem="{Binding SelectedOutcome}"
-                                                  DisplayMemberPath="Label" MinWidth="220"
+                                                  DisplayMemberPath="Label" TextSearch.TextPath="Label" MinWidth="220"
                                                   Style="{StaticResource SimulatorComboBoxStyle}"
                                                   AutomationProperties.Name="Receipt printer response"/>
                                         <Button Grid.Column="1" Command="{Binding RespondCommand}"
@@ -537,8 +567,37 @@
                         <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="22">
                             <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                                 <TextBlock Text="Recent authorizations" FontWeight="SemiBold"/>
-                                <ListBox Grid.Row="1" ItemsSource="{Binding RecentRequests}" BorderThickness="0" Background="Transparent" Margin="0,12,0,0" ScrollViewer.VerticalScrollBarVisibility="Auto">
-                                    <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="0,8"><Grid><TextBlock Text="{Binding PaymentAttemptId}" TextTrimming="CharacterEllipsis" Margin="0,0,70,0"/><TextBlock Text="{Binding Outcome}" HorizontalAlignment="Right" FontWeight="SemiBold"/></Grid><TextBlock Text="{Binding CompletedAt}" Style="{StaticResource SecondaryTextBlockStyle}"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
+                                <ListBox Grid.Row="1" ItemsSource="{Binding RecentRequests}"
+                                         BorderThickness="0" Background="Transparent" Margin="0,12,0,0"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                            <Setter Property="Padding" Value="0"/>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,9">
+                                                <StackPanel>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding PaymentAttemptId}"
+                                                                   TextWrapping="NoWrap"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   Margin="0,0,10,0"
+                                                                   ToolTip="{Binding PaymentAttemptId}"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Outcome}" FontWeight="SemiBold"/>
+                                                    </Grid>
+                                                    <TextBlock Text="{Binding CompletedAt}" Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
                                 </ListBox>
                             </Grid>
                         </Border>
@@ -588,7 +647,7 @@
                     <Border Grid.Row="1" Style="{StaticResource PanelBorderStyle}" Padding="24" Margin="0,16,0,0">
                         <StackPanel>
                             <TextBlock Text="Secondary monitor" FontWeight="SemiBold"/>
-                            <ComboBox ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}" DisplayMemberPath="Name" Style="{StaticResource SimulatorComboBoxStyle}" Margin="0,8,0,16"/>
+                            <ComboBox ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}" DisplayMemberPath="Name" TextSearch.TextPath="Name" Style="{StaticResource SimulatorComboBoxStyle}" Margin="0,8,0,16"/>
                             <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource SecondaryTextBlockStyle}" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
