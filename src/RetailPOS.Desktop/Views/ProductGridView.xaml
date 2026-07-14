@@ -67,7 +67,34 @@
                             <DataTemplate>
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                    <Path Data="{StaticResource IconTagGeometry}" Style="{StaticResource IconPathStyle}" Stroke="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center"/>
+                                    <Path HorizontalAlignment="Center"
+                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+                                        <Path.Style>
+                                            <Style TargetType="Path" BasedOn="{StaticResource IconPathStyle}">
+                                                <Setter Property="Data" Value="{StaticResource IconTagGeometry}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding}" Value="All categories">
+                                                        <Setter Property="Data" Value="{StaticResource IconCategoryGridGeometry}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding}" Value="Hair Care">
+                                                        <Setter Property="Data" Value="{StaticResource IconCategoryHairGeometry}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding}" Value="Health">
+                                                        <Setter Property="Data" Value="{StaticResource IconCategoryHealthGeometry}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding}" Value="Makeup">
+                                                        <Setter Property="Data" Value="{StaticResource IconCategoryMakeupGeometry}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding}" Value="Skin Care">
+                                                        <Setter Property="Data" Value="{StaticResource IconCategorySkinGeometry}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding}" Value="Sun Care">
+                                                        <Setter Property="Data" Value="{StaticResource IconCategorySunGeometry}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Path.Style>
+                                    </Path>
                                     <TextBlock Grid.Column="1" Text="{Binding}" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </Grid>
                             </DataTemplate>
@@ -80,7 +107,7 @@
                                 <Style.Triggers>
                                     <Trigger Property="IsSelected" Value="True">
                                         <Setter Property="Background" Value="{StaticResource SelectionBrush}"/>
-                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource PrimaryBlueBrush}"/>
                                         <Setter Property="FontWeight" Value="SemiBold"/>
                                     </Trigger>
                                 </Style.Triggers>
@@ -119,11 +146,12 @@
                             <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconFilterGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,8,0"/><TextBlock Text="Filter"/></StackPanel>
                         </Button>
                         <Button Grid.Column="2"
-                                Content="Search"
                                 Command="{Binding SearchCommand}"
                                 Style="{StaticResource PrimaryBlueButtonStyle}"
                                 MinWidth="96"
-                                Margin="10,0,0,0"/>
+                                Margin="10,0,0,0">
+                            <TextBlock Text="Search" Style="{StaticResource PrimaryButtonLabelTextStyle}"/>
+                        </Button>
                     </Grid>
 
                     <Grid Grid.Row="1" Margin="16,0,16,10">
@@ -288,7 +316,7 @@
                                             Style="{StaticResource PrimaryBlueButtonStyle}"
                                             Margin="0,16,0,0"
                                             AutomationProperties.HelpText="Adds the selected quantity and returns to Register">
-                                        <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCartGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" Margin="0,0,9,0"/><TextBlock Text="Add to Cart" Foreground="White"/></StackPanel>
+                                        <StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCartGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" Margin="0,0,9,0"/><TextBlock Text="Add to Cart" Style="{StaticResource PrimaryButtonLabelTextStyle}"/></StackPanel>
                                     </Button>
                                 </StackPanel>
                             </Grid>

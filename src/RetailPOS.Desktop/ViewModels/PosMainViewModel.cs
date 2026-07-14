@@ -61,7 +61,10 @@ public sealed partial class PosMainViewModel : ObservableObject, IDisposable
     private string _storeTerminalText = "Store not selected";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ConnectivityBadgeText))]
     private string _connectivityText = "API status unknown";
+
+    public string ConnectivityBadgeText => ConnectivityText.ToUpperInvariant();
 
     [ObservableProperty]
     private string _connectivityBadgeBackground = "#FFE5E7EB";

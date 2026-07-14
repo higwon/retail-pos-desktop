@@ -7,7 +7,7 @@
    <Grid>
     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
      <TextBlock Text="Register" Style="{StaticResource CashierPageTitleTextStyle}"/>
-     <Border Background="{Binding ConnectivityBadgeBackground}" CornerRadius="12" Padding="10,4" Margin="14,0,0,0"><TextBlock Text="{Binding ConnectivityText}" Foreground="{Binding ConnectivityBadgeForeground}" FontSize="12"/></Border>
+     <Border Style="{StaticResource StatusPillStyle}" Background="{Binding ConnectivityBadgeBackground}" Margin="14,0,0,0" VerticalAlignment="Center"><TextBlock Text="{Binding ConnectivityBadgeText}" Foreground="{Binding ConnectivityBadgeForeground}" FontWeight="SemiBold" VerticalAlignment="Center"/></Border>
      <TextBlock Text="{Binding DeviceSummaryText}" Style="{StaticResource SecondaryTextBlockStyle}" VerticalAlignment="Center" Margin="14,0,0,0" MaxWidth="210" TextTrimming="CharacterEllipsis" ToolTip="{Binding DeviceSummaryText}"/>
      <TextBlock x:Name="ScannerStatusText"
                 Text="{Binding BarcodeMessage}"

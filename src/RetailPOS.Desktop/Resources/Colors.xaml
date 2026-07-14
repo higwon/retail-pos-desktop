@@ -6,9 +6,10 @@
     <Color x:Key="ColorBorder">#FFD8DEE4</Color>
     <Color x:Key="ColorTextPrimary">#FF111827</Color>
     <Color x:Key="ColorTextSecondary">#FF4B5563</Color>
-    <Color x:Key="ColorPrimary">#FF0F766E</Color>
-    <Color x:Key="ColorPrimaryHover">#FF115E59</Color>
-    <Color x:Key="ColorDanger">#FFB42318</Color>
+    <Color x:Key="ColorPrimary">#FF2563EB</Color>
+    <Color x:Key="ColorPrimaryHover">#FF1D4ED8</Color>
+    <Color x:Key="ColorSecondaryButton">#FFEEF2FF</Color>
+    <Color x:Key="ColorDanger">#FFDC2626</Color>
     <Color x:Key="ColorWarning">#FFB54708</Color>
     <Color x:Key="ColorSuccess">#FF027A48</Color>
     <Color x:Key="ColorBrandDark">#FF111827</Color>
@@ -27,6 +28,7 @@
     <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource ColorTextSecondary}" />
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource ColorPrimary}" />
     <SolidColorBrush x:Key="PrimaryHoverBrush" Color="{StaticResource ColorPrimaryHover}" />
+    <SolidColorBrush x:Key="SecondaryButtonBrush" Color="{StaticResource ColorSecondaryButton}" />
     <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource ColorDanger}" />
     <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource ColorWarning}" />
     <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource ColorSuccess}" />
