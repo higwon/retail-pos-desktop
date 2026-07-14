@@ -83,6 +83,7 @@ public sealed class CheckoutPaymentCoordinator(
 
                 checkoutSession.Clear();
                 displayState.ShowCompleted();
+                receiptPreviewState.Clear();
 
                 try
                 {

@@ -193,7 +193,7 @@ public sealed partial class StatusViewModel : ObservableObject, IDisposable
         PendingCount = snapshot.PendingCount;
         RetryCount = snapshot.RetryCount;
         CompletedCount = snapshot.CompletedCount;
-        ReviewCount = snapshot.ReviewCount;
+        ReviewCount = snapshot.ReviewRequiredCount;
         LastCheckedText = snapshot.CheckedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
 
         Items.Clear();

@@ -69,18 +69,21 @@ public sealed class CheckoutPaymentCoordinatorTests
     public async Task ReceiptFailure_PreservesApprovedCompletionAndReturnsSafeMessage()
     {
         var session = SessionWithProduct();
+        var receiptState = new ReceiptPreviewState();
+        receiptState.Set(Receipt(Guid.NewGuid()));
         var coordinator = new CheckoutPaymentCoordinator(
             session,
             new StubPaymentStartService(Approved(PaymentMethod.Card)),
             new RecordingOrderCompletionService(),
             new StubReceiptService(throwOnGenerate: true),
-            new ReceiptPreviewState(),
+            receiptState,
             new CheckoutDisplayState());
 
         var execution = await coordinator.ExecuteAsync(PaymentMethod.Card);
 
         Assert.True(execution.Payment.IsApproved);
         Assert.True(session.Snapshot.IsEmpty);
+        Assert.False(receiptState.HasReceipt);
         Assert.Contains("Receipt preview", execution.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -178,6 +181,10 @@ public sealed class CheckoutPaymentCoordinatorTests
         Guid.NewGuid(), null, PendingCheckoutStatus.PaymentFailed,
         PaymentStatus.Failed, PaymentMethod.Card, 3600m, null,
         null, null, null, "Card was declined.");
+
+    private static ReceiptPreview Receipt(Guid localOrderId) => new(
+        "Store", "Address", "Previous order", "Cashier", "Register", ApprovedAtUtc,
+        new DateOnly(2026, 7, 13), [], [], 3600m, 0m, 3600m, "receipt", localOrderId);
 
     private sealed class StubPaymentStartService(RecoverablePaymentStartResult result)
         : IRecoverablePaymentStartService

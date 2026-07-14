@@ -34,7 +34,8 @@ public sealed class SyncStatusService(
             items.Count(item => item.Status == SyncQueueStatus.Pending && item.RetryCount == 0),
             items.Count(item => item.Status == SyncQueueStatus.Pending && item.RetryCount > 0),
             items.Count(item => item.Status == SyncQueueStatus.Completed),
-            items.Count(item => item.Status is SyncQueueStatus.Exhausted or SyncQueueStatus.Resolved),
+            items.Count(item => item.Status == SyncQueueStatus.Exhausted),
+            items.Count(item => item.Status == SyncQueueStatus.Resolved),
             items);
     }
 
@@ -55,7 +56,8 @@ public sealed record SyncStatusSnapshot(
     int PendingCount,
     int RetryCount,
     int CompletedCount,
-    int ReviewCount,
+    int ReviewRequiredCount,
+    int ResolvedCount,
     IReadOnlyList<SyncStatusItem> Items);
 
 public sealed record SyncStatusItem(
