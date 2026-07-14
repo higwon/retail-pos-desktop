@@ -142,7 +142,7 @@
                                     <StackPanel>
                                         <TextBlock Text="{Binding OrderNumber}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                         <TextBlock Style="{StaticResource SecondaryTextBlockStyle}" Margin="0,4,0,0">
-                                            <Run Text="{Binding CompletedTimeText}"/><Run Text="  "/><Run Text="{Binding CashierName}"/>
+                                            <Run Text="{Binding CompletedTimeText, Mode=OneWay}"/><Run Text="  "/><Run Text="{Binding CashierName, Mode=OneWay}"/>
                                         </TextBlock>
                                     </StackPanel>
                                     <TextBlock Grid.Column="1" Text="{Binding PaymentMethodText}" VerticalAlignment="Center"/>
