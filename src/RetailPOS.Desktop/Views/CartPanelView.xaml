@@ -142,11 +142,11 @@
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10"><Path Data="{StaticResource IconTagGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Order Discount" FontSize="16" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
                         <UniformGrid Rows="1" Columns="2" Margin="0,0,0,8">
                             <Button Command="{Binding SelectFixedDiscountCommand}" MinHeight="30">
-                                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsFixedDiscountMode}" Value="True"><Setter Property="Background" Value="{StaticResource PrimaryBrush}"/><Setter Property="Foreground" Value="White"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsFixedDiscountMode}" Value="True"><Setter Property="Background" Value="{StaticResource PrimaryBrush}"/><Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/><Setter Property="Foreground" Value="White"/></DataTrigger></Style.Triggers></Style></Button.Style>
                                 <TextBlock Text="Fixed amount" Style="{StaticResource ButtonLabelTextStyle}"/>
                             </Button>
                             <Button Command="{Binding SelectPercentageDiscountCommand}" MinHeight="30">
-                                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsPercentageDiscountMode}" Value="True"><Setter Property="Background" Value="{StaticResource PrimaryBrush}"/><Setter Property="Foreground" Value="White"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsPercentageDiscountMode}" Value="True"><Setter Property="Background" Value="{StaticResource PrimaryBrush}"/><Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/><Setter Property="Foreground" Value="White"/></DataTrigger></Style.Triggers></Style></Button.Style>
                                 <TextBlock Text="Percentage" Style="{StaticResource ButtonLabelTextStyle}"/>
                             </Button>
                         </UniformGrid>
