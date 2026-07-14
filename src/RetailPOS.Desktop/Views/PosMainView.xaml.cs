@@ -41,6 +41,7 @@ public partial class PosMainView : UserControl
         SubscribePaymentEvents();
         if (_loadedOnce)
         {
+            _viewModel.Activate();
             return;
         }
 

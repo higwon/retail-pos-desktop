@@ -154,6 +154,25 @@ public sealed partial class ReceiptHistoryViewModel : ObservableObject, IDisposa
         PrintCommand.Cancel();
     }
 
+    public void ResetSession()
+    {
+        Deactivate();
+        _lastCompletionOrderId = null;
+        SearchText = null;
+        SelectedDate = _clock.UtcNow.ToLocalTime().Date;
+        SetSelectedReceipt(null, loadDetail: false);
+        Receipts.Clear();
+        HasMore = false;
+        IsLoading = false;
+        IsDetailLoading = false;
+        IsPrinting = false;
+        IsSuccessStatus = false;
+        StatusMessage = null;
+        ErrorMessage = null;
+        SetDetail(null);
+        OnPropertyChanged(nameof(HasReceipts));
+    }
+
     private bool CanLoad() => !_disposed && !IsLoading;
     private bool CanLoadMore() => CanLoad() && HasMore;
     private bool CanPrint() => !_disposed && HasDetail && !IsPrinting && !IsDetailLoading;

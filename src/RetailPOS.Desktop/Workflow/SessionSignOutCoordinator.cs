@@ -9,21 +9,22 @@ public interface ISessionWorkflowLifecycle
 {
     void StopScanner();
     void CancelPayment();
-    void CloseReceipt();
+    void ResetReceiptWorkflow();
+    void CloseSimulator();
     void CloseCustomerDisplay();
 }
-
-public sealed record SessionWorkflowWindows(IWorkflowWindowCloser Receipt);
 
 public sealed class SessionWorkflowLifecycle(
     BarcodeScannerCoordinator scannerCoordinator,
     ICheckoutPaymentCoordinator paymentCoordinator,
-    SessionWorkflowWindows windows,
+    ReceiptHistoryViewModel receiptHistoryViewModel,
+    DeviceSimulatorWindowHost deviceSimulatorWindowHost,
     CustomerDisplayHost customerDisplayHost) : ISessionWorkflowLifecycle
 {
     public void StopScanner() => scannerCoordinator.Stop();
     public void CancelPayment() => paymentCoordinator.CancelActivePayment();
-    public void CloseReceipt() => windows.Receipt.Close();
+    public void ResetReceiptWorkflow() => receiptHistoryViewModel.ResetSession();
+    public void CloseSimulator() => deviceSimulatorWindowHost.Close();
     public void CloseCustomerDisplay() => customerDisplayHost.Close();
 }
 
@@ -38,7 +39,8 @@ public sealed class SessionSignOutCoordinator(
     {
         receiptPreviewState.Clear();
         workflowLifecycle.CancelPayment();
-        workflowLifecycle.CloseReceipt();
+        workflowLifecycle.ResetReceiptWorkflow();
+        workflowLifecycle.CloseSimulator();
         workflowLifecycle.CloseCustomerDisplay();
         workflowLifecycle.StopScanner();
         checkoutSession.Clear();

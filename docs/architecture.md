@@ -106,6 +106,12 @@ the bottom panel changes state without replacing the sale workspace. Device Simu
 modeless developer utility, and Customer Display remains a dedicated device-output
 window rather than a cashier workflow screen.
 
+POS-906 removes the former payment and receipt workflow windows and their generic host.
+Sign-out explicitly cancels payment and receipt work, closes Simulator and Customer
+Display, stops scanner coordination, clears cashier-owned state, and resets navigation to
+Login. Re-entering Register refreshes the active cashier without repeating one-time sync
+initialization.
+
 ## Error Handling
 
 - Domain errors should be explicit domain validations or exceptions.

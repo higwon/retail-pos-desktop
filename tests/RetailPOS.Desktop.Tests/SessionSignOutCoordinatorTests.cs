@@ -1,5 +1,6 @@
 using System.Drawing;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using RetailPOS.Application.Authentication;
 using RetailPOS.Application.Checkout;
 using RetailPOS.Application.Persistence;
@@ -39,17 +40,26 @@ public sealed class SessionSignOutCoordinatorTests
             () => displayWindow);
         displayHost.Open("secondary");
 
-        var receiptOperation = new PendingOperation();
-        using var receiptHost = new WorkflowWindowHost<TestWorkflowWindow>(
-            () => new TestWorkflowWindow(receiptOperation));
-        receiptHost.ShowOrActivate();
+        var navigator = CreateNavigator();
+        navigator.Reset(CashierWorkflowScreen.Register);
+        using var receiptHistory = new ReceiptHistoryViewModel(
+            new EmptyReceiptHistoryQuery(),
+            new NoopReceiptPrinter(),
+            new StubClock(),
+            receiptState,
+            navigator)
+        {
+            SearchText = "previous cashier"
+        };
+        using var simulatorHost = new DeviceSimulatorWindowHost(
+            () => throw new InvalidOperationException("Simulator should not open in this test."),
+            Options.Create(new DeviceSimulationOptions { Enabled = false }));
         var workflow = new SessionWorkflowLifecycle(
             scannerCoordinator,
             new NoopPaymentCoordinator(),
-            new SessionWorkflowWindows(receiptHost),
+            receiptHistory,
+            simulatorHost,
             displayHost);
-        var navigator = CreateNavigator();
-        navigator.Reset(CashierWorkflowScreen.Register);
         var coordinator = new SessionSignOutCoordinator(
             workflow,
             checkout,
@@ -59,10 +69,10 @@ public sealed class SessionSignOutCoordinatorTests
 
         coordinator.SignOut();
 
-        Assert.True(receiptOperation.IsCancellationRequested);
-        Assert.False(receiptHost.IsOpen);
         Assert.False(displayHost.IsOpen);
         Assert.True(displayWindow.WasClosed);
+        Assert.Null(receiptHistory.SearchText);
+        Assert.False(receiptHistory.HasDetail);
         Assert.True(checkout.Snapshot.IsEmpty);
         Assert.False(receiptState.HasReceipt);
         Assert.False(session.IsSignedIn);
@@ -103,7 +113,7 @@ public sealed class SessionSignOutCoordinatorTests
         coordinator.SignOut();
 
         Assert.Equal(
-            ["payment", "receipt", "display", "scanner"],
+            ["payment", "receipt", "simulator", "display", "scanner"],
             lifecycle.Calls);
         Assert.All(lifecycle.ReceiptWasCleared, Assert.True);
         Assert.All(lifecycle.CheckoutWasPresent, Assert.True);
@@ -132,28 +142,6 @@ public sealed class SessionSignOutCoordinatorTests
         "Store", "Terminal", "Order", "Cashier", "Register", DateTimeOffset.UtcNow,
         DateOnly.FromDateTime(DateTime.Today), [], [], 12000m, 0m, 12000m, "receipt");
 
-    private sealed class PendingOperation : IDisposable
-    {
-        private readonly CancellationTokenSource _cancellation = new();
-        public bool IsCancellationRequested => _cancellation.IsCancellationRequested;
-        public void Dispose() => _cancellation.Cancel();
-    }
-
-    private sealed class TestWorkflowWindow(IDisposable viewModel) : IWorkflowWindow
-    {
-        public bool IsVisible { get; private set; }
-        public event EventHandler? Closed;
-        public void Show() => IsVisible = true;
-        public void Activate() { }
-        public void Close()
-        {
-            if (!IsVisible) return;
-            IsVisible = false;
-            viewModel.Dispose();
-            Closed?.Invoke(this, EventArgs.Empty);
-        }
-    }
-
     private sealed class OrderingLifecycle(
         CheckoutSession checkout,
         ReceiptPreviewState receipt,
@@ -165,7 +153,8 @@ public sealed class SessionSignOutCoordinatorTests
         public List<bool> SessionWasPresent { get; } = [];
 
         public void CancelPayment() => Record("payment");
-        public void CloseReceipt() => Record("receipt");
+        public void ResetReceiptWorkflow() => Record("receipt");
+        public void CloseSimulator() => Record("simulator");
         public void CloseCustomerDisplay() => Record("display");
         public void StopScanner() => Record("scanner");
 
@@ -216,6 +205,32 @@ public sealed class SessionSignOutCoordinatorTests
     {
         public bool CheckAccess() => true;
         public Task InvokeAsync(Func<Task> action) => action();
+    }
+
+    private sealed class EmptyReceiptHistoryQuery : IReceiptHistoryQuery
+    {
+        public Task<ReceiptHistoryPage> SearchAsync(
+            ReceiptHistoryRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new ReceiptHistoryPage([], HasMore: false));
+
+        public Task<ReceiptPreview?> GetDetailAsync(
+            Guid localOrderId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<ReceiptPreview?>(null);
+    }
+
+    private sealed class NoopReceiptPrinter : IReceiptPrinter
+    {
+        public Task<ReceiptPrintResult> PrintAsync(
+            ReceiptPreview receipt,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class StubClock : ICheckoutClock
+    {
+        public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
     }
 
     private sealed class StubProductRepository(Product product) : IProductRepository

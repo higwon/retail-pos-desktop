@@ -78,12 +78,10 @@ seed run automatically. To preserve an offline/recovery scenario, do not delete 
 ### 1. Sign in and build a cart
 
 1. Sign in as `E0001 / 1234`.
-2. Select a category or search for a product and activate the product card.
-3. Open **Simulator** > **Barcode Scanner**, choose **Product Picker**, select a product,
+2. Open **Product Search**, select a product row, choose a quantity, and add it to the cart.
+3. Return to **Register**. Open **Simulator** > **Barcode Scanner**, choose **Product Picker**, select a product,
    and choose **Emit Scan**. Repeat it to show quantity accumulation.
-4. Enter a whole-KRW amount or percentage under **Manual discount** and apply it.
-
-![Retail POS register and product catalog](images/demo-register.png)
+4. Enter a whole-KRW amount or percentage under **Order Discount** and apply it.
 
 What this shows: the cashier path reads products from SQLite, supports direct and
 event-driven cart entry, and keeps simulator-only controls outside cashier ViewModels.
@@ -92,12 +90,13 @@ event-driven cart entry, and keeps simulator-only controls outside cashier ViewM
 
 ### 2. Complete an operator-driven card payment
 
-1. Choose **Checkout**, then **Card payment**.
-2. Keep the Payment window open and switch to **Simulator** > **Card Terminal**.
+1. Choose **Credit Card** in the Register payment band. The inline authorization panel opens immediately.
+2. Keep Register visible and switch to **Simulator** > **Card Terminal**.
 3. Inspect the pending authorization amount and payment-attempt identity.
 4. Select **Approve**, optionally edit the safe approval code/reference fields, and send
    the response.
-5. Confirm that the order completes exactly once and Receipt opens.
+5. Choose **Complete payment** and confirm that the order completes exactly once and the
+   persisted receipt detail opens inside **Receipts**.
 
 What this shows: a persisted `PendingCheckout` precedes terminal authorization. Only an
 approved typed response creates the order; no card number, track data, or token enters the
@@ -105,14 +104,16 @@ request/history model.
 
 ### 3. Print the receipt through the simulator
 
-1. Choose **Print** in Receipt.
+1. Choose **Print / reprint** in the selected receipt detail.
 2. Open **Simulator** > **Receipt Printer** and inspect the receipt identity, cashier,
    register, items, totals, payments, and printable text.
-3. Send **Paper out**, confirm the Receipt status reports failure, then retry.
+3. Send **Paper out**, confirm the receipt detail reports failure, then retry.
 4. Send **Printed** for the new request and confirm success appears in the same header area.
 
 What this shows: receipt generation is independent of printer availability, retries use a
 new request identity, and late/duplicate responses cannot rewrite a terminal result.
+
+![Persisted receipt history and selected receipt detail](images/demo-receipts.png)
 
 ### 4. Demonstrate offline checkout and reconnect sync
 
@@ -149,7 +150,7 @@ treated as a decline or approval.
 3. With a second monitor, open **Customer Display**, move the existing window to another
    target, and disconnect/reconnect that target.
 4. Start a pending device request and choose **Sign out**. Confirm scanner input stops,
-   pending work is cancelled, workflow/customer-display windows close, and login returns.
+   pending payment/print work is cancelled, Simulator and Customer Display close, and login returns.
 5. Sign in again and confirm the previous cart, receipt, checkout, and cashier state is absent.
 
 ## Architecture Narrative
@@ -224,12 +225,12 @@ cancellations, promotions, coupons, and membership pricing.
 
 ## Additional Screenshot Checklist
 
-The Login, Register, and modeless Device Simulator screenshots above were captured from
-the current Development build. Capture these additional workflow states before publishing
-a longer portfolio case study:
+The Login, Receipts, and modeless Device Simulator screenshots above document the
+Development workflow. Capture Register from a final EPIC-10 build before
+publishing a longer portfolio case study, then capture these additional states:
 
-1. Card Terminal pending authorization beside the modeless Payment window.
-2. Receipt Printer pending request beside Receipt.
+1. Card Terminal pending authorization beside the inline Register payment panel.
+2. Receipt Printer pending request beside the in-window receipt detail.
 3. Dashboard and Status after an offline order is queued.
 4. Recovery showing an Unknown payment without sensitive terminal data.
 

@@ -71,31 +71,37 @@
                 <StackPanel Grid.Row="1">
                     <Button x:Name="RegisterNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
+                            AutomationProperties.Name="Open Register"
                             Click="OnShowRegister">
                         <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconCardGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Register" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
                     <Button x:Name="ProductSearchNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
+                            AutomationProperties.Name="Open Product Search"
                             Click="OnShowProductSearch">
                         <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconSearchGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Product Search" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
                     <Button x:Name="ReceiptNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
+                            AutomationProperties.Name="Open Receipts"
                             Click="OnShowReceipts">
                         <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconReceiptGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Receipts" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
                     <Button x:Name="RecoveryNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
+                            AutomationProperties.Name="Open Recovery"
                             Click="OnShowRecovery">
                         <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconRecoveryGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Recovery" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
                     <Button x:Name="DashboardNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
+                            AutomationProperties.Name="Open Dashboard"
                             Click="OnShowDashboard">
                         <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconDashboardGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Dashboard" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
                     <Button x:Name="StatusNavigationButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
+                            AutomationProperties.Name="Open Status"
                             Click="OnShowStatus">
                         <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconStatusGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Status" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
@@ -104,6 +110,7 @@
                 <StackPanel Grid.Row="3">
                     <Button x:Name="DeviceSimulatorButton"
                             Style="{StaticResource NavigationRailButtonStyle}"
+                            AutomationProperties.Name="Open Device Simulator"
                             Click="OnOpenDeviceSimulator">
                         <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconDisplayGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Simulator" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>
@@ -112,6 +119,7 @@
                             Margin="0,5,0,10"/>
                     <Button
                             Style="{StaticResource NavigationRailButtonStyle}"
+                            AutomationProperties.Name="Sign out"
                             Click="OnSignOut">
                         <Grid Margin="8,0"><Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Path Data="{StaticResource IconSignOutGeometry}" Style="{StaticResource NavigationRailIconStyle}"/><TextBlock Grid.Column="1" Text="Sign out" Foreground="White" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="NoWrap"/></Grid>
                     </Button>

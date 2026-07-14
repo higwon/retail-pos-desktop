@@ -122,6 +122,46 @@ public sealed class ReceiptHistoryViewModelTests
         Assert.Equal(2, printer.RequestCount);
     }
 
+    [Fact]
+    public async Task ResetSession_CancelsPrintAndClearsCashierOwnedState()
+    {
+        var printer = new BlockingReceiptPrinter();
+        var state = new ReceiptPreviewState();
+        state.Set(Receipt(FirstOrderId, "ORDER-001"));
+        var query = new StubReceiptHistoryQuery(
+            Page(FirstOrderId),
+            id => Task.FromResult<ReceiptPreview?>(Receipt(id, "ORDER-001")));
+        using var viewModel = ViewModel(query, printer, state);
+        await viewModel.ActivateAsync();
+        await WaitUntilAsync(() => viewModel.HasDetail);
+        viewModel.SearchText = "previous cashier";
+
+        var printing = viewModel.PrintCommand.ExecuteAsync(null);
+        await printer.Started.Task;
+        viewModel.ResetSession();
+        await printing;
+
+        Assert.True(printer.WasCancelled);
+        Assert.Null(viewModel.SearchText);
+        Assert.Null(viewModel.SelectedReceipt);
+        Assert.Empty(viewModel.Receipts);
+        Assert.False(viewModel.HasDetail);
+        Assert.False(viewModel.IsPrinting);
+        Assert.Null(viewModel.StatusMessage);
+        Assert.Null(viewModel.ErrorMessage);
+    }
+
+    [Fact]
+    public void CashPaymentPresentation_FormatsTenderAndChange()
+    {
+        var payment = new ReceiptPaymentViewModel(
+            new ReceiptPreviewPayment(PaymentMethod.Cash, 3400m, "APP-CASH", 5000m, 1600m));
+
+        Assert.True(payment.HasCashTenderDetails);
+        Assert.Equal("Tendered 5,000 KRW", payment.CashTenderedText);
+        Assert.Equal("Change 1,600 KRW", payment.ChangeText);
+    }
+
     private static ReceiptHistoryViewModel ViewModel(
         IReceiptHistoryQuery query,
         IReceiptPrinter? printer = null,
@@ -222,6 +262,31 @@ public sealed class ReceiptHistoryViewModelTests
                 Succeeds ? ReceiptPrintOutcome.Printed : ReceiptPrintOutcome.Disconnected,
                 Succeeds ? Now : null,
                 Succeeds ? "Printed." : "Printer unavailable."));
+        }
+    }
+
+    private sealed class BlockingReceiptPrinter : IReceiptPrinter
+    {
+        public TaskCompletionSource Started { get; } = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        public bool WasCancelled { get; private set; }
+
+        public async Task<ReceiptPrintResult> PrintAsync(
+            ReceiptPreview receipt,
+            CancellationToken cancellationToken = default)
+        {
+            Started.TrySetResult();
+            try
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                WasCancelled = true;
+                throw;
+            }
+
+            throw new InvalidOperationException("The blocking printer must be cancelled.");
         }
     }
 

@@ -83,12 +83,17 @@ public sealed partial class PosMainViewModel : ObservableObject, IDisposable
 
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
+        Activate();
+        await RefreshSyncAsync(cancellationToken);
+    }
+
+    public void Activate()
+    {
         RefreshSession();
         RefreshCheckout();
         ApplyConnectivity(_connectivityStateStore.Current);
         _deviceStatusService?.Refresh();
         if (_deviceStatusService is not null) ApplyDeviceStatus(_deviceStatusService.Current);
-        await RefreshSyncAsync(cancellationToken);
     }
 
     private async Task RefreshSyncAsync(CancellationToken cancellationToken = default)

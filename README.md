@@ -15,11 +15,11 @@ without coupling simulator controls to cashier business commands.
 <table>
   <tr>
     <td width="50%"><img src="docs/images/demo-login.png" alt="Retail POS login screen" /></td>
-    <td width="50%"><img src="docs/images/demo-register.png" alt="Retail POS register and product catalog" /></td>
+    <td width="50%"><img src="docs/images/demo-receipts.png" alt="Retail POS receipt history and selected detail" /></td>
   </tr>
   <tr>
     <td align="center">Demo cashier/manager sign-in</td>
-    <td align="center">Category, product, cart, discount, and checkout</td>
+    <td align="center">Persisted receipt history, detail, and reprint</td>
   </tr>
 </table>
 
@@ -127,15 +127,15 @@ sequenceDiagram
 
     Cashier->>POS: Sign in and add products
     POS->>POS: Update cart and customer display
-    Cashier->>POS: Checkout / Card payment
+    Cashier->>POS: Choose Credit Card in Register
     POS->>DB: Save PendingCheckout
     POS->>Terminal: Create authorization request
-    Note over POS,Terminal: Payment window stays open while Simulator remains usable
+    Note over POS,Terminal: Inline payment status remains visible while Simulator stays usable
     Terminal-->>POS: Approve / Decline / Unknown
     alt Approved
         POS->>DB: Save order and SyncQueue item atomically
         POS->>DB: Mark PendingCheckout completed
-        POS-->>Cashier: Show receipt
+        POS-->>Cashier: Open persisted receipt detail in MainWindow
         POS->>API: Upload order when online
         API-->>POS: Completed or idempotent existing result
         POS->>DB: Mark SyncQueue completed
@@ -165,8 +165,9 @@ The other simulated devices follow the same separation:
   operator responds Printed, Paper out, Cover open, Timeout, or another typed result.
 - **Customer Display:** cart/payment state is shared with a Desktop-owned window that moves
   between secondary monitors without creating duplicate display windows.
-- **Sign out:** pending device work is cancelled, scanner coordination stops, workflow/display
-  windows close, and cart, receipt, checkout, and cashier session state are cleared.
+- **Sign out:** pending payment and print work is cancelled, scanner coordination stops,
+  Simulator and Customer Display close, and cart, receipt, checkout, and cashier session
+  state are cleared.
 
 For a clean-checkout walkthrough, screenshots, explicit limitations, and links to concrete
 code/tests, see the [Demo Guide and Portfolio Summary](docs/demo-and-portfolio.md).

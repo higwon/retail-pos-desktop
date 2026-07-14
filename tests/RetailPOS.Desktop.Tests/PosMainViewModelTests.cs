@@ -50,6 +50,26 @@ public sealed class PosMainViewModelTests
     }
 
     [Fact]
+    public void Activate_RefreshesCashierAfterSignOutAndRelogin()
+    {
+        var session = SignedInSession();
+        var viewModel = ViewModel(session);
+        session.Clear();
+        session.SignIn(new CashierSession(
+            Guid.Parse("40000000-0000-0000-0000-000000000001"),
+            Guid.Parse("50000000-0000-0000-0000-000000000001"),
+            Guid.Parse("60000000-0000-0000-0000-000000000001"),
+            "E0002",
+            "Cashier B",
+            NowUtc));
+
+        viewModel.Activate();
+
+        Assert.Equal("Cashier B (E0002)", viewModel.CashierText);
+        Assert.Equal("Store 40000000 | Terminal 50000000", viewModel.StoreTerminalText);
+    }
+
+    [Fact]
     public async Task SyncReviewCount_IsExposedForHeader()
     {
         var syncQueue = new RecordingSyncQueueRepository(
