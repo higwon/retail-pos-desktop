@@ -341,8 +341,8 @@ selection after that access decision.
 
 Device Simulator remains a modeless operator utility window. Customer Display remains
 a dedicated device-output window. The payment-method chooser and card dialog are removed;
-the Register bottom panel is the terminal-progress surface. Receipt presentation
-remains until receipt history/detail replaces it.
+the Register bottom panel is the terminal-progress surface. Persisted receipt history and
+detail replace the former receipt window, leaving no cashier workflow popup.
 
 ### Reason
 

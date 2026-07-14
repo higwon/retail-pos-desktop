@@ -1,7 +1,8 @@
 <UserControl x:Class="RetailPOS.Desktop.Views.ReceiptHistoryView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             AutomationProperties.Name="Receipt history">
+             AutomationProperties.Name="Receipt history"
+             KeyboardNavigation.TabNavigation="Continue">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <Style x:Key="ReceiptCalendarStyle" TargetType="Calendar">
@@ -159,7 +160,8 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Button Command="{Binding BackCommand}"
-                        Style="{StaticResource CashierPageBackButtonStyle}">
+                        Style="{StaticResource CashierPageBackButtonStyle}"
+                        AutomationProperties.Name="Back to previous cashier screen">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IconBackGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,8,0"/>
                         <TextBlock Text="Back"/>
@@ -174,7 +176,8 @@
                 <Button Grid.Column="2"
                         Command="{Binding RefreshCommand}"
                         Style="{StaticResource SecondaryButtonStyle}"
-                        VerticalAlignment="Center">
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="Refresh receipt history">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IconRefreshGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,8,0"/>
                         <TextBlock Text="Refresh"/>
@@ -226,7 +229,8 @@
                 <Button Grid.Column="2"
                         Command="{Binding SearchCommand}"
                         MinHeight="44"
-                        VerticalAlignment="Bottom">
+                        VerticalAlignment="Bottom"
+                        AutomationProperties.Name="Search receipts">
                     <TextBlock Text="Search" Foreground="White"/>
                 </Button>
             </Grid>
@@ -311,6 +315,7 @@
                     <Button Grid.Row="2" Command="{Binding LoadMoreCommand}"
                             Style="{StaticResource SecondaryButtonStyle}"
                             Margin="16,12"
+                            AutomationProperties.Name="Load more receipts"
                             Visibility="{Binding HasMore, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <TextBlock Text="Load more"/>
                     </Button>
@@ -335,7 +340,10 @@
                         </Border>
                     </Grid>
 
-                    <ScrollViewer Grid.Row="1" Margin="0,18,0,12" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Row="1"
+                                  Margin="0,18,0,12"
+                                  VerticalScrollBarVisibility="Auto"
+                                  AutomationProperties.Name="Selected receipt details">
                         <ScrollViewer.Resources>
                             <Style TargetType="ScrollBar">
                                 <Style.Triggers>
@@ -427,7 +435,10 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                        <Button Command="{Binding PrintCommand}" HorizontalAlignment="Right" MinWidth="130">
+                        <Button Command="{Binding PrintCommand}"
+                                HorizontalAlignment="Right"
+                                MinWidth="130"
+                                AutomationProperties.Name="Print or reprint selected receipt">
                             <StackPanel Orientation="Horizontal">
                                 <Path Data="{StaticResource IconReceiptGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" Margin="0,0,8,0"/>
                                 <TextBlock Text="Print / reprint" Foreground="White"/>

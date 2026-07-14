@@ -79,6 +79,11 @@ Print/Reprint creates a new printer request without changing the completed order
 receipt identity. Device Simulator and Customer Display keep their separate-window
 responsibilities.
 
+POS-906 completes the migration: no cashier payment or receipt action opens a popup.
+Keyboard focus follows the visual task order, status and error text use live-region
+announcements, and primary cashier actions retain touch-friendly targets. Sign-out clears
+the current cashier's transient receipt and payment presentation before returning to Login.
+
 ## UX Rules
 
 - A cashier should understand what action is available next.

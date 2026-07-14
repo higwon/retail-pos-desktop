@@ -71,7 +71,6 @@ public static class DesktopServiceRegistration
         services.AddTransient<ReceiptHistoryView>();
         services.AddTransient<CartPanelView>();
         services.AddTransient<CustomerDisplayWindow>();
-        services.AddTransient<ReceiptDialog>();
         services.AddTransient<DeviceSimulatorWindow>();
         services.AddTransient<CheckoutRecoveryView>();
         services.AddTransient<DashboardView>();
@@ -81,8 +80,7 @@ public static class DesktopServiceRegistration
         services.AddScoped<ProductGridViewModel>();
         services.AddTransient<CartPanelViewModel>();
         services.AddTransient<CustomerDisplayViewModel>();
-        services.AddTransient<ReceiptViewModel>();
-        services.AddTransient<ReceiptHistoryViewModel>();
+        services.AddScoped<ReceiptHistoryViewModel>();
         services.AddTransient<DeviceSimulatorViewModel>();
         services.AddTransient<ReceiptPrinterSimulatorViewModel>();
         services.AddTransient<BarcodeScannerSimulatorViewModel>();
@@ -98,11 +96,6 @@ public static class DesktopServiceRegistration
         services.AddTransient<Func<ICustomerDisplayWindow>>(provider =>
             () => provider.GetRequiredService<CustomerDisplayWindow>());
         services.AddScoped<CustomerDisplayHost>();
-        services.AddTransient<Func<ReceiptDialog>>(provider =>
-            () => provider.GetRequiredService<ReceiptDialog>());
-        services.AddScoped<WorkflowWindowHost<ReceiptDialog>>();
-        services.AddScoped(provider => new SessionWorkflowWindows(
-            provider.GetRequiredService<WorkflowWindowHost<ReceiptDialog>>()));
         services.AddScoped<ISessionWorkflowLifecycle, SessionWorkflowLifecycle>();
         services.AddScoped<SessionSignOutCoordinator>();
         services.AddTransient<Func<DeviceSimulatorWindow>>(provider =>

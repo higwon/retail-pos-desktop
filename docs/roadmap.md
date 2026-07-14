@@ -71,7 +71,7 @@ production authentication, or Phase 2 retail features:
 The repeatable operator walkthrough, engineering narrative, evidence links, and explicit
 non-production boundaries are maintained in the [Demo Guide and Portfolio Summary](demo-and-portfolio.md).
 
-## Active Register Workflow Redesign
+## Completed Register Workflow Redesign
 
 EPIC-10 redesigns the cashier flow around barcode-first selling and MainWindow screen
 transitions:
@@ -82,8 +82,9 @@ transitions:
 - Inline card and cash payment, including cash tender and change.
 - Persisted cash tender and change metadata through POS-907.
 - Persisted receipt history with list, detail, print, and reprint.
-- PaymentDialog retirement with inline checkout, followed by ReceiptDialog retirement
-  after receipt history/detail ships.
+- Payment and receipt dialog retirement; all cashier workflows remain in MainWindow.
+- Explicit sign-out teardown for payment, print, scanner, Simulator, Customer Display,
+  cart, receipt presentation, and cashier state.
 
 Device Simulator remains modeless and Customer Display remains a dedicated device
 output window.

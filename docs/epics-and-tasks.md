@@ -1013,7 +1013,7 @@ Scope:
 Objective: Redesign the cashier experience around barcode-first selling, a dominant
 selected-product list, Register-owned payment controls, and persisted receipt history.
 
-Status: Active.
+Status: Completed.
 
 Window policy:
 
@@ -1048,15 +1048,14 @@ Start card authorization from the Register bottom payment bar and show request/r
 state in the inline bottom panel while preserving terminal cancellation, Unknown-result
 recovery, duplicate prevention, and order completion semantics.
 
-Status: In review via PR #168.
+Status: Completed.
 
 ### POS-904 Inline Cash Tender and Change Workflow
 
 Add decimal-safe cash received input, quick tender values, change calculation, and
 under-tender validation in an inline Register bottom panel.
 
-Status: In review via PR #168. Persistence of cash tendered and change remains tracked
-by POS-907.
+Status: Completed. Persistence of cash tendered and change is completed by POS-907.
 
 ### POS-907 Persist Cash Tender and Change Metadata
 
@@ -1078,8 +1077,12 @@ Implementation rules:
 - Load selected detail separately and apply only the latest selection result.
 - A reprint creates a new printer request without modifying the completed order.
 
+Status: Completed.
+
 ### POS-906 Retire Remaining Workflow Dialogs and Validate Cashier Journey
 
 Keep the PaymentDialog retirement from POS-903/POS-904 intact, retire ReceiptDialog
 after the receipt history/detail replacement ships, then validate lifecycle, sign-out,
 accessibility, DPI, documentation, and end-to-end cashier paths.
+
+Status: Completed.

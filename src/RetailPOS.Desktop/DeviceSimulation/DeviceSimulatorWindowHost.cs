@@ -48,6 +48,18 @@ public sealed class DeviceSimulatorWindowHost(
         _window = null;
     }
 
+    public void Close()
+    {
+        if (_window is not { } window)
+        {
+            return;
+        }
+
+        window.Closed -= OnWindowClosed;
+        _window = null;
+        window.Close();
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -56,11 +68,6 @@ public sealed class DeviceSimulatorWindowHost(
         }
 
         _disposed = true;
-        if (_window is { } window)
-        {
-            window.Closed -= OnWindowClosed;
-            _window = null;
-            window.Close();
-        }
+        Close();
     }
 }

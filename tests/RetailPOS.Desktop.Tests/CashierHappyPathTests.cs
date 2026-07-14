@@ -154,6 +154,91 @@ public sealed class CashierHappyPathTests
         Assert.Equal(27000m, payload.TotalAmount);
     }
 
+    [Fact]
+    public async Task DemoCashFlow_PersistsTenderAndLoadsReceiptHistory()
+    {
+        await using var harness = await PersistenceHarness.CreateAsync();
+        var services = harness.Services;
+        var sessionContext = new CurrentSessionContext();
+        var timeProvider = new StubTimeProvider(Now);
+        var login = new LoginViewModel(new DemoLoginService(sessionContext, timeProvider))
+        {
+            EmployeeCode = "E0001",
+            Password = "1234"
+        };
+        await login.SignInCommand.ExecuteAsync(null);
+
+        var checkoutSession = new CheckoutSession();
+        var productGrid = new ProductGridViewModel(
+            services.GetRequiredService<IProductRepository>(),
+            checkoutSession);
+        await productGrid.ProcessBarcodeAsync("8801000000011");
+
+        var clock = new StubCheckoutClock(Now);
+        var idGenerator = new SequenceCheckoutIdGenerator(
+            CheckoutId,
+            OrderId,
+            QueueItemId);
+        var pendingRepository = services.GetRequiredService<IPendingCheckoutRepository>();
+        var orderRepository = services.GetRequiredService<IOrderRepository>();
+        var receiptHistoryRepository = services.GetRequiredService<IReceiptHistoryRepository>();
+        var receiptContext = new DemoReceiptContextProvider();
+        var receiptService = new ReceiptService(orderRepository, receiptContext);
+        var paymentStart = new RecoverablePaymentStartService(
+            pendingRepository,
+            new UnusedPaymentTerminal(),
+            new LocalCashPaymentProcessor(timeProvider),
+            sessionContext,
+            clock,
+            idGenerator);
+        var orderCompletion = new OrderCompletionService(
+            pendingRepository,
+            orderRepository,
+            services.GetRequiredService<ISyncQueueRepository>(),
+            services.GetRequiredService<ILocalTransaction>(),
+            clock,
+            idGenerator);
+        var receiptState = new ReceiptPreviewState();
+        var paymentCoordinator = new CheckoutPaymentCoordinator(
+            checkoutSession,
+            paymentStart,
+            orderCompletion,
+            receiptService,
+            receiptState,
+            new CheckoutDisplayState());
+        using var cartPanel = new CartPanelViewModel(checkoutSession, paymentCoordinator);
+        var completionCount = 0;
+        cartPanel.CashPaymentCompleted += (_, _) => completionCount++;
+
+        cartPanel.OpenCashTenderCommand.Execute(null);
+        cartPanel.CashReceivedInput = "20000";
+        await cartPanel.CompleteCashPaymentCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, completionCount);
+        Assert.True(checkoutSession.Snapshot.IsEmpty);
+        var order = await orderRepository.GetByIdAsync(OrderId);
+        Assert.NotNull(order);
+        var payment = Assert.Single(order.Payments);
+        Assert.Equal(PaymentMethod.Cash, payment.Method);
+        Assert.Equal(20000m, payment.CashTenderedAmount);
+        Assert.Equal(8000m, payment.ChangeAmount);
+
+        var history = new ReceiptHistoryQuery(
+            receiptHistoryRepository,
+            receiptService,
+            receiptContext);
+        var page = await history.SearchAsync(new ReceiptHistoryRequest(
+            DateOnly.FromDateTime(Now.LocalDateTime),
+            order.LocalOrderNumber));
+        var summary = Assert.Single(page.Items);
+        var detail = await history.GetDetailAsync(summary.LocalOrderId);
+        Assert.NotNull(detail);
+        var receiptPayment = Assert.Single(detail.Payments);
+        Assert.Equal(PaymentMethod.Cash, receiptPayment.Method);
+        Assert.Equal(20000m, receiptPayment.CashTenderedAmount);
+        Assert.Equal(8000m, receiptPayment.ChangeAmount);
+    }
+
     private sealed class StubTimeProvider(DateTimeOffset utcNow) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => utcNow;
@@ -162,6 +247,14 @@ public sealed class CashierHappyPathTests
     private sealed class StubCheckoutClock(DateTimeOffset utcNow) : ICheckoutClock
     {
         public DateTimeOffset UtcNow => utcNow;
+    }
+
+    private sealed class UnusedPaymentTerminal : IPaymentTerminal
+    {
+        public Task<PaymentAuthorizationResult> AuthorizeAsync(
+            PaymentAuthorizationRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("The cash flow must not call the card terminal.");
     }
 
     private sealed class SequenceCheckoutIdGenerator(params Guid[] ids) : ICheckoutIdGenerator
