@@ -174,7 +174,7 @@
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,18"><Path Data="{StaticResource IconCardGeometry}" Style="{StaticResource IconPathStyle}"/><TextBlock Text="Payment Method" FontSize="16" FontWeight="SemiBold" Margin="10,0,0,0"/></StackPanel>
                         <Button Command="{Binding StartCardPaymentCommand}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="54" Margin="0,0,0,10"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCardGeometry}" Style="{StaticResource IconPathStyle}" Margin="0,0,10,0"/><TextBlock Text="Credit Card"/></StackPanel></Button>
-                        <Button Command="{Binding OpenCashTenderCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" MinHeight="54"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCashGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" Margin="0,0,10,0"/><TextBlock Text="Cash"/></StackPanel></Button>
+                        <Button Command="{Binding OpenCashTenderCommand}" Style="{StaticResource PrimaryBlueButtonStyle}" MinHeight="54"><StackPanel Orientation="Horizontal"><Path Data="{StaticResource IconCashGeometry}" Style="{StaticResource IconPathStyle}" Stroke="White" Margin="0,0,10,0"/><TextBlock Text="Cash" Foreground="White"/></StackPanel></Button>
                     </StackPanel>
                     </Border>
                 </Grid>
