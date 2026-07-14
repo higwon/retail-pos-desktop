@@ -30,6 +30,32 @@ public sealed class ReceiptHistoryViewModelTests
     }
 
     [Fact]
+    public async Task CompletedPayment_DirectlyLoadsNewReceiptDespiteStaleFiltersAndMissingListRow()
+    {
+        var state = new ReceiptPreviewState();
+        state.Set(Receipt(SecondOrderId, "ORDER-NEW"));
+        var query = new StubReceiptHistoryQuery(
+            Page(FirstOrderId),
+            id => Task.FromResult<ReceiptPreview?>(
+                id == SecondOrderId ? Receipt(SecondOrderId, "ORDER-NEW") : Receipt(FirstOrderId, "ORDER-OLD")));
+        var navigator = Navigator();
+        navigator.Navigate(CashierWorkflowScreen.ReceiptDetail);
+        using var viewModel = ViewModel(query, state: state, navigator: navigator);
+        viewModel.SelectedDate = new DateTime(2026, 7, 13);
+        viewModel.SearchText = "ORDER-OLD";
+
+        await viewModel.ActivateAsync();
+
+        Assert.Equal(new DateTime(2026, 7, 14), viewModel.SelectedDate);
+        Assert.Null(viewModel.SearchText);
+        Assert.Equal("ORDER-NEW", viewModel.OrderNumber);
+        Assert.Null(viewModel.SelectedReceipt);
+        Assert.Equal([SecondOrderId], query.DetailRequests);
+        Assert.Equal(new DateOnly(2026, 7, 14), query.LastRequest?.BusinessDate);
+        Assert.Null(query.LastRequest?.SearchText);
+    }
+
+    [Fact]
     public async Task SelectingReceipt_IgnoresLateDetailFromOlderSelection()
     {
         var firstDetail = new TaskCompletionSource<ReceiptPreview?>(
@@ -75,12 +101,13 @@ public sealed class ReceiptHistoryViewModelTests
     private static ReceiptHistoryViewModel ViewModel(
         IReceiptHistoryQuery query,
         IReceiptPrinter? printer = null,
-        ReceiptPreviewState? state = null) => new(
+        ReceiptPreviewState? state = null,
+        CashierWorkflowNavigator? navigator = null) => new(
             query,
             printer ?? new StubReceiptPrinter(),
             new StubClock(Now),
             state ?? new ReceiptPreviewState(),
-            Navigator());
+            navigator ?? Navigator());
 
     private static ReceiptHistoryPage Page(params Guid[] orderIds) => new(
         orderIds.Select((id, index) => new ReceiptHistorySummary(
@@ -135,13 +162,24 @@ public sealed class ReceiptHistoryViewModelTests
         ReceiptHistoryPage page,
         Func<Guid, Task<ReceiptPreview?>> detailFactory) : IReceiptHistoryQuery
     {
+        public ReceiptHistoryRequest? LastRequest { get; private set; }
+        public List<Guid> DetailRequests { get; } = [];
+
         public Task<ReceiptHistoryPage> SearchAsync(
             ReceiptHistoryRequest request,
-            CancellationToken cancellationToken = default) => Task.FromResult(page);
+            CancellationToken cancellationToken = default)
+        {
+            LastRequest = request;
+            return Task.FromResult(page);
+        }
 
         public Task<ReceiptPreview?> GetDetailAsync(
             Guid localOrderId,
-            CancellationToken cancellationToken = default) => detailFactory(localOrderId);
+            CancellationToken cancellationToken = default)
+        {
+            DetailRequests.Add(localOrderId);
+            return detailFactory(localOrderId);
+        }
     }
 
     private sealed class StubReceiptPrinter : IReceiptPrinter

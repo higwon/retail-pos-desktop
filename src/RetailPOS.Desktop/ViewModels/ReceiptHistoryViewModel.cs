@@ -22,6 +22,7 @@ public sealed partial class ReceiptHistoryViewModel : ObservableObject, IDisposa
     private Guid? _lastCompletionOrderId;
     private int _loadVersion;
     private int _detailVersion;
+    private bool _suppressSelectionLoad;
     private bool _disposed;
 
     public ReceiptHistoryViewModel(
@@ -106,7 +107,37 @@ public sealed partial class ReceiptHistoryViewModel : ObservableObject, IDisposa
     public Task ActivateAsync()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        var completedReceipt = _receiptPreviewState.GetCurrent();
+        if (_workflowNavigator.Current == CashierWorkflowScreen.ReceiptDetail &&
+            completedReceipt is { LocalOrderId: var orderId } &&
+            orderId != Guid.Empty)
+        {
+            SelectedDate = completedReceipt.BusinessDate.ToDateTime(TimeOnly.MinValue);
+            SearchText = null;
+            return ActivateCompletedReceiptAsync(completedReceipt);
+        }
+
         return LoadPageAsync(reset: true, CancellationToken.None);
+    }
+
+    private async Task ActivateCompletedReceiptAsync(ReceiptPreview completedReceipt)
+    {
+        await LoadDetailAsync(completedReceipt.LocalOrderId);
+        if (_disposed || _workflowNavigator.Current != CashierWorkflowScreen.ReceiptDetail)
+        {
+            return;
+        }
+
+        if (_detail?.LocalOrderId != completedReceipt.LocalOrderId)
+        {
+            SetDetail(completedReceipt);
+        }
+
+        await LoadPageAsync(
+            reset: true,
+            CancellationToken.None,
+            completedReceipt.LocalOrderId,
+            preserveDetailWhenSelectionMissing: true);
     }
 
     public void Deactivate()
@@ -122,7 +153,11 @@ public sealed partial class ReceiptHistoryViewModel : ObservableObject, IDisposa
     private bool CanLoadMore() => CanLoad() && HasMore;
     private bool CanPrint() => !_disposed && HasDetail && !IsPrinting && !IsDetailLoading;
 
-    private async Task LoadPageAsync(bool reset, CancellationToken cancellationToken)
+    private async Task LoadPageAsync(
+        bool reset,
+        CancellationToken cancellationToken,
+        Guid? requiredSelectionId = null,
+        bool preserveDetailWhenSelectionMissing = false)
     {
         if (_disposed)
         {
@@ -167,15 +202,23 @@ public sealed partial class ReceiptHistoryViewModel : ObservableObject, IDisposa
             OnPropertyChanged(nameof(HasReceipts));
             var completedReceipt = _receiptPreviewState.GetCurrent();
             var newCompletionId = completedReceipt?.LocalOrderId;
-            var preferredId = newCompletionId != _lastCompletionOrderId
+            var preferredId = requiredSelectionId ?? (newCompletionId != _lastCompletionOrderId
                 ? newCompletionId
-                : SelectedReceipt?.LocalOrderId;
+                : SelectedReceipt?.LocalOrderId);
             _lastCompletionOrderId = newCompletionId;
-            SelectedReceipt = preferredId is { } id
-                ? Receipts.FirstOrDefault(item => item.LocalOrderId == id) ?? Receipts.FirstOrDefault()
-                : Receipts.FirstOrDefault();
+            var preferredReceipt = preferredId is { } id
+                ? Receipts.FirstOrDefault(item => item.LocalOrderId == id)
+                : null;
+            if (requiredSelectionId is not null)
+            {
+                SetSelectedReceipt(preferredReceipt, loadDetail: false);
+            }
+            else
+            {
+                SelectedReceipt = preferredReceipt ?? Receipts.FirstOrDefault();
+            }
 
-            if (SelectedReceipt is null)
+            if (SelectedReceipt is null && !preserveDetailWhenSelectionMissing)
             {
                 SetDetail(null);
             }
@@ -201,18 +244,21 @@ public sealed partial class ReceiptHistoryViewModel : ObservableObject, IDisposa
 
     partial void OnSelectedReceiptChanged(ReceiptHistoryItemViewModel? value)
     {
-        if (!_disposed)
+        if (!_disposed && !_suppressSelectionLoad)
         {
             PrintCommand.Cancel();
             _ = LoadDetailAsync(value);
         }
     }
 
-    private async Task LoadDetailAsync(ReceiptHistoryItemViewModel? selected)
+    private Task LoadDetailAsync(ReceiptHistoryItemViewModel? selected) =>
+        LoadDetailAsync(selected?.LocalOrderId);
+
+    private async Task LoadDetailAsync(Guid? localOrderId)
     {
         var version = Interlocked.Increment(ref _detailVersion);
         CancelAndDispose(ref _detailCancellation);
-        if (selected is null)
+        if (localOrderId is null)
         {
             SetDetail(null);
             return;
@@ -228,7 +274,7 @@ public sealed partial class ReceiptHistoryViewModel : ObservableObject, IDisposa
         try
         {
             var detail = await _receiptHistoryQuery.GetDetailAsync(
-                selected.LocalOrderId,
+                localOrderId.Value,
                 cancellation.Token);
             if (_disposed || version != Volatile.Read(ref _detailVersion))
             {
@@ -256,6 +302,21 @@ public sealed partial class ReceiptHistoryViewModel : ObservableObject, IDisposa
                 IsDetailLoading = false;
                 PrintCommand.NotifyCanExecuteChanged();
             }
+        }
+    }
+
+    private void SetSelectedReceipt(
+        ReceiptHistoryItemViewModel? receipt,
+        bool loadDetail)
+    {
+        _suppressSelectionLoad = !loadDetail;
+        try
+        {
+            SelectedReceipt = receipt;
+        }
+        finally
+        {
+            _suppressSelectionLoad = false;
         }
     }
 

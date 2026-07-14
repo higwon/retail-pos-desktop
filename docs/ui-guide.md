@@ -37,6 +37,7 @@ map is:
 ```text
 Login -> Register -> Product Search -> Register
                   -> Receipt History -> Receipt Detail
+Register -- completed payment --> Receipt Detail
 Register <-> Recovery
 Register <-> Dashboard / Status
 

@@ -225,6 +225,7 @@ public sealed class CashierWorkflowNavigator(
         CashierWorkflowScreen.Register => destination is
             CashierWorkflowScreen.ProductSearch or
             CashierWorkflowScreen.ReceiptHistory or
+            CashierWorkflowScreen.ReceiptDetail or
             CashierWorkflowScreen.Recovery or
             CashierWorkflowScreen.Dashboard or
             CashierWorkflowScreen.Status,

@@ -45,6 +45,19 @@ public sealed class CashierWorkflowNavigatorTests
     }
 
     [Fact]
+    public void CompletedPaymentCanPushReceiptDetailFromRegister()
+    {
+        var navigator = CreateNavigator();
+        navigator.Reset(CashierWorkflowScreen.Register);
+
+        navigator.Navigate(CashierWorkflowScreen.ReceiptDetail);
+
+        Assert.Equal(CashierWorkflowScreen.ReceiptDetail, navigator.Current);
+        Assert.True(navigator.GoBack());
+        Assert.Equal(CashierWorkflowScreen.Register, navigator.Current);
+    }
+
+    [Fact]
     public void ResetClearsBackHistoryAndPublishesTypedChange()
     {
         var navigator = CreateNavigator();
