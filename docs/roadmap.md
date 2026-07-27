@@ -89,16 +89,29 @@ transitions:
 Device Simulator remains modeless and Customer Display remains a dedicated device
 output window.
 
-## Later Phase 2 Product Ideas
+## Phase 2 Backlog
 
-- Refunds.
-- Order cancellation.
-- Coupon discounts.
-- Promotional discounts.
-- Membership discounts.
-- Discount rule engine.
-- Real hardware integrations.
-- Larger product and order volume testing.
+Phase 2 is a future product-expansion backlog. It is not part of the completed portfolio
+release, and no implementation schedule is currently committed.
+
+The proposed direction extends the completed offline-first checkout foundation into
+post-sale operations, durable server persistence, and deployable Windows delivery.
+
+Proposed epics:
+
+- EPIC-11 Durable Server Persistence.
+- EPIC-12 Cancellation and Refund.
+- EPIC-13 Discount and Promotion.
+- EPIC-14 Shift and Business-Day Closing.
+- EPIC-15 Real Device Adapter Pilot.
+- EPIC-16 Windows Deployment and Update.
+
+These epics are intentionally kept at backlog level. Detailed `POS-XXX` tasks, delivery
+milestones, technology selections, and implementation commitments should be created only
+when an epic is selected for active development.
+
+See the [Phase 2 Product Plan](phase-2-plan.md) for the proposed goals, scope principles,
+and decisions that must be revisited before implementation.
 
 ## Implementation Philosophy
 
