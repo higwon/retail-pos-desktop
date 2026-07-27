@@ -23,7 +23,7 @@ Sale
 -> durable server synchronization
 -> receipt lookup
 -> cancellation or refund
--> inventory and settlement evidence
+-> refund, tender, and settlement evidence
 -> shift and business-day review
 ```
 
