@@ -175,6 +175,7 @@ public sealed class OrderCompletionService(
         }
 
         var remaining = cart.DiscountAmount;
+        var remainingGross = cart.Subtotal;
         for (var index = 0; index < cart.Lines.Count; index++)
         {
             if (index == cart.Lines.Count - 1)
@@ -184,11 +185,16 @@ public sealed class OrderCompletionService(
             }
 
             var lineGross = cart.Lines[index].LineTotal;
+            remainingGross -= lineGross;
             var discount = decimal.Round(
                 cart.DiscountAmount * lineGross / cart.Subtotal,
                 0,
                 MidpointRounding.AwayFromZero);
-            discount = decimal.Min(discount, remaining);
+            // Leave only as much discount as the remaining lines can absorb.
+            discount = Math.Clamp(
+                discount,
+                decimal.Max(0m, remaining - remainingGross),
+                decimal.Min(lineGross, remaining));
             discounts[index] = discount;
             remaining -= discount;
         }
